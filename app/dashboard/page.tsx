@@ -251,7 +251,7 @@ export default function DashboardPage() {
 
           return {
             id: child.id,
-            first_name: child.name ?? child.first_name,
+            first_name: child.name,
             nickname: child.nickname,
             avatar_url: child.avatar_url ?? null,
             book_slot_allocation: child.book_slot_allocation,
