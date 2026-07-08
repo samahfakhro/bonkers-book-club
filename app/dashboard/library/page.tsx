@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -40,11 +42,20 @@ function BookCard({ book, onPress }: { book: Book; onPress: () => void }) {
   )
 }
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
+function SectionHeading({ children, seeAllHref }: { children: React.ReactNode; seeAllHref?: string }) {
+  const router = useRouter()
   return (
-    <p className="uppercase tracking-widest mb-4" style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#f9d174', fontSize: '1rem' }}>
-      {children}
-    </p>
+    <div className="flex items-center justify-between mb-4">
+      <p className="uppercase tracking-widest" style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#f9d174', fontSize: '1rem' }}>
+        {children}
+      </p>
+      {seeAllHref && (
+        <button onClick={() => router.push(seeAllHref)}
+          style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.8rem', opacity: 0.6, background: 'none', border: 'none', cursor: 'pointer' }}>
+          See all →
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -160,14 +171,14 @@ export default function LibraryPage() {
           <>
             {newArrivals.length > 0 && (
               <section className="mb-8">
-                <SectionHeading>New Arrivals</SectionHeading>
+                <SectionHeading seeAllHref="/dashboard/library/all?sort=new">New Arrivals</SectionHeading>
                 <HorizontalScroll books={newArrivals} onBook={navigateToBook} />
               </section>
             )}
 
             {popular.length > 0 && (
               <section className="mb-8">
-                <SectionHeading>Most Loved by Bonkers Kids</SectionHeading>
+                <SectionHeading seeAllHref="/dashboard/library/all?sort=popular">Most Loved by Bonkers Kids</SectionHeading>
                 <HorizontalScroll books={popular} onBook={navigateToBook} />
               </section>
             )}
@@ -191,6 +202,19 @@ export default function LibraryPage() {
                       </span>
                     </button>
                   ))}
+                  <button
+                    onClick={() => router.push('/dashboard/library/all')}
+                    className="flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all"
+                    style={{
+                      backgroundColor: 'rgba(237,219,195,0.08)',
+                      border: '2px solid rgba(237,219,195,0.25)',
+                      cursor: 'pointer',
+                    }}>
+                    <span style={{ fontSize: '1.4rem' }}>📚</span>
+                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.85rem', fontWeight: 600 }}>
+                      Browse Everything
+                    </span>
+                  </button>
                 </div>
               </section>
             )}
