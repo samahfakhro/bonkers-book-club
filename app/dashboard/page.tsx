@@ -221,7 +221,7 @@ export default function DashboardPage() {
 
       const { data: childrenData } = await supabase
         .from('child_profiles')
-        .select('id, name, nickname, avatar_id, book_slot_allocation, swap_permission')
+        .select('id, name, nickname, avatar_id, avatar_url, book_slot_allocation, swap_permission')
         .eq('household_id', memberData?.id ?? '')
         .order('created_at')
 
