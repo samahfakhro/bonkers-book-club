@@ -250,8 +250,12 @@ export default function DashboardPage() {
             .filter(Boolean)
 
           return {
-            ...child,
-            first_name: child.name,
+            id: child.id,
+            first_name: child.name ?? child.first_name,
+            nickname: child.nickname,
+            avatar_url: child.avatar_url ?? null,
+            book_slot_allocation: child.book_slot_allocation,
+            swap_permission: child.swap_permission,
             current_books: books,
             swap_status: swapStatus,
           }
