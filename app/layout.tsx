@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import type { Metadata, Viewport } from "next";
 import { Montserrat, Patrick_Hand, Amatic_SC, Love_Ya_Like_A_Sister, Cormorant_Garamond, Instrument_Serif, Chelsea_Market, Nunito } from "next/font/google";
 import "./globals.css";
