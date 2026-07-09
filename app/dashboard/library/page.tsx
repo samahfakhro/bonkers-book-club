@@ -189,33 +189,39 @@ export default function LibraryPage() {
                   {categories.map(cat => (
                     <button key={cat.id}
                       onClick={() => router.push(`/dashboard/library/category/${cat.id}`)}
-                      className="flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all"
+                      className="relative rounded-2xl overflow-hidden text-left"
                       style={{
-                        backgroundColor: cat.color_code ? `${cat.color_code}22` : 'rgba(229,116,81,0.1)',
-                        border: `2px solid ${cat.color_code ? `${cat.color_code}55` : 'rgba(229,116,81,0.3)'}`,
+                        aspectRatio: '3/2',
                         cursor: 'pointer',
+                        backgroundColor: cat.color_code ? `${cat.color_code}33` : 'rgba(229,116,81,0.15)',
+                        border: cat.image_url ? 'none' : `2px solid ${cat.color_code ? `${cat.color_code}55` : 'rgba(229,116,81,0.3)'}`,
                       }}>
                       {cat.image_url
-                        ? <img src={cat.image_url} alt="" style={{ width: '1.6rem', height: '1.6rem', objectFit: 'contain' }} />
-                        : cat.emoji && <span style={{ fontSize: '1.4rem' }}>{cat.emoji}</span>
+                        ? <img src={cat.image_url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : cat.emoji && <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -70%)', fontSize: '2.5rem' }}>{cat.emoji}</span>
                       }
-                      <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.85rem', fontWeight: 600 }}>
-                        {cat.name}
-                      </span>
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '8px 12px', background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%)' }}>
+                        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.85rem', fontWeight: 600 }}>
+                          {cat.name}
+                        </span>
+                      </div>
                     </button>
                   ))}
                   <button
                     onClick={() => router.push('/dashboard/library/all')}
-                    className="flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all"
+                    className="relative rounded-2xl overflow-hidden text-left"
                     style={{
-                      backgroundColor: 'rgba(237,219,195,0.08)',
-                      border: '2px solid rgba(237,219,195,0.25)',
+                      aspectRatio: '3/2',
                       cursor: 'pointer',
+                      backgroundColor: 'rgba(237,219,195,0.08)',
+                      border: '2px solid rgba(237,219,195,0.2)',
                     }}>
-                    <span style={{ fontSize: '1.4rem' }}>📚</span>
-                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.85rem', fontWeight: 600 }}>
-                      Browse Everything
-                    </span>
+                    <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -70%)', fontSize: '2.5rem' }}>📚</span>
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '8px 12px', background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%)' }}>
+                      <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.85rem', fontWeight: 600 }}>
+                        Browse Everything
+                      </span>
+                    </div>
                   </button>
                 </div>
               </section>
