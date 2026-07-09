@@ -200,11 +200,6 @@ export default function LibraryPage() {
                         ? <img src={cat.image_url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                         : cat.emoji && <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -70%)', fontSize: '2.5rem' }}>{cat.emoji}</span>
                       }
-                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '8px 12px', background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%)' }}>
-                        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.85rem', fontWeight: 600 }}>
-                          {cat.name}
-                        </span>
-                      </div>
                     </button>
                   ))}
                   <button
@@ -216,12 +211,7 @@ export default function LibraryPage() {
                       backgroundColor: 'rgba(237,219,195,0.08)',
                       border: '2px solid rgba(237,219,195,0.2)',
                     }}>
-                    <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -70%)', fontSize: '2.5rem' }}>📚</span>
-                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '8px 12px', background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%)' }}>
-                      <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.85rem', fontWeight: 600 }}>
-                        Browse Everything
-                      </span>
-                    </div>
+                    <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '2.5rem' }}>📚</span>
                   </button>
                 </div>
               </section>
