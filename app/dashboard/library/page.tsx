@@ -189,16 +189,25 @@ export default function LibraryPage() {
                   {categories.map(cat => (
                     <button key={cat.id}
                       onClick={() => router.push(`/dashboard/library/category/${cat.id}`)}
-                      className="relative rounded-2xl overflow-hidden text-left"
+                      className="text-left"
                       style={{
-                        aspectRatio: '2/3',
+                        background: 'none',
+                        border: 'none',
                         cursor: 'pointer',
-                        backgroundColor: cat.color_code ? `${cat.color_code}33` : 'rgba(229,116,81,0.15)',
-                        border: cat.image_url ? 'none' : `2px solid ${cat.color_code ? `${cat.color_code}55` : 'rgba(229,116,81,0.3)'}`,
+                        padding: 0,
                       }}>
                       {cat.image_url
-                        ? <img src={cat.image_url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />
-                        : cat.emoji && <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -70%)', fontSize: '2.5rem' }}>{cat.emoji}</span>
+                        ? <img src={cat.image_url} alt={cat.name} style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '16px' }} />
+                        : (
+                          <div className="relative rounded-2xl overflow-hidden flex items-center justify-center"
+                            style={{
+                              aspectRatio: '2/3',
+                              backgroundColor: cat.color_code ? `${cat.color_code}33` : 'rgba(229,116,81,0.15)',
+                              border: `2px solid ${cat.color_code ? `${cat.color_code}55` : 'rgba(229,116,81,0.3)'}`,
+                            }}>
+                            {cat.emoji && <span style={{ fontSize: '2.5rem' }}>{cat.emoji}</span>}
+                          </div>
+                        )
                       }
                     </button>
                   ))}
