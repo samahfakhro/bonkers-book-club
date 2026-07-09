@@ -185,42 +185,21 @@ export default function LibraryPage() {
             {categories.length > 0 && (
               <section className="mb-8">
                 <SectionHeading>Browse by Category</SectionHeading>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-4 gap-2">
                   {categories.map(cat => (
                     <button key={cat.id}
                       onClick={() => router.push(`/dashboard/library/category/${cat.id}`)}
-                      className="text-left"
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: 0,
-                      }}>
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                       {cat.image_url
-                        ? <img src={cat.image_url} alt={cat.name} style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '16px' }} />
-                        : (
-                          <div className="relative rounded-2xl overflow-hidden flex items-center justify-center"
-                            style={{
-                              aspectRatio: '2/3',
-                              backgroundColor: cat.color_code ? `${cat.color_code}33` : 'rgba(229,116,81,0.15)',
-                              border: `2px solid ${cat.color_code ? `${cat.color_code}55` : 'rgba(229,116,81,0.3)'}`,
-                            }}>
-                            {cat.emoji && <span style={{ fontSize: '2.5rem' }}>{cat.emoji}</span>}
-                          </div>
-                        )
+                        ? <img src={cat.image_url} alt={cat.name} style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '12px' }} />
+                        : <div style={{ width: '100%', aspectRatio: '2/3', borderRadius: '12px', backgroundColor: cat.color_code ? `${cat.color_code}33` : 'rgba(229,116,81,0.15)' }} />
                       }
                     </button>
                   ))}
                   <button
                     onClick={() => router.push('/dashboard/library/all')}
-                    className="relative rounded-2xl overflow-hidden text-left"
-                    style={{
-                      aspectRatio: '2/3',
-                      cursor: 'pointer',
-                      backgroundColor: 'rgba(237,219,195,0.08)',
-                      border: '2px solid rgba(237,219,195,0.2)',
-                    }}>
-                    <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '2.5rem' }}>📚</span>
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    <div style={{ width: '100%', aspectRatio: '2/3', borderRadius: '12px', backgroundColor: 'rgba(237,219,195,0.12)' }} />
                   </button>
                 </div>
               </section>
