@@ -185,11 +185,11 @@ export default function LibraryPage() {
             {categories.length > 0 && (
               <section className="mb-8">
                 <SectionHeading>Browse by Category</SectionHeading>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
                   {categories.map(cat => (
                     <button key={cat.id}
                       onClick={() => router.push(`/dashboard/library/category/${cat.id}`)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0, width: '100px' }}>
                       {cat.image_url
                         ? <img src={cat.image_url} alt={cat.name} style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '12px' }} />
                         : <div style={{ width: '100%', aspectRatio: '2/3', borderRadius: '12px', backgroundColor: cat.color_code ? `${cat.color_code}33` : 'rgba(229,116,81,0.15)' }} />
@@ -198,7 +198,7 @@ export default function LibraryPage() {
                   ))}
                   <button
                     onClick={() => router.push('/dashboard/library/all')}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0, width: '100px' }}>
                     <div style={{ width: '100%', aspectRatio: '2/3', borderRadius: '12px', backgroundColor: 'rgba(237,219,195,0.12)' }} />
                   </button>
                 </div>
