@@ -191,7 +191,7 @@ export default function LibraryPage() {
                       onClick={() => router.push(`/dashboard/library/category/${cat.id}`)}
                       className="relative rounded-2xl overflow-hidden text-left"
                       style={{
-                        aspectRatio: '3/2',
+                        aspectRatio: '2/3',
                         cursor: 'pointer',
                         backgroundColor: cat.color_code ? `${cat.color_code}33` : 'rgba(229,116,81,0.15)',
                         border: cat.image_url ? 'none' : `2px solid ${cat.color_code ? `${cat.color_code}55` : 'rgba(229,116,81,0.3)'}`,
@@ -206,7 +206,7 @@ export default function LibraryPage() {
                     onClick={() => router.push('/dashboard/library/all')}
                     className="relative rounded-2xl overflow-hidden text-left"
                     style={{
-                      aspectRatio: '3/2',
+                      aspectRatio: '2/3',
                       cursor: 'pointer',
                       backgroundColor: 'rgba(237,219,195,0.08)',
                       border: '2px solid rgba(237,219,195,0.2)',
