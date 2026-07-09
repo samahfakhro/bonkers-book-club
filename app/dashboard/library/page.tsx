@@ -197,7 +197,7 @@ export default function LibraryPage() {
                         border: cat.image_url ? 'none' : `2px solid ${cat.color_code ? `${cat.color_code}55` : 'rgba(229,116,81,0.3)'}`,
                       }}>
                       {cat.image_url
-                        ? <img src={cat.image_url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ? <img src={cat.image_url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />
                         : cat.emoji && <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -70%)', fontSize: '2.5rem' }}>{cat.emoji}</span>
                       }
                     </button>
