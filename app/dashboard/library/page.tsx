@@ -17,6 +17,7 @@ type Category = {
   name: string
   emoji: string | null
   color_code: string | null
+  image_url: string | null
 }
 
 function BookCard({ book, onPress }: { book: Book; onPress: () => void }) {
@@ -86,7 +87,7 @@ export default function LibraryPage() {
       const [{ data: arrivals }, { data: pop }, { data: cats }] = await Promise.all([
         supabase.from('books').select(bookSelect).eq('is_active', true).order('created_at', { ascending: false }).limit(10),
         supabase.from('books').select(bookSelect).eq('is_active', true).order('total_ratings_count', { ascending: false }).limit(10),
-        supabase.from('categories').select('id, name, emoji, color_code').order('name'),
+        supabase.from('categories').select('id, name, emoji, color_code, image_url').order('name'),
       ])
 
       if (arrivals) setNewArrivals(arrivals)
@@ -194,7 +195,10 @@ export default function LibraryPage() {
                         border: `2px solid ${cat.color_code ? `${cat.color_code}55` : 'rgba(229,116,81,0.3)'}`,
                         cursor: 'pointer',
                       }}>
-                      {cat.emoji && <span style={{ fontSize: '1.4rem' }}>{cat.emoji}</span>}
+                      {cat.image_url
+                        ? <img src={cat.image_url} alt="" style={{ width: '1.6rem', height: '1.6rem', objectFit: 'contain' }} />
+                        : cat.emoji && <span style={{ fontSize: '1.4rem' }}>{cat.emoji}</span>
+                      }
                       <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.85rem', fontWeight: 600 }}>
                         {cat.name}
                       </span>
