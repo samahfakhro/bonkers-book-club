@@ -88,7 +88,7 @@ export default function LibraryPage() {
       const [{ data: arrivals }, { data: pop }, { data: cats }] = await Promise.all([
         supabase.from('books').select(bookSelect).eq('is_active', true).order('created_at', { ascending: false }).limit(10),
         supabase.from('books').select(bookSelect).eq('is_active', true).order('total_ratings_count', { ascending: false }).limit(10),
-        supabase.from('categories').select('id, name, emoji, color_code, image_url').order('name'),
+        supabase.from('categories').select('id, name, emoji, color_code, image_url').order('display_order'),
       ])
 
       if (arrivals) setNewArrivals(arrivals)
