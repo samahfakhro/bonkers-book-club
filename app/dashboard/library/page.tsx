@@ -125,7 +125,7 @@ export default function LibraryPage() {
 
   return (
     <main className="min-h-screen pb-24" style={{ backgroundImage: 'url(/background_3.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
-      <div className="max-w-2xl mx-auto px-4 pt-8">
+      <div className="max-w-xl mx-auto px-4 pt-8">
 
         {/* Top bar */}
         <div className="flex items-center justify-between mb-6">
