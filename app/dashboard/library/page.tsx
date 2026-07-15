@@ -20,6 +20,12 @@ type Category = {
   image_url: string | null
 }
 
+type ReadingLevel = {
+  id: string
+  name: string
+  image_url: string | null
+}
+
 function BookCard({ book, onPress }: { book: Book; onPress: () => void }) {
   return (
     <button onClick={onPress} className="text-left flex flex-col" style={{ background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
@@ -74,6 +80,7 @@ function HorizontalScroll({ books, onBook }: { books: Book[]; onBook: (id: strin
 export default function LibraryPage() {
   const router = useRouter()
   const [categories, setCategories] = useState<Category[]>([])
+  const [readingLevels, setReadingLevels] = useState<ReadingLevel[]>([])
   const [newArrivals, setNewArrivals] = useState<Book[]>([])
   const [popular, setPopular] = useState<Book[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -85,15 +92,17 @@ export default function LibraryPage() {
     async function load() {
       const bookSelect = 'id, title, author, cover_image_url, average_rating'
 
-      const [{ data: arrivals }, { data: pop }, { data: cats }] = await Promise.all([
+      const [{ data: arrivals }, { data: pop }, { data: cats }, { data: levels }] = await Promise.all([
         supabase.from('books').select(bookSelect).eq('is_active', true).order('created_at', { ascending: false }).limit(10),
         supabase.from('books').select(bookSelect).eq('is_active', true).order('total_ratings_count', { ascending: false }).limit(10),
         supabase.from('categories').select('id, name, emoji, color_code, image_url').order('display_order'),
+        supabase.from('reading_levels').select('id, name, image_url').order('id'),
       ])
 
       if (arrivals) setNewArrivals(arrivals)
       if (pop) setPopular(pop)
       if (cats) setCategories(cats)
+      if (levels) setReadingLevels(levels)
       setLoading(false)
     }
     load()
@@ -202,6 +211,24 @@ export default function LibraryPage() {
                     style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                     <div style={{ width: '100%', aspectRatio: '2/3', borderRadius: '12px', backgroundColor: 'rgba(237,219,195,0.12)' }} />
                   </button>
+                </div>
+              </section>
+            )}
+
+            {readingLevels.length > 0 && (
+              <section className="mb-8">
+                <SectionHeading cormorant>Browse by Reading Level</SectionHeading>
+                <div className="grid grid-cols-3 gap-3">
+                  {readingLevels.map(level => (
+                    <button key={level.id}
+                      onClick={() => router.push(`/dashboard/library/level/${level.id}`)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                      {level.image_url
+                        ? <img src={level.image_url} alt={level.name} style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '12px' }} />
+                        : <div style={{ width: '100%', aspectRatio: '2/3', borderRadius: '12px', backgroundColor: 'rgba(237,219,195,0.12)' }} />
+                      }
+                    </button>
+                  ))}
                 </div>
               </section>
             )}
