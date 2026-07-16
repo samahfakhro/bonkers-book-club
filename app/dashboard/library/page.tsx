@@ -126,6 +126,14 @@ export default function LibraryPage() {
     router.push(`/dashboard/library/${bookId}`)
   }
 
+  async function handleSurpriseMe() {
+    const { data } = await supabase.from('books').select('id').eq('is_active', true)
+    if (data && data.length > 0) {
+      const random = data[Math.floor(Math.random() * data.length)]
+      router.push(`/dashboard/library/${random.id}`)
+    }
+  }
+
   if (loading) return (
     <main className="min-h-screen flex items-center justify-center" style={{ backgroundImage: 'url(/background_3.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
       <p style={{ color: '#eddbc3', fontFamily: 'var(--font-montserrat), sans-serif' }}>Loading…</p>
@@ -191,6 +199,23 @@ export default function LibraryPage() {
                 <HorizontalScroll books={popular} onBook={navigateToBook} />
               </section>
             )}
+
+            <section className="mb-8">
+              {[
+                { label: 'New to Bonkers', href: '/dashboard/library/all?sort=new' },
+                { label: 'Most Loved', href: '/dashboard/library/all?sort=popular' },
+                { label: 'Surprise Me', onClick: handleSurpriseMe },
+              ].map(item => (
+                <button key={item.label}
+                  onClick={item.onClick ?? (() => router.push(item.href!))}
+                  className="block w-full text-left"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0', borderBottom: '1px solid rgba(237,219,195,0.12)' }}>
+                  <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.8rem', fontWeight: 600 }}>
+                    {item.label}
+                  </span>
+                </button>
+              ))}
+            </section>
 
             {categories.length > 0 && (
               <section className="mb-8">
