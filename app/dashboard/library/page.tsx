@@ -286,6 +286,7 @@ export default function LibraryPage() {
               </div>
 
               {/* Surprise Me */}
+              <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, marginBottom: '12px' }}>Surprise Me</p>
               <button onClick={handleSurpriseMe} disabled={surpriseActive}
                 style={{ background: 'none', border: 'none', cursor: surpriseActive ? 'default' : 'pointer', padding: 0, width: '100%', opacity: surpriseActive ? 0.8 : 1, transition: 'opacity 0.2s' }}>
                 <img src="/surpriseme.png" alt="Surprise Me" style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '12px' }} />
