@@ -140,12 +140,12 @@ export default function LibraryPage() {
     const generated = Array.from({ length: 70 }, (_, i) => ({
       id: i,
       src: assets[Math.floor(Math.random() * assets.length)],
-      x: 30 + Math.random() * 40,
-      y: 30 + Math.random() * 40,
+      x: 50,
+      y: 50,
       size: 28 + Math.floor(Math.random() * 48),
       angle: Math.random() * 360,
-      distance: 80 + Math.random() * 220,
-      rotation: -60 + Math.random() * 120,
+      distance: 100 + Math.random() * 280,
+      rotation: -90 + Math.random() * 180,
     }))
     setParticles(generated)
 
@@ -312,9 +312,9 @@ export default function LibraryPage() {
         <div style={{ position: 'fixed', inset: 0, zIndex: 999, pointerEvents: 'none', overflow: 'hidden' }}>
           <style>{`
             @keyframes bonky-burst {
-              0%   { opacity: 1; transform: translate(-50%, -50%) scale(0.2) rotate(0deg); }
+              0%   { opacity: 1; transform: translate(-50%, -50%) rotate(0deg); }
               65%  { opacity: 1; }
-              100% { opacity: 0; transform: translate(calc(-50% + var(--bdx)), calc(-50% + var(--bdy))) scale(1.1) rotate(var(--bdr)); }
+              100% { opacity: 0; transform: translate(calc(-50% + var(--bdx)), calc(-50% + var(--bdy))) rotate(var(--bdr)); }
             }
           `}</style>
           {particles.map(p => {
