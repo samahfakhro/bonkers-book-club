@@ -168,11 +168,9 @@ export default function LibraryPage() {
       })
       setParticles(generated)
 
-      setTimeout(() => {
-        setSurpriseActive(false)
-        setParticles([])
-        if (bookId) router.push(`/dashboard/library/${bookId}?surprise=true`)
-      }, 1800)
+      if (bookId) setTimeout(() => {
+        router.push(`/dashboard/library/${bookId}?surprise=true`)
+      }, 400)
     }, 700)
   }
 

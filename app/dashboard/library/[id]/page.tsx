@@ -39,6 +39,32 @@ export default function BookDetailPage() {
   const [isAvailable, setIsAvailable] = useState(true)
   const [isNotifying, setIsNotifying] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [showSurpriseOverlay, setShowSurpriseOverlay] = useState(isSurprise)
+
+  const surpriseAssets = [
+    '/sparklestar_yellow.png', '/sparklestar_red.png', '/sparklestar_turquoise.png',
+    '/sparklestar_purple.png', '/sparklestar_orange.png', '/sparklestar_pink.png',
+    '/sparklestar_blue.png', '/feather_pink.png', '/feather_purple.png', '/feather_blue.png',
+  ]
+  const surpriseParticles = isSurprise ? Array.from({ length: 70 }, (_, i) => {
+    const src = surpriseAssets[i % surpriseAssets.length]
+    const isFeather = src.startsWith('/feather')
+    return {
+      id: i,
+      src,
+      x: 5 + Math.random() * 90,
+      y: 5 + Math.random() * 90,
+      size: isFeather ? 90 + Math.floor(Math.random() * 80) : 32 + Math.floor(Math.random() * 52),
+      rotation: Math.random() * 360,
+    }
+  }) : []
+
+  useEffect(() => {
+    if (isSurprise) {
+      const t = setTimeout(() => setShowSurpriseOverlay(false), 1200)
+      return () => clearTimeout(t)
+    }
+  }, [isSurprise])
 
   useEffect(() => {
     async function load() {
@@ -271,6 +297,35 @@ export default function BookDetailPage() {
         )}
 
       </div>
+
+      {/* Surprise transition overlay — particles spread across screen, fade out to reveal page */}
+      {isSurprise && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 999, pointerEvents: 'none', overflow: 'hidden',
+          opacity: showSurpriseOverlay ? 1 : 0,
+          transition: 'opacity 0.8s ease-out',
+        }}>
+          <style>{`
+            @keyframes surprise-spin {
+              from { transform: translate(-50%, -50%) rotate(0deg); }
+              to   { transform: translate(-50%, -50%) rotate(360deg); }
+            }
+          `}</style>
+          {surpriseParticles.map(p => (
+            <img key={p.id} src={p.src} alt=""
+              style={{
+                position: 'absolute',
+                left: `${p.x}%`,
+                top: `${p.y}%`,
+                width: `${p.size}px`,
+                height: 'auto',
+                transform: `translate(-50%, -50%) rotate(${p.rotation}deg)`,
+                pointerEvents: 'none',
+              }}
+            />
+          ))}
+        </div>
+      )}
     </main>
   )
 }
