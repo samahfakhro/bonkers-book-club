@@ -87,6 +87,8 @@ export default function LibraryPage() {
   const [searchResults, setSearchResults] = useState<Book[] | null>(null)
   const [searchLoading, setSearchLoading] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [surpriseActive, setSurpriseActive] = useState(false)
+  const [particles, setParticles] = useState<{ id: number; src: string; x: number; y: number; size: number; angle: number; distance: number; rotation: number }[]>([])
 
   useEffect(() => {
     async function load() {
@@ -127,11 +129,36 @@ export default function LibraryPage() {
   }
 
   async function handleSurpriseMe() {
+    if (surpriseActive) return
+    setSurpriseActive(true)
+
+    const assets = [
+      '/sparklestar_yellow.png', '/sparklestar_red.png', '/sparklestar_turquoise.png',
+      '/sparklestar_purple.png', '/sparklestar_orange.png', '/sparklestar_pink.png',
+      '/sparklestar_blue.png', '/feather_pink.png', '/feather_purple.png', '/feather_blue.png',
+    ]
+    const generated = Array.from({ length: 28 }, (_, i) => ({
+      id: i,
+      src: assets[Math.floor(Math.random() * assets.length)],
+      x: 30 + Math.random() * 40,
+      y: 30 + Math.random() * 40,
+      size: 28 + Math.floor(Math.random() * 48),
+      angle: Math.random() * 360,
+      distance: 80 + Math.random() * 220,
+      rotation: -60 + Math.random() * 120,
+    }))
+    setParticles(generated)
+
     const { data } = await supabase.from('books').select('id').eq('is_active', true)
-    if (data && data.length > 0) {
-      const random = data[Math.floor(Math.random() * data.length)]
-      router.push(`/dashboard/library/${random.id}`)
-    }
+    const bookId = data && data.length > 0
+      ? data[Math.floor(Math.random() * data.length)].id
+      : null
+
+    setTimeout(() => {
+      setSurpriseActive(false)
+      setParticles([])
+      if (bookId) router.push(`/dashboard/library/${bookId}?surprise=true`)
+    }, 900)
   }
 
   if (loading) return (
@@ -259,11 +286,9 @@ export default function LibraryPage() {
               </div>
 
               {/* Surprise Me */}
-              <button onClick={handleSurpriseMe} className="block w-full text-left"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0' }}>
-                <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600 }}>
-                  Surprise Me ✦
-                </span>
+              <button onClick={handleSurpriseMe} disabled={surpriseActive}
+                style={{ background: 'none', border: 'none', cursor: surpriseActive ? 'default' : 'pointer', padding: 0, width: '100%', opacity: surpriseActive ? 0.8 : 1, transition: 'opacity 0.2s' }}>
+                <img src="/surpriseme.png" alt="Surprise Me" style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '12px' }} />
               </button>
             </section>
 
@@ -280,6 +305,44 @@ export default function LibraryPage() {
           </>
         )}
       </div>
+
+      {/* Surprise Me animation overlay */}
+      {surpriseActive && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 999, pointerEvents: 'none', overflow: 'hidden' }}>
+          <style>{`
+            @keyframes bonky-burst {
+              0%   { opacity: 1; transform: translate(-50%, -50%) scale(0.2) rotate(0deg); }
+              65%  { opacity: 1; }
+              100% { opacity: 0; transform: translate(calc(-50% + var(--bdx)), calc(-50% + var(--bdy))) scale(1.1) rotate(var(--bdr)); }
+            }
+          `}</style>
+          {particles.map(p => {
+            const dx = Math.round(Math.cos(p.angle * Math.PI / 180) * p.distance)
+            const dy = Math.round(Math.sin(p.angle * Math.PI / 180) * p.distance)
+            return (
+              <img key={p.id} src={p.src} alt=""
+                style={{
+                  position: 'absolute',
+                  left: `${p.x}%`,
+                  top: `${p.y}%`,
+                  width: `${p.size}px`,
+                  height: 'auto',
+                  ['--bdx' as any]: `${dx}px`,
+                  ['--bdy' as any]: `${dy}px`,
+                  ['--bdr' as any]: `${p.rotation}deg`,
+                  animation: `bonky-burst ${0.75 + Math.random() * 0.25}s ease-out forwards`,
+                  animationDelay: `${Math.random() * 0.08}s`,
+                } as React.CSSProperties}
+              />
+            )
+          })}
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <p style={{ fontFamily: 'var(--font-amatic)', fontSize: '2.8rem', fontWeight: 700, color: '#f9d174', textAlign: 'center', textShadow: '0 2px 16px rgba(0,0,0,0.6)', letterSpacing: '0.04em' }}>
+              Bonky is choosing…
+            </p>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

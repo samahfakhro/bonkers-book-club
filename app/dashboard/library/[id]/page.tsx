@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 type Book = {
@@ -30,6 +30,8 @@ type Review = {
 export default function BookDetailPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
+  const isSurprise = searchParams.get('surprise') === 'true'
   const bookId = params.id as string
 
   const [book, setBook] = useState<Book | null>(null)
@@ -128,6 +130,18 @@ export default function BookDetailPage() {
           <img src="/Bonkers_Word_Logo_White1.png" alt="Bonkers Book Club" style={{ width: '120px', height: 'auto' }} />
           <div style={{ width: '28px' }} />
         </div>
+
+        {/* Bonky picked banner */}
+        {isSurprise && (
+          <div className="flex items-center justify-center gap-2 rounded-2xl mb-5 px-4 py-3"
+            style={{ backgroundColor: 'rgba(249,209,116,0.15)', border: '1px solid rgba(249,209,116,0.35)' }}>
+            <span style={{ fontSize: '1.1rem' }}>✨</span>
+            <p style={{ fontFamily: 'var(--font-amatic)', fontSize: '1.4rem', fontWeight: 700, color: '#f9d174', letterSpacing: '0.03em' }}>
+              Bonky picked this one for you!
+            </p>
+            <span style={{ fontSize: '1.1rem' }}>✨</span>
+          </div>
+        )}
 
         {/* Cover */}
         <div className="flex justify-center mb-6">
