@@ -186,46 +186,6 @@ export default function LibraryPage() {
           </section>
         ) : (
           <>
-            <section className="mb-8">
-              {/* New to Bonkers */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600 }}>New to Bonkers</span>
-                  <button onClick={() => router.push('/dashboard/library/all?sort=new')}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', color: '#f9d174', fontSize: '0.8rem' }}>
-                    View all →
-                  </button>
-                </div>
-                {newArrivals.length > 0
-                  ? <HorizontalScroll books={newArrivals.slice(0, 5)} onBook={navigateToBook} />
-                  : <p style={{ color: '#eddbc3', opacity: 0.4, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem' }}>Coming soon!</p>
-                }
-              </div>
-
-              {/* Most Loved */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600 }}>Most Loved</span>
-                  <button onClick={() => router.push('/dashboard/library/all?sort=popular')}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', color: '#f9d174', fontSize: '0.8rem' }}>
-                    View all →
-                  </button>
-                </div>
-                {popular.length > 0
-                  ? <HorizontalScroll books={popular.slice(0, 5)} onBook={navigateToBook} />
-                  : <p style={{ color: '#eddbc3', opacity: 0.4, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem' }}>Coming soon!</p>
-                }
-              </div>
-
-              {/* Surprise Me */}
-              <button onClick={handleSurpriseMe} className="block w-full text-left"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0' }}>
-                <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600 }}>
-                  Surprise Me ✦
-                </span>
-              </button>
-            </section>
-
             {categories.length > 0 && (
               <section className="mb-8">
                 <SectionHeading cormorant>Browse by Category</SectionHeading>
@@ -266,6 +226,46 @@ export default function LibraryPage() {
                 </div>
               </section>
             )}
+
+            <section className="mb-8">
+              {/* New to Bonkers */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600 }}>New to Bonkers</span>
+                  <button onClick={() => router.push('/dashboard/library/all?sort=new')}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', color: '#f9d174', fontSize: '0.8rem' }}>
+                    View all →
+                  </button>
+                </div>
+                {newArrivals.length > 0
+                  ? <HorizontalScroll books={newArrivals.slice(0, 5)} onBook={navigateToBook} />
+                  : <p style={{ color: '#eddbc3', opacity: 0.4, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem' }}>Coming soon!</p>
+                }
+              </div>
+
+              {/* Most Loved */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600 }}>Most Loved</span>
+                  <button onClick={() => router.push('/dashboard/library/all?sort=popular')}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', color: '#f9d174', fontSize: '0.8rem' }}>
+                    View all →
+                  </button>
+                </div>
+                {popular.length > 0
+                  ? <HorizontalScroll books={popular.slice(0, 5)} onBook={navigateToBook} />
+                  : <p style={{ color: '#eddbc3', opacity: 0.4, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem' }}>Coming soon!</p>
+                }
+              </div>
+
+              {/* Surprise Me */}
+              <button onClick={handleSurpriseMe} className="block w-full text-left"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0' }}>
+                <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600 }}>
+                  Surprise Me ✦
+                </span>
+              </button>
+            </section>
 
             {newArrivals.length === 0 && popular.length === 0 && categories.length === 0 && (
               <div className="flex flex-col items-center justify-center mt-20 gap-4">
