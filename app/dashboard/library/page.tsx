@@ -142,16 +142,20 @@ export default function LibraryPage() {
       '/sparklestar_purple.png', '/sparklestar_orange.png', '/sparklestar_pink.png',
       '/sparklestar_blue.png', '/feather_pink.png', '/feather_purple.png', '/feather_blue.png',
     ]
-    const generated = Array.from({ length: 70 }, (_, i) => ({
-      id: i,
-      src: assets[Math.floor(Math.random() * assets.length)],
-      x: originX,
-      y: originY,
-      size: 32 + Math.floor(Math.random() * 52),
-      angle: Math.random() * 360,
-      distance: 250 + Math.random() * 500,
-      rotation: -180 + Math.random() * 360,
-    }))
+    const generated = Array.from({ length: 70 }, (_, i) => {
+      const src = assets[Math.floor(Math.random() * assets.length)]
+      const isFeather = src.startsWith('/feather')
+      return {
+        id: i,
+        src,
+        x: originX,
+        y: originY,
+        size: isFeather ? 90 + Math.floor(Math.random() * 80) : 32 + Math.floor(Math.random() * 52),
+        angle: Math.random() * 360,
+        distance: 250 + Math.random() * 500,
+        rotation: -180 + Math.random() * 360,
+      }
+    })
     setParticles(generated)
 
     const { data } = await supabase.from('books').select('id').eq('is_active', true)
@@ -342,11 +346,6 @@ export default function LibraryPage() {
               />
             )
           })}
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <p style={{ fontFamily: 'var(--font-amatic)', fontSize: '2.8rem', fontWeight: 700, color: '#f9d174', textAlign: 'center', textShadow: '0 2px 16px rgba(0,0,0,0.6)', letterSpacing: '0.04em' }}>
-              Bonky is choosing…
-            </p>
-          </div>
         </div>
       )}
     </main>
