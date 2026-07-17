@@ -186,35 +186,44 @@ export default function LibraryPage() {
           </section>
         ) : (
           <>
-            {newArrivals.length > 0 && (
-              <section className="mb-8">
-                <SectionHeading seeAllHref="/dashboard/library/all?sort=new">New Arrivals</SectionHeading>
-                <HorizontalScroll books={newArrivals} onBook={navigateToBook} />
-              </section>
-            )}
-
-            {popular.length > 0 && (
-              <section className="mb-8">
-                <SectionHeading seeAllHref="/dashboard/library/all?sort=popular">Most Loved by Bonkers Kids</SectionHeading>
-                <HorizontalScroll books={popular} onBook={navigateToBook} />
-              </section>
-            )}
-
             <section className="mb-8">
-              {[
-                { label: 'New to Bonkers', href: '/dashboard/library/all?sort=new' },
-                { label: 'Most Loved', href: '/dashboard/library/all?sort=popular' },
-                { label: 'Surprise Me', onClick: handleSurpriseMe },
-              ].map(item => (
-                <button key={item.label}
-                  onClick={item.onClick ?? (() => router.push(item.href!))}
-                  className="block w-full text-left"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0', borderBottom: '1px solid rgba(237,219,195,0.12)' }}>
-                  <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.8rem', fontWeight: 600 }}>
-                    {item.label}
-                  </span>
-                </button>
-              ))}
+              {/* New to Bonkers */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600 }}>New to Bonkers</span>
+                  <button onClick={() => router.push('/dashboard/library/all?sort=new')}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', color: '#f9d174', fontSize: '0.8rem' }}>
+                    View all →
+                  </button>
+                </div>
+                {newArrivals.length > 0
+                  ? <HorizontalScroll books={newArrivals.slice(0, 5)} onBook={navigateToBook} />
+                  : <p style={{ color: '#eddbc3', opacity: 0.4, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem' }}>Coming soon!</p>
+                }
+              </div>
+
+              {/* Most Loved */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600 }}>Most Loved</span>
+                  <button onClick={() => router.push('/dashboard/library/all?sort=popular')}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', color: '#f9d174', fontSize: '0.8rem' }}>
+                    View all →
+                  </button>
+                </div>
+                {popular.length > 0
+                  ? <HorizontalScroll books={popular.slice(0, 5)} onBook={navigateToBook} />
+                  : <p style={{ color: '#eddbc3', opacity: 0.4, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem' }}>Coming soon!</p>
+                }
+              </div>
+
+              {/* Surprise Me */}
+              <button onClick={handleSurpriseMe} className="block w-full text-left"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0' }}>
+                <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600 }}>
+                  Surprise Me ✦
+                </span>
+              </button>
             </section>
 
             {categories.length > 0 && (
