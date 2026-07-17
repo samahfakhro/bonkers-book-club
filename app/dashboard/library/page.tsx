@@ -171,7 +171,7 @@ export default function LibraryPage() {
       if (bookId) setTimeout(() => {
         router.push(`/dashboard/library/${bookId}?surprise=true`)
       }, 400)
-    }, 380)
+    }, 250)
   }
 
   if (loading) return (
