@@ -302,14 +302,15 @@ export default function LibraryPage() {
               <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, marginBottom: '12px' }}>Surprise Me</p>
               <style>{`
                 @keyframes bonky-wiggle {
-                  0%   { transform: translateY(0) rotate(0deg); }
-                  10%  { transform: translateY(-10px) rotate(-4deg); }
-                  25%  { transform: translateY(0) rotate(5deg); }
-                  40%  { transform: translateY(-14px) rotate(-5deg); }
-                  55%  { transform: translateY(0) rotate(4deg); }
-                  70%  { transform: translateY(-8px) rotate(-3deg); }
-                  85%  { transform: translateY(0) rotate(2deg); }
-                  100% { transform: translateY(0) rotate(0deg); }
+                  0%   { transform: translateY(0) rotate(0deg) scale(1); }
+                  10%  { transform: translateY(-10px) rotate(-4deg) scale(1); }
+                  25%  { transform: translateY(0) rotate(5deg) scale(1); }
+                  38%  { transform: translateY(-14px) rotate(-5deg) scale(1); }
+                  50%  { transform: translateY(0) rotate(3deg) scale(1); }
+                  60%  { transform: translateY(4px) rotate(0deg) scaleX(1.18) scaleY(0.82); }
+                  72%  { transform: translateY(6px) rotate(0deg) scaleX(1.28) scaleY(0.72); }
+                  85%  { transform: translateY(-6px) rotate(0deg) scaleX(0.88) scaleY(1.18); }
+                  100% { transform: translateY(0) rotate(0deg) scale(1); }
                 }
               `}</style>
               <button ref={surpriseBtnRef} onClick={handleSurpriseMe} disabled={surpriseActive || surpriseWiggle}
