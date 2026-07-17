@@ -167,7 +167,7 @@ export default function LibraryPage() {
       setSurpriseActive(false)
       setParticles([])
       if (bookId) router.push(`/dashboard/library/${bookId}?surprise=true`)
-    }, 2400)
+    }, 1800)
   }
 
   if (loading) return (
@@ -340,8 +340,8 @@ export default function LibraryPage() {
                   ['--bdx' as any]: `${dx}px`,
                   ['--bdy' as any]: `${dy}px`,
                   ['--bdr' as any]: `${p.rotation}deg`,
-                  animation: `bonky-burst ${1.2 + Math.random() * 0.6}s ease-out forwards`,
-                  animationDelay: `${Math.random() * 1.0}s`,
+                  animation: `bonky-burst ${1.4 + Math.random() * 0.6}s ease-out forwards`,
+                  animationDelay: `${Math.random() * 0.2}s`,
                 } as React.CSSProperties}
               />
             )
