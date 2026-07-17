@@ -137,7 +137,7 @@ export default function LibraryPage() {
       '/sparklestar_purple.png', '/sparklestar_orange.png', '/sparklestar_pink.png',
       '/sparklestar_blue.png', '/feather_pink.png', '/feather_purple.png', '/feather_blue.png',
     ]
-    const generated = Array.from({ length: 28 }, (_, i) => ({
+    const generated = Array.from({ length: 70 }, (_, i) => ({
       id: i,
       src: assets[Math.floor(Math.random() * assets.length)],
       x: 30 + Math.random() * 40,
@@ -158,7 +158,7 @@ export default function LibraryPage() {
       setSurpriseActive(false)
       setParticles([])
       if (bookId) router.push(`/dashboard/library/${bookId}?surprise=true`)
-    }, 900)
+    }, 1800)
   }
 
   if (loading) return (
@@ -331,8 +331,8 @@ export default function LibraryPage() {
                   ['--bdx' as any]: `${dx}px`,
                   ['--bdy' as any]: `${dy}px`,
                   ['--bdr' as any]: `${p.rotation}deg`,
-                  animation: `bonky-burst ${0.75 + Math.random() * 0.25}s ease-out forwards`,
-                  animationDelay: `${Math.random() * 0.08}s`,
+                  animation: `bonky-burst ${1.4 + Math.random() * 0.6}s ease-out forwards`,
+                  animationDelay: `${Math.random() * 0.2}s`,
                 } as React.CSSProperties}
               />
             )
