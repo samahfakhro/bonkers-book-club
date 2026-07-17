@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -89,6 +89,7 @@ export default function LibraryPage() {
   const [loading, setLoading] = useState(true)
   const [surpriseActive, setSurpriseActive] = useState(false)
   const [particles, setParticles] = useState<{ id: number; src: string; x: number; y: number; size: number; angle: number; distance: number; rotation: number }[]>([])
+  const surpriseBtnRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     async function load() {
@@ -132,6 +133,10 @@ export default function LibraryPage() {
     if (surpriseActive) return
     setSurpriseActive(true)
 
+    const rect = surpriseBtnRef.current?.getBoundingClientRect()
+    const originX = rect ? ((rect.left + rect.width / 2) / window.innerWidth) * 100 : 50
+    const originY = rect ? ((rect.top + rect.height / 2) / window.innerHeight) * 100 : 50
+
     const assets = [
       '/sparklestar_yellow.png', '/sparklestar_red.png', '/sparklestar_turquoise.png',
       '/sparklestar_purple.png', '/sparklestar_orange.png', '/sparklestar_pink.png',
@@ -140,12 +145,12 @@ export default function LibraryPage() {
     const generated = Array.from({ length: 70 }, (_, i) => ({
       id: i,
       src: assets[Math.floor(Math.random() * assets.length)],
-      x: 50,
-      y: 50,
-      size: 28 + Math.floor(Math.random() * 48),
+      x: originX,
+      y: originY,
+      size: 32 + Math.floor(Math.random() * 52),
       angle: Math.random() * 360,
-      distance: 100 + Math.random() * 280,
-      rotation: -90 + Math.random() * 180,
+      distance: 250 + Math.random() * 500,
+      rotation: -180 + Math.random() * 360,
     }))
     setParticles(generated)
 
@@ -287,7 +292,7 @@ export default function LibraryPage() {
 
               {/* Surprise Me */}
               <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, marginBottom: '12px' }}>Surprise Me</p>
-              <button onClick={handleSurpriseMe} disabled={surpriseActive}
+              <button ref={surpriseBtnRef} onClick={handleSurpriseMe} disabled={surpriseActive}
                 style={{ background: 'none', border: 'none', cursor: surpriseActive ? 'default' : 'pointer', padding: 0, width: '100%', opacity: surpriseActive ? 0.8 : 1, transition: 'opacity 0.2s' }}>
                 <img src="/surpriseme.png" alt="Surprise Me" style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '12px' }} />
               </button>
@@ -313,7 +318,7 @@ export default function LibraryPage() {
           <style>{`
             @keyframes bonky-burst {
               0%   { opacity: 1; transform: translate(-50%, -50%) rotate(0deg); }
-              65%  { opacity: 1; }
+              80%  { opacity: 1; transform: translate(calc(-50% + var(--bdx)), calc(-50% + var(--bdy))) rotate(var(--bdr)); }
               100% { opacity: 0; transform: translate(calc(-50% + var(--bdx)), calc(-50% + var(--bdy))) rotate(var(--bdr)); }
             }
           `}</style>
