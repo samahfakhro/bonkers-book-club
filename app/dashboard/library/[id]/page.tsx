@@ -10,6 +10,7 @@ type Book = {
   author: string
   description: string | null
   cover_image_url: string | null
+  isbn: string | null
   age_range_min: number | null
   age_range_max: number | null
   average_rating: number | null
@@ -71,7 +72,7 @@ export default function BookDetailPage() {
       const { data: bookData } = await supabase
         .from('books')
         .select(`
-          id, title, author, description, cover_image_url,
+          id, title, author, description, cover_image_url, isbn,
           age_range_min, age_range_max, average_rating, total_ratings_count,
           series_number,
           series:series_id ( id, name ),
@@ -172,8 +173,12 @@ export default function BookDetailPage() {
         {/* Cover */}
         <div className="flex justify-center mb-6">
           <div className="rounded-2xl overflow-hidden shadow-2xl" style={{ width: '180px', height: '260px', backgroundColor: 'rgba(237,219,195,0.1)', flexShrink: 0 }}>
-            {book.cover_image_url
-              ? <img src={book.cover_image_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            {book.isbn || book.cover_image_url
+              ? <img
+                  src={book.isbn ? `https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg` : book.cover_image_url!}
+                  alt={book.title}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
               : <div className="w-full h-full flex items-center justify-center">
                   <span style={{ color: '#eddbc3', opacity: 0.3, fontSize: '3rem' }}>📖</span>
                 </div>
