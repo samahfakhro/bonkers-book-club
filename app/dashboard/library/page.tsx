@@ -351,8 +351,11 @@ export default function LibraryPage() {
                       {category.name}
                     </span>
                     <button onClick={() => router.push(`/dashboard/library/category/${category.id}`)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.78rem', opacity: 0.6 }}>
-                      See all →
+                      className="flex items-center gap-1"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.3rem', fontWeight: 700 }}>
+                      <img src="/star_button_on.png" alt="" style={{ height: '12px', width: '12px' }} />
+                      See all
+                      <img src="/arrow_cream.png" alt="" style={{ height: '12px', width: 'auto' }} />
                     </button>
                   </div>
 
@@ -399,8 +402,11 @@ export default function LibraryPage() {
               <div className="flex items-center justify-between mb-3">
                 <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, lineHeight: 1 }}>New to Bonkers</span>
                 <button onClick={() => router.push('/dashboard/library/all?sort=new')}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.78rem', opacity: 0.6 }}>
-                  View all →
+                  className="flex items-center gap-1"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.3rem', fontWeight: 700 }}>
+                  <img src="/star_button_on.png" alt="" style={{ height: '12px', width: '12px' }} />
+                  See all
+                  <img src="/arrow_cream.png" alt="" style={{ height: '12px', width: 'auto' }} />
                 </button>
               </div>
               {newArrivals.length > 0
@@ -418,8 +424,11 @@ export default function LibraryPage() {
               <div className="flex items-center justify-between mb-3">
                 <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, lineHeight: 1 }}>Most Loved</span>
                 <button onClick={() => router.push('/dashboard/library/all?sort=popular')}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.78rem', opacity: 0.6 }}>
-                  View all →
+                  className="flex items-center gap-1"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.3rem', fontWeight: 700 }}>
+                  <img src="/star_button_on.png" alt="" style={{ height: '12px', width: '12px' }} />
+                  See all
+                  <img src="/arrow_cream.png" alt="" style={{ height: '12px', width: 'auto' }} />
                 </button>
               </div>
               {popular.length > 0
@@ -432,19 +441,22 @@ export default function LibraryPage() {
               }
             </section>
 
-            {/* View All Books */}
+            {/* Browse Everything */}
             <section className="mb-10">
-              <button onClick={() => router.push('/dashboard/library/all')}
-                className="w-full rounded-2xl flex items-center justify-between px-6"
-                style={{
-                  background: 'none', border: '2px solid rgba(237,219,195,0.25)', cursor: 'pointer',
-                  height: '64px', backgroundColor: 'rgba(237,219,195,0.06)',
-                }}>
-                <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.5rem', fontWeight: 600 }}>
-                  Browse everything
-                </span>
-                <span style={{ color: '#eddbc3', opacity: 0.5, fontSize: '1.3rem' }}>→</span>
-              </button>
+              <div className="relative flex items-center justify-center" style={{ width: '71%', maxWidth: '260px', margin: '0 auto' }}>
+                <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', left: '-15px', height: '50px', width: 'auto', zIndex: 1, pointerEvents: 'none' }} />
+                <div style={{ position: 'relative', width: '100%', paddingBottom: 'calc(100% / 2.97)' }}>
+                  <button
+                    onClick={() => router.push('/dashboard/library/all')}
+                    className="flex items-center justify-center border-none bg-transparent cursor-pointer"
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', backgroundImage: 'url(/button2.png)', backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat' }}>
+                    <span className="relative z-10 flex items-center text-2xl text-white" style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, letterSpacing: '0.04em', marginBottom: '9px' }}>
+                      Browse everything →
+                    </span>
+                  </button>
+                </div>
+                <img src="/whiskers_right.png" alt="" style={{ position: 'absolute', right: '-15px', height: '50px', width: 'auto', zIndex: 1, pointerEvents: 'none' }} />
+              </div>
             </section>
           </>
         )}
