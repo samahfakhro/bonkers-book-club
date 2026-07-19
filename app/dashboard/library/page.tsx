@@ -64,6 +64,8 @@ export default function LibraryPage() {
 
   const [categories, setCategories] = useState<Category[]>([])
   const [booksByCategory, setBooksByCategory] = useState<Record<string, Book[]>>({})
+  const [newArrivals, setNewArrivals] = useState<Book[]>([])
+  const [popular, setPopular] = useState<Book[]>([])
 
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Book[] | null>(null)
@@ -79,14 +81,20 @@ export default function LibraryPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const [{ data: kids }, { data: cats }, { data: levels }] = await Promise.all([
+      const bookSelect = 'id, title, author, cover_image_url'
+      const [{ data: kids }, { data: cats }, { data: levels }, { data: arrivals }, { data: pop }] = await Promise.all([
         supabase.from('child_profiles')
           .select('id, name, nickname, avatar_url, reading_level_id, reading_level:reading_level_id(id, name)')
           .eq('parent_id', user.id)
           .order('created_at'),
         supabase.from('categories').select('id, name, image_url').order('display_order'),
         supabase.from('reading_levels').select('id, name').order('display_order'),
+        supabase.from('books').select(bookSelect).eq('is_active', true).order('created_at', { ascending: false }).limit(10),
+        supabase.from('books').select(bookSelect).eq('is_active', true).order('total_ratings_count', { ascending: false }).limit(10),
       ])
+
+      if (arrivals) setNewArrivals(arrivals)
+      if (pop) setPopular(pop)
 
       setCategories(cats || [])
       setReadingLevels(levels || [])
@@ -373,7 +381,7 @@ export default function LibraryPage() {
             })}
 
             {/* Surprise Me */}
-            <section className="mb-8">
+            <section className="mb-10">
               <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, marginBottom: '12px' }}>
                 Surprise Me
               </p>
@@ -383,6 +391,59 @@ export default function LibraryPage() {
                   width: '140px', height: 'auto',
                   animation: surpriseWiggle ? 'bonky-wiggle 0.85s ease-in-out forwards' : 'none',
                 }} />
+              </button>
+            </section>
+
+            {/* New to Bonkers */}
+            <section className="mb-10">
+              <div className="flex items-center justify-between mb-3">
+                <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, lineHeight: 1 }}>New to Bonkers</span>
+                <button onClick={() => router.push('/dashboard/library/all?sort=new')}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.78rem', opacity: 0.6 }}>
+                  View all →
+                </button>
+              </div>
+              {newArrivals.length > 0
+                ? <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+                    {newArrivals.slice(0, 8).map(book => (
+                      <BookCard key={book.id} book={book} onPress={() => navigateToBook(book.id)} />
+                    ))}
+                  </div>
+                : <p style={{ color: '#eddbc3', opacity: 0.35, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem' }}>Coming soon!</p>
+              }
+            </section>
+
+            {/* Most Loved */}
+            <section className="mb-10">
+              <div className="flex items-center justify-between mb-3">
+                <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, lineHeight: 1 }}>Most Loved</span>
+                <button onClick={() => router.push('/dashboard/library/all?sort=popular')}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.78rem', opacity: 0.6 }}>
+                  View all →
+                </button>
+              </div>
+              {popular.length > 0
+                ? <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+                    {popular.slice(0, 8).map(book => (
+                      <BookCard key={book.id} book={book} onPress={() => navigateToBook(book.id)} />
+                    ))}
+                  </div>
+                : <p style={{ color: '#eddbc3', opacity: 0.35, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem' }}>Coming soon!</p>
+              }
+            </section>
+
+            {/* View All Books */}
+            <section className="mb-10">
+              <button onClick={() => router.push('/dashboard/library/all')}
+                className="w-full rounded-2xl flex items-center justify-between px-6"
+                style={{
+                  background: 'none', border: '2px solid rgba(237,219,195,0.25)', cursor: 'pointer',
+                  height: '64px', backgroundColor: 'rgba(237,219,195,0.06)',
+                }}>
+                <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.5rem', fontWeight: 600 }}>
+                  Browse everything
+                </span>
+                <span style={{ color: '#eddbc3', opacity: 0.5, fontSize: '1.3rem' }}>→</span>
               </button>
             </section>
           </>
