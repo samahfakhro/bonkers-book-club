@@ -353,7 +353,7 @@ export default function LibraryPage() {
                     <button onClick={() => router.push(`/dashboard/library/category/${category.id}`)}
                       className="flex items-center gap-1"
                       style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.3rem', fontWeight: 700 }}>
-                      <img src="/star_button_on.png" alt="" style={{ height: '12px', width: '12px' }} />
+                      <img src="/whiskers_left.png" alt="" style={{ height: '20px', width: 'auto' }} />
                       See all
                       <img src="/arrow_cream.png" alt="" style={{ height: '12px', width: 'auto' }} />
                     </button>
