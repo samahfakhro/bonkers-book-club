@@ -115,9 +115,9 @@ export default function CategoryPage() {
 
         {/* Category banner */}
         {category?.image_url && (
-          <div className="mb-5 rounded-2xl overflow-hidden" style={{ height: '160px' }}>
+          <div className="mb-5 rounded-2xl overflow-hidden">
             <img src={category.image_url} alt={category.name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              style={{ width: '100%', aspectRatio: '21/9', objectFit: 'cover', display: 'block' }} />
           </div>
         )}
 

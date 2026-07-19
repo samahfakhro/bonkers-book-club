@@ -357,7 +357,7 @@ export default function LibraryPage() {
                     <button onClick={() => router.push(`/dashboard/library/category/${category.id}`)}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'block', width: '100%', marginBottom: '12px' }}>
                       <img src={category.image_url} alt={category.name}
-                        style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '16px', display: 'block' }} />
+                        style={{ width: '100%', aspectRatio: '21/9', objectFit: 'cover', borderRadius: '16px', display: 'block' }} />
                     </button>
                   )}
 
