@@ -99,7 +99,7 @@ export default function LibraryPage() {
       setCategories(cats || [])
       setReadingLevels(levels || [])
 
-      const childList = (kids || []) as Child[]
+      const childList = (kids || []) as unknown as Child[]
       setChildren(childList)
 
       if (childList.length > 0) {
