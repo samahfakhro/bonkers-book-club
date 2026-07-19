@@ -352,10 +352,10 @@ export default function LibraryPage() {
                     </span>
                     <button onClick={() => router.push(`/dashboard/library/category/${category.id}`)}
                       className="flex items-center gap-1"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.3rem', fontWeight: 700 }}>
-                      <img src="/whiskers_left.png" alt="" style={{ height: '20px', width: 'auto' }} />
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700 }}>
+                      <img src="/whiskers_left.png" alt="" style={{ height: '28px', width: 'auto' }} />
                       See all
-                      <img src="/arrow_cream.png" alt="" style={{ height: '12px', width: 'auto' }} />
+                      <img src="/arrow_cream.png" alt="" style={{ height: '16px', width: 'auto' }} />
                     </button>
                   </div>
 
@@ -403,7 +403,7 @@ export default function LibraryPage() {
                 <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, lineHeight: 1 }}>New to Bonkers</span>
                 <button onClick={() => router.push('/dashboard/library/all?sort=new')}
                   className="flex items-center gap-1"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.3rem', fontWeight: 700 }}>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700 }}>
                   <img src="/star_button_on.png" alt="" style={{ height: '12px', width: '12px' }} />
                   See all
                   <img src="/arrow_cream.png" alt="" style={{ height: '12px', width: 'auto' }} />
@@ -425,7 +425,7 @@ export default function LibraryPage() {
                 <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, lineHeight: 1 }}>Most Loved</span>
                 <button onClick={() => router.push('/dashboard/library/all?sort=popular')}
                   className="flex items-center gap-1"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.3rem', fontWeight: 700 }}>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700 }}>
                   <img src="/star_button_on.png" alt="" style={{ height: '12px', width: '12px' }} />
                   See all
                   <img src="/arrow_cream.png" alt="" style={{ height: '12px', width: 'auto' }} />
