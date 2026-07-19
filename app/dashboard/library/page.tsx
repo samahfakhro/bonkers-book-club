@@ -9,7 +9,6 @@ type Book = {
   title: string
   author: string
   cover_image_url: string | null
-  isbn: string | null
   average_rating: number | null
 }
 
@@ -31,12 +30,8 @@ function BookCard({ book, onPress }: { book: Book; onPress: () => void }) {
   return (
     <button onClick={onPress} className="text-left flex flex-col" style={{ background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
       <div className="rounded-xl overflow-hidden mb-2" style={{ width: '100%', aspectRatio: '2/3', backgroundColor: 'rgba(237,219,195,0.1)' }}>
-        {book.isbn || book.cover_image_url
-          ? <img
-              src={book.isbn ? `https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg` : book.cover_image_url!}
-              alt={book.title}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
+        {book.cover_image_url
+          ? <img src={book.cover_image_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : <div className="w-full h-full flex items-center justify-center">
               <span style={{ color: '#eddbc3', opacity: 0.2, fontSize: '2rem' }}>📖</span>
             </div>
@@ -99,7 +94,7 @@ export default function LibraryPage() {
 
   useEffect(() => {
     async function load() {
-      const bookSelect = 'id, title, author, cover_image_url, isbn, average_rating'
+      const bookSelect = 'id, title, author, cover_image_url, average_rating'
 
       const [{ data: arrivals }, { data: pop }, { data: cats }, { data: levels }] = await Promise.all([
         supabase.from('books').select(bookSelect).eq('is_active', true).order('created_at', { ascending: false }).limit(10),
@@ -123,7 +118,7 @@ export default function LibraryPage() {
     setSearchLoading(true)
     const { data } = await supabase
       .from('books')
-      .select('id, title, author, cover_image_url, isbn, average_rating')
+      .select('id, title, author, cover_image_url, average_rating')
       .eq('is_active', true)
       .or(`title.ilike.%${q}%,author.ilike.%${q}%`)
       .limit(20)
