@@ -160,7 +160,7 @@ export default function BookDetailPage() {
   useEffect(() => {
     if (!selectedChildId || !parentId) return
     async function loadChildState() {
-      const [{ data: wishlist }, { data: reviews: childReviews }] = await Promise.all([
+      const [{ data: wishlist }, { data: childReviews }] = await Promise.all([
         supabase.from('wishlists').select('id').eq('child_id', selectedChildId).eq('book_id', bookId).maybeSingle(),
         supabase.from('book_reviews').select('id').eq('child_id', selectedChildId).eq('book_id', bookId).limit(1),
       ])
