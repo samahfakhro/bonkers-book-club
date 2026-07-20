@@ -97,6 +97,9 @@ export default function BookDetailPage() {
       if (!user) return
       setParentId(user.id)
 
+      const { data: household } = await supabase
+        .from('households').select('id').eq('user_id', user.id).single()
+
       const [{ data: bookData }, { data: kids }, { count: availableCount }] = await Promise.all([
         supabase.from('books').select(`
           id, title, author, description, cover_image_url,
@@ -106,10 +109,12 @@ export default function BookDetailPage() {
           reading_level:reading_level_id ( id, name ),
           book_categories ( categories ( id, name, emoji, color_code ) )
         `).eq('id', bookId).single(),
-        supabase.from('child_profiles')
-          .select('id, name, nickname, avatar_url, book_slot_allocation')
-          .eq('parent_id', user.id)
-          .order('created_at'),
+        household
+          ? supabase.from('child_profiles')
+              .select('id, name, nickname, avatar_url, book_slot_allocation')
+              .eq('household_id', household.id)
+              .order('created_at')
+          : Promise.resolve({ data: [] }),
         supabase.from('book_copies')
           .select('id', { count: 'exact', head: true })
           .eq('book_id', bookId)
@@ -165,7 +170,7 @@ export default function BookDetailPage() {
       const { data: notif } = await supabase
         .from('book_availability_notifications')
         .select('id')
-        .eq('parent_id', parentId)
+        .eq('user_id', parentId)
         .eq('book_id', bookId)
         .eq('child_id', selectedChildId)
         .maybeSingle()
@@ -205,13 +210,13 @@ export default function BookDetailPage() {
     if (isNotifying) {
       await supabase.from('book_availability_notifications')
         .delete()
-        .eq('parent_id', parentId)
+        .eq('user_id', parentId)
         .eq('book_id', bookId)
         .eq('child_id', selectedChildId)
       setIsNotifying(false)
     } else {
       await supabase.from('book_availability_notifications')
-        .insert({ parent_id: parentId, book_id: bookId, child_id: selectedChildId })
+        .insert({ user_id: parentId, book_id: bookId, child_id: selectedChildId })
       setIsNotifying(true)
     }
     setNotifyLoading(false)

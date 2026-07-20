@@ -82,11 +82,16 @@ export default function LibraryPage() {
       if (!user) return
 
       const bookSelect = 'id, title, author, cover_image_url'
+      const { data: household } = await supabase
+        .from('households').select('id').eq('user_id', user.id).single()
+
       const [{ data: kids }, { data: cats }, { data: levels }, { data: arrivals }, { data: pop }] = await Promise.all([
-        supabase.from('child_profiles')
-          .select('id, name, nickname, avatar_url, reading_level_id, reading_level:reading_level_id(id, name)')
-          .eq('parent_id', user.id)
-          .order('created_at'),
+        household
+          ? supabase.from('child_profiles')
+              .select('id, name, nickname, avatar_url, reading_level_id, reading_level:reading_level_id(id, name)')
+              .eq('household_id', household.id)
+              .order('created_at')
+          : Promise.resolve({ data: [] }),
         supabase.from('categories').select('id, name, image_url').order('display_order'),
         supabase.from('reading_levels').select('id, name').order('display_order'),
         supabase.from('books').select(bookSelect).eq('is_active', true).order('created_at', { ascending: false }).limit(10),
