@@ -59,6 +59,7 @@ export default function LibraryPage() {
 
   const [children, setChildren] = useState<Child[]>([])
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
   const [readingLevels, setReadingLevels] = useState<ReadingLevel[]>([])
   const [activeLevels, setActiveLevels] = useState<ReadingLevel[]>([])
 
@@ -280,34 +281,58 @@ export default function LibraryPage() {
         </div>
 
         {/* Browsing for — always visible */}
-        <div className="mb-6 flex items-center justify-start gap-3 flex-wrap">
+        <div className="mb-6 flex items-center gap-3">
           <p style={{ fontFamily: 'var(--font-amatic), cursive', color: '#f9d174', fontSize: '1.8rem', fontWeight: 700, letterSpacing: '0.05em', lineHeight: 1, flexShrink: 0 }}>
             Browsing for
           </p>
-          <div className="flex gap-2 flex-wrap justify-center">
-            {children.length > 0 ? children.map(child => (
-              <button key={child.id} onClick={() => selectChild(child.id)}
-                className="flex items-center gap-2 flex-shrink-0 rounded-full px-4 py-2"
-                style={{
-                  background: 'none', cursor: 'pointer',
-                  border: `2px solid ${selectedChildId === child.id ? '#f9d174' : 'rgba(237,219,195,0.3)'}`,
-                  backgroundColor: selectedChildId === child.id ? 'rgba(249,209,116,0.12)' : 'transparent',
-                }}>
-                {child.avatar_url && (
-                  <img src={child.avatar_url} alt="" style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }} />
-                )}
-                <span style={{
-                  fontFamily: 'var(--font-cormorant), serif', fontSize: '1.1rem', fontWeight: 700,
-                  color: selectedChildId === child.id ? '#f9d174' : '#eddbc3',
-                }}>
-                  {child.nickname || child.name}
+          <div style={{ position: 'relative', flex: 1 }}>
+            <button
+              onClick={() => children.length > 0 && setDropdownOpen(o => !o)}
+              className="w-full flex items-center justify-between rounded-xl px-4 py-2"
+              style={{
+                border: `3px solid ${selectedChildId ? '#e57451' : 'rgba(237,219,195,0.3)'}`,
+                backgroundColor: 'rgba(255,255,255,0.04)',
+                cursor: children.length > 0 ? 'pointer' : 'default',
+              }}>
+              <span style={{ fontFamily: 'var(--font-amatic), cursive', fontSize: '1.6rem', fontWeight: 700, color: '#eddbc3', lineHeight: 1 }}>
+                {children.length === 0
+                  ? 'No children yet'
+                  : children.find(c => c.id === selectedChildId)?.nickname
+                    || children.find(c => c.id === selectedChildId)?.name
+                    || 'Select a child'}
+              </span>
+              {children.length > 0 && (
+                <span style={{ color: '#eddbc3', opacity: 0.6, fontSize: '0.9rem', marginLeft: '8px' }}>
+                  {dropdownOpen ? '▲' : '▼'}
                 </span>
-              </button>
-            )) : (
-              <div className="rounded-full px-5 py-2" style={{ border: '2px solid rgba(237,219,195,0.15)' }}>
-                <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '1.1rem', color: '#eddbc3', opacity: 0.25 }}>
-                  No children added yet
-                </span>
+              )}
+            </button>
+
+            {dropdownOpen && children.length > 0 && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 100,
+                backgroundColor: 'rgba(12, 6, 3, 0.98)',
+                border: '1px solid rgba(237,219,195,0.2)',
+                borderRadius: '12px',
+                overflow: 'hidden',
+              }}>
+                {children.map((child, i) => (
+                  <button key={child.id}
+                    onClick={() => { selectChild(child.id); setDropdownOpen(false) }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left"
+                    style={{
+                      background: child.id === selectedChildId ? 'rgba(229,116,81,0.12)' : 'none',
+                      borderBottom: i < children.length - 1 ? '1px solid rgba(237,219,195,0.1)' : 'none',
+                      cursor: 'pointer',
+                    }}>
+                    {child.avatar_url && (
+                      <img src={child.avatar_url} alt="" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                    )}
+                    <span style={{ fontFamily: 'var(--font-amatic), cursive', fontSize: '1.6rem', fontWeight: 700, color: child.id === selectedChildId ? '#e57451' : '#eddbc3', lineHeight: 1 }}>
+                      {child.nickname || child.name}
+                    </span>
+                  </button>
+                ))}
               </div>
             )}
           </div>
