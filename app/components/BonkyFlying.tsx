@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 
-const BIRD_PAGES = ['/dashboard', '/dashboard/children/new']
+const BIRD_PAGES = ['/dashboard', '/dashboard/children/new', '/dashboard/library']
 
 export default function BonkyFlying() {
   const pathname = usePathname()
