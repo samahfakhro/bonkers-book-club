@@ -277,7 +277,7 @@ export default function LibraryPage() {
 
         {/* Browsing for — always visible */}
         <div className="mb-6 flex flex-col items-center">
-          <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.3rem', fontWeight: 600, fontStyle: 'italic', marginBottom: '10px', letterSpacing: '0.02em' }}>
+          <p style={{ fontFamily: 'var(--font-amatic), cursive', color: '#f9d174', fontSize: '1.8rem', fontWeight: 700, marginBottom: '10px', letterSpacing: '0.05em' }}>
             Browsing for
           </p>
           <div className="flex gap-2 flex-wrap justify-center pb-1">
