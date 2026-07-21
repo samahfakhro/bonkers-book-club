@@ -275,7 +275,7 @@ export default function LibraryPage() {
         <div className="flex flex-col items-center mb-6">
           <img src="/Bonkers_Word_Logo_White1.png" alt="Bonkers Book Club" style={{ width: '120px', height: 'auto' }} />
           <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '3rem', fontWeight: 700, marginTop: '40px', lineHeight: 1 }}>
-            Your Library
+            Library
           </h1>
         </div>
 
