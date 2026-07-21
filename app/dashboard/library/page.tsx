@@ -282,7 +282,7 @@ export default function LibraryPage() {
 
         {/* Browsing for — always visible */}
         <div className="mb-6 flex items-center gap-3">
-          <p style={{ fontFamily: 'var(--font-amatic), cursive', color: '#f9d174', fontSize: '1.8rem', fontWeight: 700, letterSpacing: '0.05em', lineHeight: 1, flexShrink: 0 }}>
+          <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.4rem', fontWeight: 600, fontStyle: 'italic', lineHeight: 1, flexShrink: 0 }}>
             Browsing for
           </p>
           <div style={{ position: 'relative', flex: 1 }}>
@@ -340,7 +340,7 @@ export default function LibraryPage() {
 
         {/* Reading level filter */}
         <div className="mb-8">
-          <p style={{ fontFamily: 'var(--font-amatic), cursive', color: '#f9d174', fontSize: '1.8rem', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '12px', textAlign: 'left' }}>
+          <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.4rem', fontWeight: 600, fontStyle: 'italic', marginBottom: '12px', textAlign: 'left' }}>
             Reading Level
           </p>
           <div className="grid grid-cols-3 gap-3">
@@ -366,7 +366,7 @@ export default function LibraryPage() {
                       : <div style={{ width: '100%', aspectRatio: '2/3', backgroundColor: 'rgba(237,219,195,0.1)' }} />
                     }
                   </div>
-                  <p style={{ fontFamily: 'var(--font-cormorant), serif', color: isSelected ? '#e57451' : '#eddbc3', fontSize: '1rem', fontWeight: 700, marginTop: '6px', lineHeight: 1 }}>
+                  <p style={{ fontFamily: 'var(--font-amatic), cursive', color: isSelected ? '#e57451' : '#eddbc3', fontSize: '1.3rem', fontWeight: 700, marginTop: '6px', lineHeight: 1 }}>
                     {level.name}
                   </p>
                   <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.65rem', opacity: 0.8, marginTop: '2px' }}>
