@@ -39,7 +39,7 @@ function BookCard({ book, onPress }: { book: Book; onPress: () => void }) {
         {book.cover_image_url
           ? <img src={book.cover_image_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : <div className="w-full h-full flex items-center justify-center">
-              <span style={{ color: '#eddbc3', opacity: 0.2, fontSize: '2rem' }}>📖</span>
+              <span style={{ color: '#eddbc3', opacity: 0.2, fontSize: '2rem' }}>book</span>
             </div>
         }
       </div>
@@ -212,12 +212,12 @@ export default function LibraryPage() {
 
   if (loading) return (
     <main className="min-h-screen flex items-center justify-center">
-      <p style={{ color: '#eddbc3', fontFamily: 'var(--font-montserrat), sans-serif' }}>Loading…</p>
+      <p style={{ color: '#eddbc3', fontFamily: 'var(--font-montserrat), sans-serif' }}>Loading...</p>
     </main>
   )
 
   return (
-    <main className="min-h-screen pb-24">
+    <main className="min-h-screen" style={{ paddingBottom: '88px' }}>
       <style>{`
         @keyframes bonky-wiggle {
           0%   { transform: translateY(0) rotate(0deg) scale(1); }
@@ -237,238 +237,258 @@ export default function LibraryPage() {
         }
       `}</style>
 
+      {/* Search results overlay — appears above bottom bar when typing */}
+      {searchQuery && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: '72px',
+          zIndex: 49, overflowY: 'auto',
+          backgroundColor: 'rgba(8, 4, 2, 0.97)',
+          padding: '24px 16px 16px',
+        }}>
+          <div style={{ maxWidth: '576px', margin: '0 auto' }}>
+            <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.4rem', fontWeight: 600, marginBottom: '16px' }}>
+              {searchLoading
+                ? 'Searching...'
+                : searchResults?.length === 0
+                  ? 'No books found'
+                  : 'Results'}
+            </p>
+            {!searchLoading && searchResults && searchResults.length > 0 && (
+              <div className="grid grid-cols-3 gap-4">
+                {searchResults.map(book => (
+                  <BookCard key={book.id} book={book} onPress={() => { setSearchQuery(''); navigateToBook(book.id) }} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Main scrollable content */}
       <div className="max-w-xl mx-auto px-4 pt-8">
 
-        {/* Top bar */}
-        <div className="flex items-center justify-between mb-6">
-          <button onClick={() => router.push('/dashboard')}
-            style={{ color: '#eddbc3', fontSize: '1.5rem', lineHeight: 1, background: 'none', border: 'none', cursor: 'pointer' }}>
-            ‹
-          </button>
+        {/* Top bar — logo only */}
+        <div className="flex items-center justify-center mb-6">
           <img src="/Bonkers_Word_Logo_White1.png" alt="Bonkers Book Club" style={{ width: '120px', height: 'auto' }} />
-          <div style={{ width: '28px' }} />
         </div>
 
-        {/* Search */}
-        <div className="relative mb-6">
-          <input
-            type="text"
-            placeholder="Search books or authors…"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full focus:outline-none"
-            style={{
-              padding: '12px 40px 12px 16px', borderRadius: '999px',
-              border: '1px solid rgba(237,219,195,0.25)',
-              backgroundColor: 'rgba(237,219,195,0.1)', color: '#eddbc3',
-              fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.9rem',
-              boxSizing: 'border-box', width: '100%',
-            }}
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery('')}
-              style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#eddbc3', opacity: 0.5, cursor: 'pointer', fontSize: '1rem' }}>
-              ✕
+        {/* Child selector */}
+        {children.length > 0 && (
+          <div className="mb-4">
+            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.72rem', opacity: 0.55, marginBottom: '8px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              Browsing for
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+              {children.map(child => (
+                <button key={child.id} onClick={() => selectChild(child.id)}
+                  className="flex items-center gap-2 flex-shrink-0 rounded-full px-3 py-2"
+                  style={{
+                    background: 'none', cursor: 'pointer',
+                    border: `2px solid ${selectedChildId === child.id ? '#f9d174' : 'rgba(237,219,195,0.3)'}`,
+                    backgroundColor: selectedChildId === child.id ? 'rgba(249,209,116,0.12)' : 'transparent',
+                  }}>
+                  {child.avatar_url && (
+                    <img src={child.avatar_url} alt="" style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }} />
+                  )}
+                  <span style={{
+                    fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', fontWeight: 600,
+                    color: selectedChildId === child.id ? '#f9d174' : '#eddbc3',
+                  }}>
+                    {child.nickname || child.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Reading level filter */}
+        <div className="flex items-center gap-2 mb-8 flex-wrap">
+          <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.72rem', opacity: 0.55, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Level:
+          </span>
+          {readingLevels.map(level => (
+            <button key={level.id}
+              onClick={() => setActiveLevel(activeLevel?.id === level.id ? null : level)}
+              className="rounded-full px-3 py-1"
+              style={{
+                border: `1px solid ${activeLevel?.id === level.id ? '#f9d174' : 'rgba(237,219,195,0.3)'}`,
+                backgroundColor: activeLevel?.id === level.id ? 'rgba(249,209,116,0.18)' : 'transparent',
+                color: activeLevel?.id === level.id ? '#f9d174' : 'rgba(237,219,195,0.55)',
+                fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', fontWeight: 600,
+                cursor: 'pointer',
+              }}>
+              {level.name}
+            </button>
+          ))}
+          {activeLevel && (
+            <button onClick={() => setActiveLevel(null)}
+              style={{ background: 'none', border: 'none', color: 'rgba(237,219,195,0.4)', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'var(--font-montserrat), sans-serif' }}>
+              Clear
             </button>
           )}
         </div>
 
-        {/* Search results */}
-        {searchQuery ? (
-          <section>
-            {searchLoading && <p style={{ color: '#eddbc3', opacity: 0.5, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem' }}>Searching…</p>}
-            {!searchLoading && searchResults?.length === 0 && (
-              <p style={{ color: '#eddbc3', opacity: 0.5, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem' }}>No books found for "{searchQuery}"</p>
-            )}
-            {!searchLoading && searchResults && searchResults.length > 0 && (
-              <div className="grid grid-cols-3 gap-4">
-                {searchResults.map(book => <BookCard key={book.id} book={book} onPress={() => navigateToBook(book.id)} />)}
+        {/* Category sections */}
+        {categories.map(category => {
+          const books = booksByCategory[category.id] || []
+          return (
+            <section key={category.id} className="mb-10">
+              <div className="mb-3">
+                <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, lineHeight: 1 }}>
+                  {category.name}
+                </span>
               </div>
-            )}
-          </section>
-        ) : (
-          <>
-            {/* Child selector */}
-            {children.length > 0 && (
-              <div className="mb-4">
-                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.72rem', opacity: 0.55, marginBottom: '8px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                  Browsing for
-                </p>
-                <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-                  {children.map(child => (
-                    <button key={child.id} onClick={() => selectChild(child.id)}
-                      className="flex items-center gap-2 flex-shrink-0 rounded-full px-3 py-2"
-                      style={{
-                        background: 'none', cursor: 'pointer',
-                        border: `2px solid ${selectedChildId === child.id ? '#f9d174' : 'rgba(237,219,195,0.3)'}`,
-                        backgroundColor: selectedChildId === child.id ? 'rgba(249,209,116,0.12)' : 'transparent',
-                      }}>
-                      {child.avatar_url && (
-                        <img src={child.avatar_url} alt="" style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }} />
-                      )}
-                      <span style={{
-                        fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', fontWeight: 600,
-                        color: selectedChildId === child.id ? '#f9d174' : '#eddbc3',
-                      }}>
-                        {child.nickname || child.name}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {/* Reading level filter */}
-            <div className="flex items-center gap-2 mb-8 flex-wrap">
-              <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.72rem', opacity: 0.55, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                Level:
-              </span>
-              {readingLevels.map(level => (
-                <button key={level.id}
-                  onClick={() => setActiveLevel(activeLevel?.id === level.id ? null : level)}
-                  className="rounded-full px-3 py-1"
-                  style={{
-                    border: `1px solid ${activeLevel?.id === level.id ? '#f9d174' : 'rgba(237,219,195,0.3)'}`,
-                    backgroundColor: activeLevel?.id === level.id ? 'rgba(249,209,116,0.18)' : 'transparent',
-                    color: activeLevel?.id === level.id ? '#f9d174' : 'rgba(237,219,195,0.55)',
-                    fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', fontWeight: 600,
-                    cursor: 'pointer',
-                  }}>
-                  {level.name}
-                </button>
-              ))}
-              {activeLevel && (
-                <button onClick={() => setActiveLevel(null)}
-                  style={{ background: 'none', border: 'none', color: 'rgba(237,219,195,0.4)', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'var(--font-montserrat), sans-serif' }}>
-                  Clear
+              {category.image_url && (
+                <button onClick={() => router.push(`/dashboard/library/category/${category.id}`)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'block', width: '100%', marginBottom: '12px' }}>
+                  <img src={category.image_url} alt={category.name}
+                    style={{ width: '100%', aspectRatio: '21/9', objectFit: 'cover', borderRadius: '16px', display: 'block' }} />
                 </button>
               )}
-            </div>
 
-            {/* Category sections */}
-            {categories.map(category => {
-              const books = booksByCategory[category.id] || []
-              return (
-                <section key={category.id} className="mb-10">
-                  {/* Heading row */}
-                  <div className="mb-3">
-                    <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, lineHeight: 1 }}>
-                      {category.name}
-                    </span>
+              {books.length > 0
+                ? <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+                    {books.map(book => (
+                      <BookCard key={book.id} book={book} onPress={() => navigateToBook(book.id)} />
+                    ))}
                   </div>
+                : <p style={{ color: '#eddbc3', opacity: 0.35, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem' }}>
+                    No books at this level yet
+                  </p>
+              }
 
-                  {/* Category banner image */}
-                  {category.image_url && (
-                    <button onClick={() => router.push(`/dashboard/library/category/${category.id}`)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'block', width: '100%', marginBottom: '12px' }}>
-                      <img src={category.image_url} alt={category.name}
-                        style={{ width: '100%', aspectRatio: '21/9', objectFit: 'cover', borderRadius: '16px', display: 'block' }} />
-                    </button>
-                  )}
+              <div className="flex justify-end mt-2">
+                <button onClick={() => router.push(`/dashboard/library/category/${category.id}`)}
+                  className="flex items-center gap-1"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700 }}>
+                  <img src="/whiskers_left.png" alt="" style={{ height: '28px', width: 'auto' }} />
+                  See all
+                  <img src="/arrow_cream.png" alt="" style={{ height: '16px', width: 'auto' }} />
+                </button>
+              </div>
+            </section>
+          )
+        })}
 
-                  {/* Books horizontal scroll */}
-                  {books.length > 0
-                    ? <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
-                        {books.map(book => (
-                          <BookCard key={book.id} book={book} onPress={() => navigateToBook(book.id)} />
-                        ))}
-                      </div>
-                    : <p style={{ color: '#eddbc3', opacity: 0.35, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem' }}>
-                        No books at this level yet
-                      </p>
-                  }
+        {/* Surprise Me */}
+        <section className="mb-10">
+          <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, marginBottom: '12px' }}>
+            Surprise Me
+          </p>
+          <button ref={surpriseBtnRef} onClick={handleSurpriseMe} disabled={surpriseActive || surpriseWiggle}
+            style={{ background: 'none', border: 'none', cursor: (surpriseActive || surpriseWiggle) ? 'default' : 'pointer', padding: 0 }}>
+            <img src="/surpriseme.png" alt="Surprise Me" style={{
+              width: '140px', height: 'auto',
+              animation: surpriseWiggle ? 'bonky-wiggle 0.85s ease-in-out forwards' : 'none',
+            }} />
+          </button>
+        </section>
 
-                  {/* See all — below scroll, right aligned */}
-                  <div className="flex justify-end mt-2">
-                    <button onClick={() => router.push(`/dashboard/library/category/${category.id}`)}
-                      className="flex items-center gap-1"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700 }}>
-                      <img src="/whiskers_left.png" alt="" style={{ height: '28px', width: 'auto' }} />
-                      See all
-                      <img src="/arrow_cream.png" alt="" style={{ height: '16px', width: 'auto' }} />
-                    </button>
-                  </div>
-                </section>
-              )
-            })}
+        {/* New to Bonkers */}
+        <section className="mb-10">
+          <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, lineHeight: 1, marginBottom: '12px' }}>New to Bonkers</p>
+          {newArrivals.length > 0
+            ? <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+                {newArrivals.slice(0, 8).map(book => (
+                  <BookCard key={book.id} book={book} onPress={() => navigateToBook(book.id)} />
+                ))}
+              </div>
+            : <p style={{ color: '#eddbc3', opacity: 0.35, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem' }}>Coming soon!</p>
+          }
+          <div className="flex justify-end mt-2">
+            <button onClick={() => router.push('/dashboard/library/all?sort=new')}
+              className="flex items-center gap-1"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700 }}>
+              <img src="/whiskers_left.png" alt="" style={{ height: '28px', width: 'auto' }} />
+              See all
+              <img src="/arrow_cream.png" alt="" style={{ height: '16px', width: 'auto' }} />
+            </button>
+          </div>
+        </section>
 
-            {/* Surprise Me */}
-            <section className="mb-10">
-              <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, marginBottom: '12px' }}>
-                Surprise Me
-              </p>
-              <button ref={surpriseBtnRef} onClick={handleSurpriseMe} disabled={surpriseActive || surpriseWiggle}
-                style={{ background: 'none', border: 'none', cursor: (surpriseActive || surpriseWiggle) ? 'default' : 'pointer', padding: 0 }}>
-                <img src="/surpriseme.png" alt="Surprise Me" style={{
-                  width: '140px', height: 'auto',
-                  animation: surpriseWiggle ? 'bonky-wiggle 0.85s ease-in-out forwards' : 'none',
-                }} />
+        {/* Most Loved */}
+        <section className="mb-10">
+          <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, lineHeight: 1, marginBottom: '12px' }}>Most Loved</p>
+          {popular.length > 0
+            ? <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+                {popular.slice(0, 8).map(book => (
+                  <BookCard key={book.id} book={book} onPress={() => navigateToBook(book.id)} />
+                ))}
+              </div>
+            : <p style={{ color: '#eddbc3', opacity: 0.35, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem' }}>Coming soon!</p>
+          }
+          <div className="flex justify-end mt-2">
+            <button onClick={() => router.push('/dashboard/library/all?sort=popular')}
+              className="flex items-center gap-1"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700 }}>
+              <img src="/whiskers_left.png" alt="" style={{ height: '28px', width: 'auto' }} />
+              See all
+              <img src="/arrow_cream.png" alt="" style={{ height: '16px', width: 'auto' }} />
+            </button>
+          </div>
+        </section>
+
+        {/* Browse Everything */}
+        <section className="mb-10">
+          <div className="relative flex items-center justify-center" style={{ width: '71%', maxWidth: '260px', margin: '0 auto' }}>
+            <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', left: '-15px', height: '50px', width: 'auto', zIndex: 1, pointerEvents: 'none' }} />
+            <div style={{ position: 'relative', width: '100%', paddingBottom: 'calc(100% / 2.97)' }}>
+              <button
+                onClick={() => router.push('/dashboard/library/all')}
+                className="flex items-center justify-center border-none bg-transparent cursor-pointer"
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', backgroundImage: 'url(/button2.png)', backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat' }}>
+                <span className="relative z-10 flex items-center text-2xl text-white" style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, letterSpacing: '0.04em', marginBottom: '9px' }}>
+                  Browse everything
+                </span>
               </button>
-            </section>
+            </div>
+            <img src="/whiskers_right.png" alt="" style={{ position: 'absolute', right: '-15px', height: '50px', width: 'auto', zIndex: 1, pointerEvents: 'none' }} />
+          </div>
+        </section>
 
-            {/* New to Bonkers */}
-            <section className="mb-10">
-              <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, lineHeight: 1, marginBottom: '12px' }}>New to Bonkers</p>
-              {newArrivals.length > 0
-                ? <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
-                    {newArrivals.slice(0, 8).map(book => (
-                      <BookCard key={book.id} book={book} onPress={() => navigateToBook(book.id)} />
-                    ))}
-                  </div>
-                : <p style={{ color: '#eddbc3', opacity: 0.35, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem' }}>Coming soon!</p>
-              }
-              <div className="flex justify-end mt-2">
-                <button onClick={() => router.push('/dashboard/library/all?sort=new')}
-                  className="flex items-center gap-1"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700 }}>
-                  <img src="/whiskers_left.png" alt="" style={{ height: '28px', width: 'auto' }} />
-                  See all
-                  <img src="/arrow_cream.png" alt="" style={{ height: '16px', width: 'auto' }} />
-                </button>
-              </div>
-            </section>
+      </div>
 
-            {/* Most Loved */}
-            <section className="mb-10">
-              <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.8rem', fontWeight: 600, lineHeight: 1, marginBottom: '12px' }}>Most Loved</p>
-              {popular.length > 0
-                ? <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
-                    {popular.slice(0, 8).map(book => (
-                      <BookCard key={book.id} book={book} onPress={() => navigateToBook(book.id)} />
-                    ))}
-                  </div>
-                : <p style={{ color: '#eddbc3', opacity: 0.35, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem' }}>Coming soon!</p>
-              }
-              <div className="flex justify-end mt-2">
-                <button onClick={() => router.push('/dashboard/library/all?sort=popular')}
-                  className="flex items-center gap-1"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700 }}>
-                  <img src="/whiskers_left.png" alt="" style={{ height: '28px', width: 'auto' }} />
-                  See all
-                  <img src="/arrow_cream.png" alt="" style={{ height: '16px', width: 'auto' }} />
-                </button>
-              </div>
-            </section>
-
-            {/* Browse Everything */}
-            <section className="mb-10">
-              <div className="relative flex items-center justify-center" style={{ width: '71%', maxWidth: '260px', margin: '0 auto' }}>
-                <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', left: '-15px', height: '50px', width: 'auto', zIndex: 1, pointerEvents: 'none' }} />
-                <div style={{ position: 'relative', width: '100%', paddingBottom: 'calc(100% / 2.97)' }}>
-                  <button
-                    onClick={() => router.push('/dashboard/library/all')}
-                    className="flex items-center justify-center border-none bg-transparent cursor-pointer"
-                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', backgroundImage: 'url(/button2.png)', backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat' }}>
-                    <span className="relative z-10 flex items-center text-2xl text-white" style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, letterSpacing: '0.04em', marginBottom: '9px' }}>
-                      Browse everything →
-                    </span>
-                  </button>
-                </div>
-                <img src="/whiskers_right.png" alt="" style={{ position: 'absolute', right: '-15px', height: '50px', width: 'auto', zIndex: 1, pointerEvents: 'none' }} />
-              </div>
-            </section>
-          </>
-        )}
+      {/* Sticky bottom bar — home button + search */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+        backgroundColor: 'rgba(8, 4, 2, 0.95)',
+        backdropFilter: 'blur(14px)',
+        WebkitBackdropFilter: 'blur(14px)',
+        borderTop: '1px solid rgba(237,219,195,0.12)',
+        padding: '10px 16px 18px',
+        display: 'flex', alignItems: 'center', gap: '10px',
+      }}>
+        <button onClick={() => router.push('/dashboard')}
+          style={{ flex: 'none', width: '42px', height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.7 }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#eddbc3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
+            <path d="M9 21V12h6v9"/>
+          </svg>
+        </button>
+        <div style={{ flex: 1, position: 'relative' }}>
+          <input
+            type="text"
+            placeholder="Search books or authors"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="focus:outline-none"
+            style={{
+              width: '100%', padding: '10px 38px 10px 16px', borderRadius: '999px',
+              border: '1px solid rgba(237,219,195,0.25)',
+              backgroundColor: 'rgba(237,219,195,0.1)', color: '#eddbc3',
+              fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.88rem',
+              boxSizing: 'border-box',
+            }}
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')}
+              style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#eddbc3', opacity: 0.5, cursor: 'pointer', fontSize: '0.9rem' }}>
+              X
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Particle burst overlay */}
