@@ -334,6 +334,7 @@ export default function LibraryPage() {
                     border: `4px solid ${isSelected ? '#e57451' : 'transparent'}`,
                     boxShadow: 'none',
                     transition: 'border-color 0.15s',
+                    lineHeight: 0, fontSize: 0,
                   }}>
                     {imgMap[key]
                       ? <img src={imgMap[key]} alt={level.name} style={{ width: '100%', aspectRatio: '2/3', objectFit: 'cover', display: 'block' }} />
