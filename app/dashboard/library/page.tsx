@@ -276,14 +276,14 @@ export default function LibraryPage() {
         </div>
 
         {/* Browsing for — always visible */}
-        <div className="mb-4">
-          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.72rem', opacity: 0.55, marginBottom: '8px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+        <div className="mb-6 flex flex-col items-center">
+          <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.3rem', fontWeight: 600, fontStyle: 'italic', marginBottom: '10px', letterSpacing: '0.02em' }}>
             Browsing for
           </p>
-          <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+          <div className="flex gap-2 flex-wrap justify-center pb-1">
             {children.length > 0 ? children.map(child => (
               <button key={child.id} onClick={() => selectChild(child.id)}
-                className="flex items-center gap-2 flex-shrink-0 rounded-full px-3 py-2"
+                className="flex items-center gap-2 flex-shrink-0 rounded-full px-4 py-2"
                 style={{
                   background: 'none', cursor: 'pointer',
                   border: `2px solid ${selectedChildId === child.id ? '#f9d174' : 'rgba(237,219,195,0.3)'}`,
@@ -293,15 +293,15 @@ export default function LibraryPage() {
                   <img src={child.avatar_url} alt="" style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }} />
                 )}
                 <span style={{
-                  fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', fontWeight: 600,
+                  fontFamily: 'var(--font-cormorant), serif', fontSize: '1.1rem', fontWeight: 700,
                   color: selectedChildId === child.id ? '#f9d174' : '#eddbc3',
                 }}>
                   {child.nickname || child.name}
                 </span>
               </button>
             )) : (
-              <div className="rounded-full px-4 py-2" style={{ border: '2px solid rgba(237,219,195,0.2)' }}>
-                <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', color: '#eddbc3', opacity: 0.3 }}>
+              <div className="rounded-full px-5 py-2" style={{ border: '2px solid rgba(237,219,195,0.15)' }}>
+                <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '1.1rem', color: '#eddbc3', opacity: 0.25 }}>
                   No children added yet
                 </span>
               </div>
