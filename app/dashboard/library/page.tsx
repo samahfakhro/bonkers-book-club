@@ -294,7 +294,7 @@ export default function LibraryPage() {
                 backgroundColor: 'rgba(255,255,255,0.04)',
                 cursor: children.length > 0 ? 'pointer' : 'default',
               }}>
-              <span style={{ fontFamily: 'var(--font-amatic), cursive', fontSize: '1.6rem', fontWeight: 700, color: '#eddbc3', lineHeight: 1 }}>
+              <span style={{ fontFamily: 'var(--font-amatic), cursive', fontSize: '1.6rem', fontWeight: 700, letterSpacing: '0.04em', color: '#eddbc3', lineHeight: 1 }}>
                 {children.length === 0
                   ? 'No children yet'
                   : children.find(c => c.id === selectedChildId)?.nickname
@@ -328,7 +328,7 @@ export default function LibraryPage() {
                     {child.avatar_url && (
                       <img src={child.avatar_url} alt="" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                     )}
-                    <span style={{ fontFamily: 'var(--font-amatic), cursive', fontSize: '1.6rem', fontWeight: 700, color: child.id === selectedChildId ? '#e57451' : '#eddbc3', lineHeight: 1 }}>
+                    <span style={{ fontFamily: 'var(--font-amatic), cursive', fontSize: '1.6rem', fontWeight: 700, letterSpacing: '0.04em', color: child.id === selectedChildId ? '#e57451' : '#eddbc3', lineHeight: 1 }}>
                       {child.nickname || child.name}
                     </span>
                   </button>
@@ -366,10 +366,10 @@ export default function LibraryPage() {
                       : <div style={{ width: '100%', aspectRatio: '2/3', backgroundColor: 'rgba(237,219,195,0.1)' }} />
                     }
                   </div>
-                  <p style={{ fontFamily: 'var(--font-amatic), cursive', color: isSelected ? '#e57451' : '#eddbc3', fontSize: '1.3rem', fontWeight: 700, marginTop: '6px', lineHeight: 1 }}>
+                  <p style={{ fontFamily: 'var(--font-amatic), cursive', color: isSelected ? '#e57451' : '#eddbc3', fontSize: '1.3rem', fontWeight: 700, letterSpacing: '0.04em', marginTop: '6px', lineHeight: 1 }}>
                     {level.name}
                   </p>
-                  <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.65rem', opacity: 0.8, marginTop: '2px' }}>
+                  <p style={{ fontFamily: 'var(--font-amatic), cursive', color: '#eddbc3', fontSize: '1rem', fontWeight: 700, letterSpacing: '0.04em', opacity: 0.8, marginTop: '2px' }}>
                     {ageMap[key] || ''}
                   </p>
                 </button>
@@ -411,7 +411,7 @@ export default function LibraryPage() {
               <div className="flex justify-end mt-2">
                 <button onClick={() => router.push(`/dashboard/library/category/${category.id}`)}
                   className="flex items-center gap-1"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700 }}>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700, letterSpacing: '0.04em' }}>
                   <img src="/whiskers_left.png" alt="" style={{ height: '28px', width: 'auto' }} />
                   See all
                   <img src="/arrow_cream.png" alt="" style={{ height: '16px', width: 'auto' }} />
@@ -449,7 +449,7 @@ export default function LibraryPage() {
           <div className="flex justify-end mt-2">
             <button onClick={() => router.push('/dashboard/library/all?sort=new')}
               className="flex items-center gap-1"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700 }}>
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700, letterSpacing: '0.04em' }}>
               <img src="/whiskers_left.png" alt="" style={{ height: '28px', width: 'auto' }} />
               See all
               <img src="/arrow_cream.png" alt="" style={{ height: '16px', width: 'auto' }} />
@@ -471,7 +471,7 @@ export default function LibraryPage() {
           <div className="flex justify-end mt-2">
             <button onClick={() => router.push('/dashboard/library/all?sort=popular')}
               className="flex items-center gap-1"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700 }}>
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700, letterSpacing: '0.04em' }}>
               <img src="/whiskers_left.png" alt="" style={{ height: '28px', width: 'auto' }} />
               See all
               <img src="/arrow_cream.png" alt="" style={{ height: '16px', width: 'auto' }} />
