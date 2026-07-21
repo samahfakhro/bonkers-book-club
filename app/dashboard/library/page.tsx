@@ -315,7 +315,7 @@ export default function LibraryPage() {
 
         {/* Reading level filter */}
         <div className="mb-8">
-          <p style={{ fontFamily: 'var(--font-amatic), cursive', color: '#f9d174', fontSize: '1.8rem', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '12px', textAlign: 'center' }}>
+          <p style={{ fontFamily: 'var(--font-amatic), cursive', color: '#f9d174', fontSize: '1.8rem', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '12px', textAlign: 'left' }}>
             Reading Level
           </p>
           <div className="grid grid-cols-3 gap-3">
