@@ -282,7 +282,7 @@ export default function LibraryPage() {
 
         {/* Browsing for — always visible */}
         <div className="mb-6 flex items-center gap-3">
-          <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.4rem', fontWeight: 600, fontStyle: 'italic', lineHeight: 1, flexShrink: 0 }}>
+          <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.4rem', fontWeight: 600, lineHeight: 1, flexShrink: 0 }}>
             Browsing for
           </p>
           <div style={{ position: 'relative', flex: 1 }}>
@@ -340,7 +340,7 @@ export default function LibraryPage() {
 
         {/* Reading level filter */}
         <div className="mb-8">
-          <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.4rem', fontWeight: 600, fontStyle: 'italic', marginBottom: '12px', textAlign: 'left' }}>
+          <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#f9d174', fontSize: '1.4rem', fontWeight: 600, marginBottom: '12px', textAlign: 'left' }}>
             Reading Level
           </p>
           <div className="grid grid-cols-3 gap-3">
