@@ -344,7 +344,7 @@ export default function LibraryPage() {
                   <p style={{ fontFamily: 'var(--font-cormorant), serif', color: isSelected ? '#e57451' : '#eddbc3', fontSize: '1rem', fontWeight: 700, marginTop: '6px', lineHeight: 1 }}>
                     {level.name}
                   </p>
-                  <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.65rem', opacity: 0.55, marginTop: '2px' }}>
+                  <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.65rem', opacity: 0.8, marginTop: '2px' }}>
                     {ageMap[key] || ''}
                   </p>
                 </button>
