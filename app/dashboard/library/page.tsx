@@ -351,14 +351,6 @@ export default function LibraryPage() {
               )
             })}
           </div>
-          {activeLevels.length > 0 && (
-            <div className="flex justify-center mt-3">
-              <button onClick={() => setActiveLevels([])}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.72rem', opacity: 0.45, textDecoration: 'underline' }}>
-                Show all ages
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Category sections */}
