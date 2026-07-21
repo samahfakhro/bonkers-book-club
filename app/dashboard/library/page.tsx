@@ -60,7 +60,7 @@ export default function LibraryPage() {
   const [children, setChildren] = useState<Child[]>([])
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null)
   const [readingLevels, setReadingLevels] = useState<ReadingLevel[]>([])
-  const [activeLevel, setActiveLevel] = useState<ReadingLevel | null>(null)
+  const [activeLevels, setActiveLevels] = useState<ReadingLevel[]>([])
 
   const [categories, setCategories] = useState<Category[]>([])
   const [booksByCategory, setBooksByCategory] = useState<Record<string, Book[]>>({})
@@ -110,7 +110,7 @@ export default function LibraryPage() {
       if (childList.length > 0) {
         const first = childList[0]
         setSelectedChildId(first.id)
-        if (first.reading_level) setActiveLevel(first.reading_level)
+        if (first.reading_level) setActiveLevels([first.reading_level])
       }
 
       setLoading(false)
@@ -121,7 +121,7 @@ export default function LibraryPage() {
   useEffect(() => {
     async function loadBooks() {
       let bookQuery = supabase.from('books').select('id, title, author, cover_image_url').eq('is_active', true)
-      if (activeLevel) bookQuery = bookQuery.eq('reading_level_id', activeLevel.id)
+      if (activeLevels.length > 0) bookQuery = bookQuery.in('reading_level_id', activeLevels.map(l => l.id))
       const { data: books } = await bookQuery
 
       if (!books || books.length === 0) { setBooksByCategory({}); return }
@@ -142,16 +142,20 @@ export default function LibraryPage() {
       setBooksByCategory(grouped)
     }
     loadBooks()
-  }, [activeLevel])
+  }, [activeLevels])
 
   function selectChild(childId: string) {
     setSelectedChildId(childId)
     const child = children.find(c => c.id === childId)
-    if (child?.reading_level) {
-      setActiveLevel(child.reading_level)
-    } else {
-      setActiveLevel(null)
-    }
+    setActiveLevels(child?.reading_level ? [child.reading_level] : [])
+  }
+
+  function toggleLevel(level: ReadingLevel) {
+    setActiveLevels(prev =>
+      prev.some(l => l.id === level.id)
+        ? prev.filter(l => l.id !== level.id)
+        : [...prev, level]
+    )
   }
 
   useEffect(() => {
@@ -319,10 +323,10 @@ export default function LibraryPage() {
               const key = level.name.toLowerCase()
               const ageMap: Record<string, string> = { hatchling: '3–5 yrs', hatchlings: '3–5 yrs', chick: '5–7 yrs', chicks: '5–7 yrs', bird: '8–10 yrs', birds: '8–10 yrs' }
               const imgMap: Record<string, string> = { hatchling: '/categorycards_hatchlings.png', hatchlings: '/categorycards_hatchlings.png', chick: '/categorycards_chicks.png', chicks: '/categorycards_chicks.png', bird: '/categorycards_birds.png', birds: '/categorycards_birds.png' }
-              const isSelected = activeLevel?.id === level.id
+              const isSelected = activeLevels.some(l => l.id === level.id)
               return (
                 <button key={level.id}
-                  onClick={() => setActiveLevel(isSelected ? null : level)}
+                  onClick={() => toggleLevel(level)}
                   className="flex flex-col items-center"
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                   <div style={{
@@ -346,6 +350,14 @@ export default function LibraryPage() {
               )
             })}
           </div>
+          {activeLevels.length > 0 && (
+            <div className="flex justify-center mt-3">
+              <button onClick={() => setActiveLevels([])}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.72rem', opacity: 0.45, textDecoration: 'underline' }}>
+                Show all ages
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Category sections */}
