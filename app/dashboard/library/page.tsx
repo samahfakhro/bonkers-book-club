@@ -267,9 +267,12 @@ export default function LibraryPage() {
       {/* Main scrollable content */}
       <div className="max-w-xl mx-auto px-4 pt-8">
 
-        {/* Top bar — logo only */}
-        <div className="flex items-center justify-center mb-6">
+        {/* Top bar */}
+        <div className="flex flex-col items-center mb-6">
           <img src="/Bonkers_Word_Logo_White1.png" alt="Bonkers Book Club" style={{ width: '120px', height: 'auto' }} />
+          <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '2rem', fontWeight: 700, marginTop: '6px', lineHeight: 1 }}>
+            Your Library
+          </h1>
         </div>
 
         {/* Child selector */}
