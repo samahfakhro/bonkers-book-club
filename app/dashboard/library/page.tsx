@@ -280,11 +280,11 @@ export default function LibraryPage() {
         </div>
 
         {/* Browsing for — always visible */}
-        <div className="mb-6 flex flex-col items-center">
-          <p style={{ fontFamily: 'var(--font-amatic), cursive', color: '#f9d174', fontSize: '1.8rem', fontWeight: 700, marginBottom: '10px', letterSpacing: '0.05em' }}>
+        <div className="mb-6 flex items-center justify-center gap-3 flex-wrap">
+          <p style={{ fontFamily: 'var(--font-amatic), cursive', color: '#f9d174', fontSize: '1.8rem', fontWeight: 700, letterSpacing: '0.05em', lineHeight: 1, flexShrink: 0 }}>
             Browsing for
           </p>
-          <div className="flex gap-2 flex-wrap justify-center pb-1">
+          <div className="flex gap-2 flex-wrap justify-center">
             {children.length > 0 ? children.map(child => (
               <button key={child.id} onClick={() => selectChild(child.id)}
                 className="flex items-center gap-2 flex-shrink-0 rounded-full px-4 py-2"
