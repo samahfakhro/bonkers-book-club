@@ -331,8 +331,8 @@ export default function LibraryPage() {
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                   <div style={{
                     width: '100%', borderRadius: '12px', overflow: 'hidden',
-                    border: `2px solid ${isSelected ? '#f9d174' : 'transparent'}`,
-                    boxShadow: isSelected ? '0 0 0 1px #f9d174' : 'none',
+                    border: `4px solid ${isSelected ? '#e57451' : 'transparent'}`,
+                    boxShadow: 'none',
                     transition: 'border-color 0.15s',
                   }}>
                     {imgMap[key]
@@ -340,7 +340,7 @@ export default function LibraryPage() {
                       : <div style={{ width: '100%', aspectRatio: '2/3', backgroundColor: 'rgba(237,219,195,0.1)' }} />
                     }
                   </div>
-                  <p style={{ fontFamily: 'var(--font-cormorant), serif', color: isSelected ? '#f9d174' : '#eddbc3', fontSize: '1rem', fontWeight: 700, marginTop: '6px', lineHeight: 1 }}>
+                  <p style={{ fontFamily: 'var(--font-cormorant), serif', color: isSelected ? '#e57451' : '#eddbc3', fontSize: '1rem', fontWeight: 700, marginTop: '6px', lineHeight: 1 }}>
                     {level.name}
                   </p>
                   <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.65rem', opacity: 0.55, marginTop: '2px' }}>
