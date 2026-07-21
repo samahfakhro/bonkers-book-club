@@ -288,13 +288,15 @@ export default function LibraryPage() {
           <div style={{ position: 'relative', flex: 1 }}>
             <button
               onClick={() => children.length > 0 && setDropdownOpen(o => !o)}
-              className="w-full flex items-center justify-between rounded-xl px-4 py-2"
+              className="w-full flex items-center justify-between font-bold transition-all border-none bg-transparent"
               style={{
-                border: `3px solid ${selectedChildId ? '#e57451' : 'rgba(237,219,195,0.3)'}`,
-                backgroundColor: 'rgba(255,255,255,0.04)',
+                backgroundImage: `url(${selectedChildId ? '/orange_box.png' : '/blue_box.png'})`,
+                backgroundSize: '100% 100%',
+                backgroundRepeat: 'no-repeat',
+                padding: '10px 20px 18px',
                 cursor: children.length > 0 ? 'pointer' : 'default',
               }}>
-              <span style={{ fontFamily: 'var(--font-amatic), cursive', fontSize: '1.6rem', fontWeight: 700, letterSpacing: '0.04em', color: '#eddbc3', lineHeight: 1 }}>
+              <span style={{ fontFamily: 'var(--font-amatic), cursive', fontSize: '1.5rem', fontWeight: 700, letterSpacing: '0.04em', color: '#eddbc3', lineHeight: 1 }}>
                 {children.length === 0
                   ? 'No children yet'
                   : children.find(c => c.id === selectedChildId)?.nickname
@@ -302,7 +304,7 @@ export default function LibraryPage() {
                     || 'Select a child'}
               </span>
               {children.length > 0 && (
-                <span style={{ color: '#eddbc3', opacity: 0.6, fontSize: '0.9rem', marginLeft: '8px' }}>
+                <span style={{ color: '#eddbc3', opacity: 0.6, fontSize: '0.85rem' }}>
                   {dropdownOpen ? '▲' : '▼'}
                 </span>
               )}
