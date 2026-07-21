@@ -310,30 +310,42 @@ export default function LibraryPage() {
         </div>
 
         {/* Reading level filter */}
-        <div className="flex items-center gap-2 mb-8 flex-wrap">
-          <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.72rem', opacity: 0.55, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            Level:
-          </span>
-          {readingLevels.map(level => (
-            <button key={level.id}
-              onClick={() => setActiveLevel(activeLevel?.id === level.id ? null : level)}
-              className="rounded-full px-3 py-1"
-              style={{
-                border: `1px solid ${activeLevel?.id === level.id ? '#f9d174' : 'rgba(237,219,195,0.3)'}`,
-                backgroundColor: activeLevel?.id === level.id ? 'rgba(249,209,116,0.18)' : 'transparent',
-                color: activeLevel?.id === level.id ? '#f9d174' : 'rgba(237,219,195,0.55)',
-                fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', fontWeight: 600,
-                cursor: 'pointer',
-              }}>
-              {level.name}
-            </button>
-          ))}
-          {activeLevel && (
-            <button onClick={() => setActiveLevel(null)}
-              style={{ background: 'none', border: 'none', color: 'rgba(237,219,195,0.4)', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'var(--font-montserrat), sans-serif' }}>
-              Clear
-            </button>
-          )}
+        <div className="mb-8">
+          <p style={{ fontFamily: 'var(--font-amatic), cursive', color: '#f9d174', fontSize: '1.8rem', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '12px', textAlign: 'center' }}>
+            Reading Level
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            {readingLevels.map(level => {
+              const key = level.name.toLowerCase()
+              const ageMap: Record<string, string> = { hatchling: '3–5 yrs', hatchlings: '3–5 yrs', chick: '5–7 yrs', chicks: '5–7 yrs', bird: '8–10 yrs', birds: '8–10 yrs' }
+              const imgMap: Record<string, string> = { hatchling: '/categorycards_hatchlings.png', hatchlings: '/categorycards_hatchlings.png', chick: '/categorycards_chicks.png', chicks: '/categorycards_chicks.png', bird: '/categorycards_birds.png', birds: '/categorycards_birds.png' }
+              const isSelected = activeLevel?.id === level.id
+              return (
+                <button key={level.id}
+                  onClick={() => setActiveLevel(isSelected ? null : level)}
+                  className="flex flex-col items-center"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  <div style={{
+                    width: '100%', borderRadius: '12px', overflow: 'hidden',
+                    border: `2px solid ${isSelected ? '#f9d174' : 'transparent'}`,
+                    boxShadow: isSelected ? '0 0 0 1px #f9d174' : 'none',
+                    transition: 'border-color 0.15s',
+                  }}>
+                    {imgMap[key]
+                      ? <img src={imgMap[key]} alt={level.name} style={{ width: '100%', aspectRatio: '2/3', objectFit: 'cover', display: 'block' }} />
+                      : <div style={{ width: '100%', aspectRatio: '2/3', backgroundColor: 'rgba(237,219,195,0.1)' }} />
+                    }
+                  </div>
+                  <p style={{ fontFamily: 'var(--font-cormorant), serif', color: isSelected ? '#f9d174' : '#eddbc3', fontSize: '1rem', fontWeight: 700, marginTop: '6px', lineHeight: 1 }}>
+                    {level.name}
+                  </p>
+                  <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.65rem', opacity: 0.55, marginTop: '2px' }}>
+                    {ageMap[key] || ''}
+                  </p>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* Category sections */}
