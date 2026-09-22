@@ -395,14 +395,14 @@ export default function DashboardPage() {
           {(() => {
             const av = AVATARS.find(a => a.id === member?.avatar_id)
             return (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: av ? av.bg : 'rgba(237,219,195,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>
+              <button onClick={() => router.push('/dashboard/settings')} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: av ? av.bg : 'rgba(237,219,195,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.7rem', flexShrink: 0, border: '2px solid rgba(237,219,195,0.25)' }}>
                   {av ? av.emoji : '👤'}
                 </div>
-                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(237,219,195,0.6)', margin: 0 }}>
+                <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '1.5rem', color: '#f9d174', letterSpacing: '0.04em', margin: 0, lineHeight: 1 }}>
                   {member?.first_name || ''}
                 </p>
-              </div>
+              </button>
             )
           })()}
         </div>
