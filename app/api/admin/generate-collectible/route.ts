@@ -62,13 +62,21 @@ async function uploadCollectible(bookId: string, version: number, base64Data: st
   } catch (e) { console.error('Upload error:', e); return null }
 }
 
+type CollectibleMetadata = {
+  collectible_name?: string
+  concept?: string
+  lore?: string
+  source_moment?: string
+  research?: string[]
+  status?: string
+}
+
 // Extract JSON metadata block from OpenAI text output
-function parseMetadata(text: string): { collectible_name?: string; concept?: string; lore?: string } | null {
+function parseMetadata(text: string): CollectibleMetadata | null {
   try {
     const match = text.match(/```json\s*([\s\S]*?)\s*```/)
     if (match) return JSON.parse(match[1])
-    // Fallback: try to find raw JSON object
-    const objMatch = text.match(/\{\s*"collectible_name"[\s\S]*?\}/)
+    const objMatch = text.match(/\{\s*"(?:collectible_name|status)"[\s\S]*?\}/)
     if (objMatch) return JSON.parse(objMatch[0])
   } catch { /* ignore parse errors */ }
   return null
@@ -221,8 +229,15 @@ export async function POST(req: NextRequest) {
     if (!textOutput && response.output_text) textOutput = response.output_text
 
     const metadata = parseMetadata(textOutput)
-    const newVersion = ((b.collectible_version || 0) as number) + 1
     const responseId: string = response.id
+
+    // ── Handle needs_book_context ─────────────────────────────────────
+    if (metadata?.status === 'needs_book_context') {
+      await supabaseAdmin.from('books').update({ collectible_status: 'needs_book_context' }).eq('id', bookId)
+      return NextResponse.json({ error: 'Insufficient book information — add more metadata and try again.', status: 'needs_book_context' }, { status: 422 })
+    }
+
+    const newVersion = ((b.collectible_version || 0) as number) + 1
 
     // ── Upload image ──────────────────────────────────────────────────
     let imageUrl: string | null = null
@@ -239,6 +254,8 @@ export async function POST(req: NextRequest) {
       collectible_name: metadata?.collectible_name || null,
       collectible_concept: metadata?.concept || null,
       collectible_lore: metadata?.lore || null,
+      collectible_source_moment: metadata?.source_moment || null,
+      collectible_research: metadata?.research ? JSON.stringify(metadata.research) : null,
       collectible_prompt: textOutput.slice(0, 2000),
     }
     if (imageUrl) updatePayload.collectible_image_url = imageUrl
@@ -250,6 +267,8 @@ export async function POST(req: NextRequest) {
       collectible_name: metadata?.collectible_name,
       collectible_concept: metadata?.concept,
       collectible_lore: metadata?.lore,
+      collectible_source_moment: metadata?.source_moment,
+      collectible_research: metadata?.research,
       collectible_image_url: imageUrl,
       collectible_version: newVersion,
       collectible_openai_response_id: responseId,

@@ -115,7 +115,67 @@ Instead, extract the underlying IDEA and transform it into original Bonkers visu
 For example: A book about a famous fictional dog detective should not necessarily create that copyrighted dog. It could create a ridiculously oversized detective badge with bite marks around the edge and a mysterious paw print glowing in the centre. The connection remains. The asset belongs to Bonkers.
 
 
-7. VISUAL STYLE — BONKERS UNIVERSE
+7. SOURCE-BOOK RESEARCH — REQUIRED
+
+Before inventing a collectible, establish reliable knowledge of THIS SPECIFIC BOOK.
+
+Use the book metadata supplied by Bonkers first.
+
+If that information is insufficient to identify concrete, memorable events, objects, jokes, creatures or situations from the specific volume, use web search to research the book.
+
+Search specifically for useful sources such as:
+
+- publisher descriptions
+- author/publisher pages
+- reputable book reviews
+- detailed summaries
+- library/catalogue descriptions
+- educator/reading guides
+- other reliable discussions of the specific book
+
+The purpose of web research is NOT to find somebody else's idea for a collectible.
+
+The purpose is to understand what actually happens in the book.
+
+For books in a series, verify that information belongs to THIS SPECIFIC VOLUME and not merely to the series generally.
+
+After research, identify 2–4 concrete candidate hooks from the actual book.
+
+Then independently create the strongest original Bonkers interpretation.
+
+Do not copy artwork, wording, character designs or another creator's visual interpretation.
+
+
+SOURCE MOMENT
+
+Every proposed collectible must return a SOURCE_MOMENT explaining the specific verified book detail that inspired it.
+
+Also retain the research sources/URLs used to establish that source moment for curator verification.
+
+The human curator should be able to see:
+
+SOURCE MOMENT:
+[concrete event/detail]
+
+RESEARCH:
+[source links]
+
+
+INSUFFICIENT INFORMATION
+
+Only return:
+
+STATUS: needs_book_context
+
+if both:
+
+1. the Bonkers database does not contain sufficient information, AND
+2. web research does not provide sufficiently reliable information about the specific book.
+
+Never invent missing plot information.
+
+
+8. VISUAL STYLE — BONKERS UNIVERSE
 
 Every collectible must belong visually to the same world as Bonky's Home.
 
@@ -247,7 +307,7 @@ Before generating the image, ask internally: "Is this the most delightful thing 
 If the answer is no: DO NOT GENERATE YET. Find the better idea first. The quality of the CONCEPT matters more than speed.
 
 
-19. REQUIRED OUTPUT FORMAT
+20. REQUIRED OUTPUT FORMAT
 
 After your creative thinking, output EXACTLY this JSON block (use triple backtick json fences):
 
@@ -255,9 +315,19 @@ After your creative thinking, output EXACTLY this JSON block (use triple backtic
 {
   "collectible_name": "The Example Name",
   "concept": "A clear description of what the collectible is and why it works for this book.",
-  "lore": "One sentence of deadpan Bonkers lore."
+  "lore": "One sentence of deadpan Bonkers lore.",
+  "source_moment": "The specific verified event, object or detail from this book that inspired the collectible.",
+  "research": ["url or source 1", "url or source 2"]
 }
 \`\`\`
 
-Then immediately call the image_generation tool to create the collectible asset.
+If insufficient information exists (see section 7), output instead:
+
+\`\`\`json
+{
+  "status": "needs_book_context"
+}
+\`\`\`
+
+Otherwise, after outputting the JSON block, immediately call the image_generation tool to create the collectible asset.
 `
