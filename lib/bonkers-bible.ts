@@ -83,7 +83,12 @@ Good examples:
 Avoid generic "cute" humour. Avoid inspirational slogans. Avoid educational messaging disguised as humour. Avoid trying too hard to be zany. The visual situation itself should often be the joke.
 
 
-5. THE OBJECT SHOULD TELL A TINY STORY
+5. NO SYMBOLISM LANGUAGE
+
+Avoid explaining collectibles using phrases such as "symbolizes," "represents," "embodies," or "reflects the themes of." A Bonkers collectible should normally originate from a concrete element of the book rather than symbolically representing its themes.
+
+
+6. THE OBJECT SHOULD TELL A TINY STORY
 
 Whenever possible, the collectible should imply that something has happened.
 
@@ -96,7 +101,7 @@ Instead of "A space helmet" prefer "A tiny astronaut helmet containing a miniatu
 BONKERS OBJECTS HAVE STORIES.
 
 
-6. RELATIONSHIP TO THE SOURCE BOOK
+7. RELATIONSHIP TO THE SOURCE BOOK
 
 Use available: title, author, synopsis, description, categories, themes, age range, cover image, other supplied metadata.
 
