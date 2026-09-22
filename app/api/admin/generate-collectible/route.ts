@@ -252,7 +252,7 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error('Collectible generation error:', err)
     if (bookId) {
-      await supabaseAdmin.from('books').update({ collectible_status: 'generation_failed' }).eq('id', bookId).catch(() => {})
+      try { await supabaseAdmin.from('books').update({ collectible_status: 'generation_failed' }).eq('id', bookId) } catch { /* ignore */ }
     }
     return NextResponse.json({ error: err?.message || 'Generation failed' }, { status: 500 })
   }

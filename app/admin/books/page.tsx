@@ -27,6 +27,7 @@ type LoanEntry = { id: string; status: string; created_at: string; returned_at: 
 type DetailsForm = {
   isbn: string; page_count: string; book_type: string
   series_id: string; series_number: string
+  reading_level_id: string
   tags: string; description: string
   age_min: string; age_max: string
 }
@@ -261,6 +262,7 @@ export default function AdminBooksPage() {
       book_type: book.book_type || '',
       series_id: book.series_id || '',
       series_number: book.series_number != null ? String(book.series_number) : '',
+      reading_level_id: book.reading_level_id || '',
       tags: (book.search_tags || []).join(', '),
       description: book.description || '',
       age_min: book.age_min != null ? String(book.age_min) : '',
