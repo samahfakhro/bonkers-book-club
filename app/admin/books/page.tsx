@@ -653,11 +653,24 @@ export default function AdminBooksPage() {
     const res = await fetch('/api/admin/generate-collectible', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookId }),
+      body: JSON.stringify({ bookId, action: 'approve' }),
     })
     if (res.ok) {
       setBooks(prev => prev.map(b => b.id === bookId ? { ...b, collectible_status: 'approved' } : b))
       setSelectedBook(prev => prev?.id === bookId ? { ...prev, collectible_status: 'approved' } : prev)
+    }
+  }
+
+  async function rejectCollectible(bookId: string) {
+    const res = await fetch('/api/admin/generate-collectible', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookId, action: 'reject' }),
+    })
+    if (res.ok) {
+      const reset = { collectible_status: null, collectible_name: null, collectible_concept: null, collectible_lore: null, collectible_image_url: null, collectible_openai_response_id: null, collectible_version: null }
+      setBooks(prev => prev.map(b => b.id === bookId ? { ...b, ...reset } : b))
+      setSelectedBook(prev => prev?.id === bookId ? { ...prev, ...reset } : prev)
     }
   }
 
@@ -1165,20 +1178,24 @@ export default function AdminBooksPage() {
                           {status === 'awaiting_approval' && (
                             <Btn onClick={() => approveCollectible(book.id)} style={{ backgroundColor: '#7c3aed', color: '#fff' }}>✓ Approve</Btn>
                           )}
-                          <Btn variant="secondary" onClick={() => generateCollectible(book, 'retry')} disabled={isGenerating}>Try Again</Btn>
-                          <Btn variant="secondary" onClick={() => setShowCollectibleFeedback(s => !s)}>Change Idea</Btn>
+                          <Btn variant="secondary" onClick={() => generateCollectible(book, 'retry')} disabled={isGenerating}>↻ Another Idea</Btn>
+                          <Btn variant="secondary" onClick={() => { setShowCollectibleFeedback(s => !s); setCollectibleFeedback('') }}>✦ Tweak This</Btn>
+                          <Btn variant="secondary" onClick={() => rejectCollectible(book.id)} style={{ color: '#dc2626' }}>✕ Reject</Btn>
                         </div>
 
                         {showCollectibleFeedback && (
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <input
-                              value={collectibleFeedback}
-                              onChange={e => setCollectibleFeedback(e.target.value)}
-                              placeholder='e.g. "Too obvious — find something funnier"'
-                              style={{ ...inp, flex: 1 }}
-                              onKeyDown={e => { if (e.key === 'Enter' && collectibleFeedback.trim()) generateCollectible(book, 'revise', collectibleFeedback.trim()) }}
-                            />
-                            <Btn onClick={() => collectibleFeedback.trim() && generateCollectible(book, 'revise', collectibleFeedback.trim())} disabled={!collectibleFeedback.trim()}>Send</Btn>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <p style={{ margin: 0, fontSize: '11px', color: '#9b9b9b' }}>Keep the concept, refine the execution — e.g. "make the box turquoise" or "the penguins need to be crazier"</p>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <input
+                                value={collectibleFeedback}
+                                onChange={e => setCollectibleFeedback(e.target.value)}
+                                placeholder='e.g. "Make the box turquoise and the penguins wilder"'
+                                style={{ ...inp, flex: 1 }}
+                                onKeyDown={e => { if (e.key === 'Enter' && collectibleFeedback.trim()) generateCollectible(book, 'revise', collectibleFeedback.trim()) }}
+                              />
+                              <Btn onClick={() => collectibleFeedback.trim() && generateCollectible(book, 'revise', collectibleFeedback.trim())} disabled={!collectibleFeedback.trim()}>Send</Btn>
+                            </div>
                           </div>
                         )}
                       </div>

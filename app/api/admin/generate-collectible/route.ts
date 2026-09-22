@@ -264,14 +264,16 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Approve a collectible
+// Approve or reject a collectible
 export async function PATCH(req: NextRequest) {
-  const { bookId } = await req.json()
+  const { bookId, action } = await req.json()
   if (!bookId) return NextResponse.json({ error: 'bookId required' }, { status: 400 })
-  const { error } = await getSupabaseAdmin().from('books').update({
-    collectible_status: 'approved',
-    collectible_approved_at: new Date().toISOString(),
-  }).eq('id', bookId)
+
+  const payload = action === 'reject'
+    ? { collectible_status: null, collectible_name: null, collectible_concept: null, collectible_lore: null, collectible_image_url: null, collectible_openai_response_id: null, collectible_prompt: null }
+    : { collectible_status: 'approved', collectible_approved_at: new Date().toISOString() }
+
+  const { error } = await getSupabaseAdmin().from('books').update(payload).eq('id', bookId)
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   return NextResponse.json({ ok: true })
 }

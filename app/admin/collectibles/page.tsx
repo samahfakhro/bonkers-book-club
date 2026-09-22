@@ -54,10 +54,25 @@ export default function CollectiblesPage() {
     const res = await fetch('/api/admin/generate-collectible', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookId: book.id }),
+      body: JSON.stringify({ bookId: book.id, action: 'approve' }),
     })
     if (res.ok) {
       showToast(`✓ Approved "${book.collectible_name}"`)
+      setSelected(null)
+      setBooks(prev => prev.filter(b => b.id !== book.id))
+    }
+    setWorking(false)
+  }
+
+  async function reject(book: CollectibleBook) {
+    setWorking(true)
+    const res = await fetch('/api/admin/generate-collectible', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookId: book.id, action: 'reject' }),
+    })
+    if (res.ok) {
+      showToast(`Rejected — collectible cleared for "${book.title}"`)
       setSelected(null)
       setBooks(prev => prev.filter(b => b.id !== book.id))
     }
@@ -188,11 +203,15 @@ export default function CollectiblesPage() {
               </button>
               <button onClick={() => regenerate(selected, 'retry')} disabled={working}
                 style={{ ...btn, backgroundColor: '#f3f4f6', color: '#1a1a1a', opacity: working ? 0.6 : 1 }}>
-                Try Again
+                ↻ Another Idea
               </button>
-              <button onClick={() => setShowFeedback(s => !s)} disabled={working}
+              <button onClick={() => { setShowFeedback(s => !s); setFeedback('') }} disabled={working}
                 style={{ ...btn, backgroundColor: '#f3f4f6', color: '#1a1a1a' }}>
-                Change Idea
+                ✦ Tweak This
+              </button>
+              <button onClick={() => reject(selected)} disabled={working}
+                style={{ ...btn, backgroundColor: '#f3f4f6', color: '#dc2626', opacity: working ? 0.6 : 1 }}>
+                ✕ Reject
               </button>
               <button onClick={() => setSelected(null)}
                 style={{ ...btn, backgroundColor: 'transparent', color: '#9b9b9b', marginLeft: 'auto' }}>
@@ -201,18 +220,21 @@ export default function CollectiblesPage() {
             </div>
 
             {showFeedback && (
-              <div style={{ marginTop: '16px', display: 'flex', gap: '10px' }}>
-                <textarea
-                  value={feedback}
-                  onChange={e => setFeedback(e.target.value)}
-                  placeholder='e.g. "Too obvious. Find something funnier." or "Love the penguins but lose the box."'
-                  style={{ flex: 1, padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '13px', fontFamily: 'inherit', resize: 'vertical', minHeight: '72px' }}
-                />
-                <button onClick={() => feedback.trim() && regenerate(selected, 'revise', feedback.trim())}
-                  disabled={working || !feedback.trim()}
-                  style={{ ...btn, backgroundColor: '#7c3aed', color: '#fff', alignSelf: 'flex-end', opacity: (!feedback.trim() || working) ? 0.5 : 1 }}>
-                  Send
-                </button>
+              <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <p style={{ margin: 0, fontSize: '12px', color: '#9b9b9b' }}>Keep the concept, refine the execution — e.g. "make the box turquoise" or "the penguins need to be crazier"</p>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <textarea
+                    value={feedback}
+                    onChange={e => setFeedback(e.target.value)}
+                    placeholder='e.g. "Make the box turquoise and the penguins wilder"'
+                    style={{ flex: 1, padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '13px', fontFamily: 'inherit', resize: 'vertical', minHeight: '72px' }}
+                  />
+                  <button onClick={() => feedback.trim() && regenerate(selected, 'revise', feedback.trim())}
+                    disabled={working || !feedback.trim()}
+                    style={{ ...btn, backgroundColor: '#7c3aed', color: '#fff', alignSelf: 'flex-end', opacity: (!feedback.trim() || working) ? 0.5 : 1 }}>
+                    Send
+                  </button>
+                </div>
               </div>
             )}
           </div>
