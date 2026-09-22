@@ -511,24 +511,16 @@ export default function DashboardPage() {
           {(() => {
             const { dayName, dateStr } = getNextBonkersDateParts(cutoffDay)
             return (
-              <div style={{ borderRadius: '20px', border: `2px solid ${cutoffUrgent ? '#e57451' : 'rgba(237,219,195,0.25)'}`, backgroundColor: 'rgba(255,255,255,0.04)', padding: '20px', textAlign: 'center', position: 'relative' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={cutoffUrgent ? '#e57451' : '#f9d174'} strokeWidth="1.8" style={{ position: 'absolute', top: '14px', right: '14px' }}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '1.2rem', letterSpacing: '0.12em', color: cutoffUrgent ? '#e57451' : '#f9d174', margin: '0 0 0' }}>Next Bonkers Day</p>
-                <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.5rem', fontWeight: 700, lineHeight: 1, margin: 0, whiteSpace: 'nowrap' }}>{dayName} {dateStr}</p>
-                <div style={{ marginTop: '14px' }}>
+              <div style={{ borderRadius: '20px', border: `2px solid ${cutoffUrgent ? '#e57451' : 'rgba(237,219,195,0.2)'}`, backgroundColor: 'rgba(255,255,255,0.03)', padding: '18px 20px', textAlign: 'center' }}>
+                <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '1.1rem', letterSpacing: '0.12em', color: cutoffUrgent ? '#e57451' : '#f9d174', margin: '0 0 2px' }}>Next Bonkers Day</p>
+                <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.4rem', fontWeight: 700, lineHeight: 1, margin: 0 }}>{dayName} {dateStr}</p>
+                <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={cutoffUrgent ? '#e57451' : '#f9d174'} strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, color: cutoffUrgent ? '#e57451' : '#f9d174', fontSize: '1rem', letterSpacing: '0.08em', margin: 0 }}>Time left to choose</p>
+                  </div>
                   <Countdown cutoffDay={cutoffDay} cutoffTime={cutoffTime} urgent={cutoffUrgent} compact />
                 </div>
-                {hasSlots && (
-                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-                    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-                      <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', left: '-32px', height: '44px', width: 'auto', pointerEvents: 'none', zIndex: 1, filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
-                      <button onClick={handleChooseBooks} style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', backgroundImage: 'url(/button2.png)', backgroundSize: '300% 300%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: 'transparent', border: 'none', borderRadius: '999px', padding: '12px 28px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                        Choose New Books →
-                      </button>
-                      <img src="/whiskers_right.png" alt="" style={{ position: 'absolute', right: '-32px', height: '44px', width: 'auto', pointerEvents: 'none', zIndex: 1, filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
-                    </div>
-                  </div>
-                )}
               </div>
             )
           })()}
