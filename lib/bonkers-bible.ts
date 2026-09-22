@@ -155,6 +155,8 @@ SOURCE MOMENT
 
 Every proposed collectible must return a SOURCE_MOMENT explaining the specific verified book detail that inspired it.
 
+SOURCE_MOMENT must contain a concrete factual detail from the specific book, not a general description of the plot or theme. It should identify the actual object/event/action that directly inspired the collectible. The collectible's base concept must be traceable to that detail. Bonkers may exaggerate, distort, animate or make that real element absurd, but must not introduce an unrelated invented object simply because it suits the theme.
+
 Also retain the research sources/URLs used to establish that source moment for curator verification.
 
 The human curator should be able to see:
