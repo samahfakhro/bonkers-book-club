@@ -8,10 +8,12 @@ import fs from 'fs'
 import path from 'path'
 import { BONKERS_BIBLE } from '@/lib/bonkers-bible'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 // Model identifiers — change here only
 const CREATIVE_MODEL = process.env.OPENAI_CREATIVE_MODEL || 'gpt-4o'
@@ -37,7 +39,7 @@ function loadReferenceAsset(filename: string): string | null {
 
 // Ensure the collectibles storage bucket exists
 async function ensureBucket() {
-  const { error } = await supabaseAdmin.storage.createBucket('collectibles', { public: true })
+  const { error } = await getSupabaseAdmin().storage.createBucket('collectibles', { public: true })
   // Ignore error if bucket already exists
   if (error && !error.message.includes('already exists')) {
     console.warn('Could not create collectibles bucket:', error.message)
@@ -50,11 +52,12 @@ async function uploadCollectible(bookId: string, version: number, base64Data: st
     await ensureBucket()
     const buffer = Buffer.from(base64Data, 'base64')
     const storagePath = `${bookId}/v${version}.png`
-    const { error } = await supabaseAdmin.storage
+    const sb = getSupabaseAdmin()
+    const { error } = await sb.storage
       .from('collectibles')
       .upload(storagePath, buffer, { contentType: 'image/png', upsert: true })
     if (error) { console.error('Storage upload error:', error.message); return null }
-    const { data } = supabaseAdmin.storage.from('collectibles').getPublicUrl(storagePath)
+    const { data } = sb.storage.from('collectibles').getPublicUrl(storagePath)
     return data.publicUrl
   } catch (e) { console.error('Upload error:', e); return null }
 }
@@ -81,6 +84,8 @@ export async function POST(req: NextRequest) {
     const feedback: string | undefined = body.feedback
 
     if (!bookId) return NextResponse.json({ error: 'bookId required' }, { status: 400 })
+
+    const supabaseAdmin = getSupabaseAdmin()
 
     // Mark as generating
     await supabaseAdmin.from('books').update({ collectible_status: 'generating' }).eq('id', bookId)
@@ -253,7 +258,7 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error('Collectible generation error:', err)
     if (bookId) {
-      try { await supabaseAdmin.from('books').update({ collectible_status: 'generation_failed' }).eq('id', bookId) } catch { /* ignore */ }
+      try { await getSupabaseAdmin().from('books').update({ collectible_status: 'generation_failed' }).eq('id', bookId) } catch { /* ignore */ }
     }
     return NextResponse.json({ error: err?.message || 'Generation failed' }, { status: 500 })
   }
@@ -263,7 +268,7 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const { bookId } = await req.json()
   if (!bookId) return NextResponse.json({ error: 'bookId required' }, { status: 400 })
-  const { error } = await supabaseAdmin.from('books').update({
+  const { error } = await getSupabaseAdmin().from('books').update({
     collectible_status: 'approved',
     collectible_approved_at: new Date().toISOString(),
   }).eq('id', bookId)
