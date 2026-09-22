@@ -189,13 +189,16 @@ export async function POST(req: NextRequest) {
     const requestParams: any = {
       model: CREATIVE_MODEL,
       instructions: BONKERS_BIBLE,
-      tools: [{
-        type: 'image_generation',
-        quality: 'high',
-        size: '1024x1024',
-        output_format: 'png',
-        background: 'transparent',
-      }],
+      tools: [
+        { type: 'web_search_preview' },
+        {
+          type: 'image_generation',
+          quality: 'high',
+          size: '1024x1024',
+          output_format: 'png',
+          background: 'transparent',
+        },
+      ],
       input: [
         {
           role: 'user',
@@ -214,11 +217,20 @@ export async function POST(req: NextRequest) {
     // ── Parse response ────────────────────────────────────────────────
     let textOutput = ''
     let imageBase64: string | null = null
+    const citationUrls: string[] = []
 
     for (const item of (response.output || [])) {
       if (item.type === 'message') {
         for (const part of (item.content || [])) {
-          if (part.type === 'output_text') textOutput += part.text
+          if (part.type === 'output_text') {
+            textOutput += part.text
+            // Extract URL citations from web search annotations
+            for (const ann of (part.annotations || [])) {
+              if (ann.type === 'url_citation' && ann.url && !citationUrls.includes(ann.url)) {
+                citationUrls.push(ann.url)
+              }
+            }
+          }
         }
       } else if (item.type === 'image_generation_call') {
         imageBase64 = item.result || null
@@ -230,6 +242,11 @@ export async function POST(req: NextRequest) {
 
     const metadata = parseMetadata(textOutput)
     const responseId: string = response.id
+
+    // Merge citations: annotation URLs take priority, supplement with model-provided research
+    const researchUrls: string[] = citationUrls.length > 0
+      ? citationUrls
+      : (metadata?.research || [])
 
     // ── Handle needs_book_context ─────────────────────────────────────
     if (metadata?.status === 'needs_book_context') {
@@ -255,7 +272,7 @@ export async function POST(req: NextRequest) {
       collectible_concept: metadata?.concept || null,
       collectible_lore: metadata?.lore || null,
       collectible_source_moment: metadata?.source_moment || null,
-      collectible_research: metadata?.research ? JSON.stringify(metadata.research) : null,
+      collectible_research: researchUrls.length > 0 ? JSON.stringify(researchUrls) : null,
       collectible_prompt: textOutput.slice(0, 2000),
     }
     if (imageUrl) updatePayload.collectible_image_url = imageUrl
@@ -268,7 +285,7 @@ export async function POST(req: NextRequest) {
       collectible_concept: metadata?.concept,
       collectible_lore: metadata?.lore,
       collectible_source_moment: metadata?.source_moment,
-      collectible_research: metadata?.research,
+      collectible_research: researchUrls,
       collectible_image_url: imageUrl,
       collectible_version: newVersion,
       collectible_openai_response_id: responseId,

@@ -15,7 +15,8 @@ type Book = {
   collectible_status: string | null; collectible_name: string | null
   collectible_concept: string | null; collectible_lore: string | null
   collectible_image_url: string | null; collectible_openai_response_id: string | null
-  collectible_version: number | null
+  collectible_version: number | null; collectible_source_moment: string | null
+  collectible_research: string | null
 }
 
 type Category = { id: string; name: string }
@@ -173,7 +174,7 @@ export default function AdminBooksPage() {
       { data: bookData }, { data: catData }, { data: bcData },
       { data: levelData }, seriesRes, { data: copyData }, { data: brlData }
     ] = await Promise.all([
-      supabase.from('books').select('id, title, author, cover_image_url, discovery_asset_url, isbn, page_count, book_type, series_id, series_number, reading_level_id, search_tags, description, age_min, age_max, collectible_status, collectible_name, collectible_concept, collectible_lore, collectible_image_url, collectible_openai_response_id, collectible_version').eq('is_active', true).order('title'),
+      supabase.from('books').select('id, title, author, cover_image_url, discovery_asset_url, isbn, page_count, book_type, series_id, series_number, reading_level_id, search_tags, description, age_min, age_max, collectible_status, collectible_name, collectible_concept, collectible_lore, collectible_image_url, collectible_openai_response_id, collectible_version, collectible_source_moment, collectible_research').eq('is_active', true).order('title'),
       supabase.from('categories').select('id, name').order('display_order'),
       supabase.from('book_categories').select('book_id, category_id'),
       supabase.from('reading_levels').select('id, name').order('display_order'),
@@ -640,6 +641,8 @@ export default function AdminBooksPage() {
         collectible_image_url: json.collectible_image_url,
         collectible_openai_response_id: json.collectible_openai_response_id,
         collectible_version: json.collectible_version,
+        collectible_source_moment: json.collectible_source_moment || null,
+        collectible_research: json.collectible_research ? JSON.stringify(json.collectible_research) : null,
       }
       setBooks(prev => prev.map(b => b.id === book.id ? updated : b))
       setSelectedBook(updated)
@@ -668,7 +671,7 @@ export default function AdminBooksPage() {
       body: JSON.stringify({ bookId, action: 'reject' }),
     })
     if (res.ok) {
-      const reset = { collectible_status: null, collectible_name: null, collectible_concept: null, collectible_lore: null, collectible_image_url: null, collectible_openai_response_id: null, collectible_version: null }
+      const reset = { collectible_status: null, collectible_name: null, collectible_concept: null, collectible_lore: null, collectible_image_url: null, collectible_openai_response_id: null, collectible_version: null, collectible_source_moment: null, collectible_research: null }
       setBooks(prev => prev.map(b => b.id === bookId ? { ...b, ...reset } : b))
       setSelectedBook(prev => prev?.id === bookId ? { ...prev, ...reset } : prev)
     }
@@ -1170,6 +1173,26 @@ export default function AdminBooksPage() {
                             </div>
                             {book.collectible_concept && <p style={{ margin: '0 0 3px', fontSize: '12px', color: '#4a4a4a', lineHeight: 1.4 }}>{book.collectible_concept}</p>}
                             {book.collectible_lore && <p style={{ margin: 0, fontSize: '11px', color: '#9b9b9b', fontStyle: 'italic' }}>"{book.collectible_lore}"</p>}
+                            {book.collectible_source_moment && (
+                              <div style={{ marginTop: '8px', padding: '7px 10px', backgroundColor: '#f9fafb', borderRadius: '6px', borderLeft: '3px solid #e5e5e5' }}>
+                                <p style={{ margin: '0 0 2px', fontSize: '10px', fontWeight: 700, color: '#9b9b9b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Source moment</p>
+                                <p style={{ margin: 0, fontSize: '11px', color: '#4a4a4a', lineHeight: 1.4 }}>{book.collectible_source_moment}</p>
+                              </div>
+                            )}
+                            {book.collectible_research && (() => {
+                              try {
+                                const urls: string[] = JSON.parse(book.collectible_research)
+                                if (!urls.length) return null
+                                return (
+                                  <div style={{ marginTop: '6px' }}>
+                                    <p style={{ margin: '0 0 3px', fontSize: '10px', fontWeight: 700, color: '#9b9b9b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Research</p>
+                                    {urls.map((url, i) => (
+                                      <a key={i} href={url} target="_blank" rel="noreferrer" style={{ display: 'block', fontSize: '10px', color: '#7c3aed', wordBreak: 'break-all', lineHeight: 1.4, marginBottom: '2px' }}>{url}</a>
+                                    ))}
+                                  </div>
+                                )
+                              } catch { return null }
+                            })()}
                           </div>
                         </div>
 

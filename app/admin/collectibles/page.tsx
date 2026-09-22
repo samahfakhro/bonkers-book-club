@@ -15,6 +15,8 @@ type CollectibleBook = {
   collectible_image_url: string | null
   collectible_openai_response_id: string | null
   collectible_version: number | null
+  collectible_source_moment: string | null
+  collectible_research: string | null
 }
 
 const btn: React.CSSProperties = {
@@ -35,7 +37,7 @@ export default function CollectiblesPage() {
     setLoading(true)
     const { data } = await supabase
       .from('books')
-      .select('id, title, author, cover_image_url, collectible_status, collectible_name, collectible_concept, collectible_lore, collectible_image_url, collectible_openai_response_id, collectible_version')
+      .select('id, title, author, cover_image_url, collectible_status, collectible_name, collectible_concept, collectible_lore, collectible_image_url, collectible_openai_response_id, collectible_version, collectible_source_moment, collectible_research')
       .eq('collectible_status', 'awaiting_approval')
       .order('title')
     setBooks(data || [])
@@ -103,6 +105,8 @@ export default function CollectiblesPage() {
         collectible_image_url: json.collectible_image_url,
         collectible_openai_response_id: json.collectible_openai_response_id,
         collectible_version: json.collectible_version,
+        collectible_source_moment: json.collectible_source_moment || null,
+        collectible_research: json.collectible_research ? JSON.stringify(json.collectible_research) : null,
       }
       setSelected(updated)
       setBooks(prev => prev.map(b => b.id === book.id ? updated : b))
@@ -192,6 +196,27 @@ export default function CollectiblesPage() {
 
                 <p style={{ margin: '0 0 4px', fontSize: '11px', fontWeight: 600, color: '#9b9b9b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Lore</p>
                 <p style={{ margin: 0, fontSize: '13px', color: '#1a1a1a', fontStyle: 'italic' }}>"{selected.collectible_lore || '—'}"</p>
+
+                {selected.collectible_source_moment && (
+                  <div style={{ marginTop: '12px', padding: '8px 12px', backgroundColor: '#f9fafb', borderRadius: '6px', borderLeft: '3px solid #e5e5e5' }}>
+                    <p style={{ margin: '0 0 3px', fontSize: '10px', fontWeight: 700, color: '#9b9b9b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Source moment</p>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#4a4a4a', lineHeight: 1.5 }}>{selected.collectible_source_moment}</p>
+                  </div>
+                )}
+                {selected.collectible_research && (() => {
+                  try {
+                    const urls: string[] = JSON.parse(selected.collectible_research)
+                    if (!urls.length) return null
+                    return (
+                      <div style={{ marginTop: '10px' }}>
+                        <p style={{ margin: '0 0 4px', fontSize: '10px', fontWeight: 700, color: '#9b9b9b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Research</p>
+                        {urls.map((url, i) => (
+                          <a key={i} href={url} target="_blank" rel="noreferrer" style={{ display: 'block', fontSize: '11px', color: '#7c3aed', wordBreak: 'break-all', lineHeight: 1.5, marginBottom: '3px' }}>{url}</a>
+                        ))}
+                      </div>
+                    )
+                  } catch { return null }
+                })()}
               </div>
             </div>
 
