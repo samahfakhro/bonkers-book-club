@@ -423,9 +423,9 @@ export default function DashboardPage() {
           <img src="/whiskers_right.png" alt="" style={{ height: '32px', width: 'auto', pointerEvents: 'none', filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
         </div>
 
-        {/* ── YOUR BONKERS STACK (books at home) ── */}
-        <section style={{ marginBottom: '28px', textAlign: 'center' }}>
-          <h2 style={{ ...heading, marginBottom: '2px' }}>Your Bonkers Stack</h2>
+        {/* ── BOOKS AT HOME ── */}
+        <section style={{ marginBottom: '28px' }}>
+          <h2 style={{ ...heading, marginBottom: '2px' }}>Books at Home</h2>
           <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.82rem', margin: '10px 0 2px' }}>
             {loans.length} book{loans.length !== 1 ? 's' : ''} at home
           </p>
