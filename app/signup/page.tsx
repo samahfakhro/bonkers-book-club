@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Suspense } from 'react'
 import SignupMap, { type Zone, type MapResult } from '@/components/SignupMap'
+import AddressFields, { validateAddress } from '@/components/AddressFields'
 
 const PLANS = [
   { id: 'mid', label: 'A Little Bonkers', price: 149, badge: null, books: 16, swapBooks: 4 },
@@ -337,17 +338,7 @@ function SignupForm() {
     if (currentStep === 3 && !pinConfirmed) {
       errs.mapPin = 'Please confirm your location on the map before continuing.'
     }
-    if (currentStep === 3 && !form.houseType) {
-      errs.houseType = 'Please select Villa or Flat'
-    }
-    if (currentStep === 3 && form.houseType === 'apartment' && !form.building.trim()) {
-      errs.building = 'Required'
-    }
-    if (currentStep === 3 && pinConfirmed) {
-      if (!form.villaFlat.trim()) errs.villaFlat = 'Required'
-      if (!form.street.trim()) errs.street = 'Required'
-      if (!form.area.trim()) errs.area = 'Required'
-    }
+    if (currentStep === 3 && pinConfirmed) Object.assign(errs, validateAddress(form))
     if (currentStep === 4 && !form.deliveryPreference) {
       errs.deliveryPreference = 'Please choose a delivery option'
     }
@@ -738,54 +729,11 @@ function SignupForm() {
                   {/* Phase 2: address fields — shown only after pin confirmed */}
                   {pinConfirmed && (
                     <>
-                      {/* Villa / Flat toggle */}
-                      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-                        {[{ value: 'villa', label: 'Villa' }, { value: 'apartment', label: 'Flat' }].map(opt => (
-                          <button key={opt.value} type="button"
-                            onClick={() => { set('houseType', opt.value); setStepErrors(p => ({ ...p, houseType: '' })) }}
-                            style={{ flex: 1, padding: '10px 0', borderRadius: '10px', border: `2px solid ${form.houseType === opt.value ? '#1a2744' : '#ddd6cc'}`, backgroundColor: form.houseType === opt.value ? '#1a2744' : '#fefaf2', color: form.houseType === opt.value ? '#fefaf2' : '#1a2744', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}>
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                      {stepErrors.houseType && <p style={{ color: '#e05c3a', fontSize: '0.78rem', marginTop: '-12px', marginBottom: '12px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.houseType}</p>}
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
-                          <div>
-                            <label style={labelStyle}>Villa / Flat Number</label>
-                            <input type="text" value={form.villaFlat} onChange={e => { set('villaFlat', e.target.value); setStepErrors(p => ({ ...p, villaFlat: '' })) }} className={cardInputClass} />
-                            {stepErrors.villaFlat && <p style={{ position: 'absolute', color: '#e05c3a', fontSize: '0.75rem', lineHeight: 1.2, marginTop: '2px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.villaFlat}</p>}
-                          </div>
-                          <div>
-                            <label style={labelStyle}>Building Name <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.6 }}>(flats only)</span></label>
-                            <input type="text" value={form.building} onChange={e => { set('building', e.target.value); setStepErrors(p => ({ ...p, building: '' })) }} className={cardInputClass} disabled={form.houseType !== 'apartment'} style={{ opacity: form.houseType !== 'apartment' ? 0.4 : 1 }} />
-                            {stepErrors.building && <p style={{ position: 'absolute', color: '#e05c3a', fontSize: '0.75rem', lineHeight: 1.2, marginTop: '2px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.building}</p>}
-                          </div>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
-                          <div>
-                            <label style={labelStyle}>Street</label>
-                            <input type="text" value={form.street} onChange={e => { set('street', e.target.value); setStepErrors(p => ({ ...p, street: '' })) }} placeholder="e.g. Street 12" className={cardInputClass} />
-                            {stepErrors.street && <p style={{ position: 'absolute', color: '#e05c3a', fontSize: '0.75rem', lineHeight: 1.2, marginTop: '2px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.street}</p>}
-                          </div>
-                          <div>
-                            <label style={labelStyle}>Sub-community <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.55 }}>(optional)</span></label>
-                            <input type="text" value={form.subCommunity} onChange={e => set('subCommunity', e.target.value)} placeholder="e.g. Saheel" className={cardInputClass} />
-                          </div>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
-                          <div>
-                            <label style={labelStyle}>Community / Area</label>
-                            <input type="text" value={form.area} onChange={e => { set('area', e.target.value); setStepErrors(p => ({ ...p, area: '' })) }} placeholder="e.g. Arabian Ranches" className={cardInputClass} />
-                            {stepErrors.area && <p style={{ position: 'absolute', color: '#e05c3a', fontSize: '0.75rem', lineHeight: 1.2, marginTop: '2px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.area}</p>}
-                          </div>
-                          <div>
-                            <label style={labelStyle}>Emirate</label>
-                            <input type="text" value="Dubai" readOnly disabled className={cardInputClass} style={{ cursor: 'not-allowed', opacity: 0.6 }} />
-                          </div>
-                        </div>
-                      </div>
+                      <AddressFields
+                        value={{ houseType: form.houseType, villaFlat: form.villaFlat, building: form.building, street: form.street, subCommunity: form.subCommunity, area: form.area }}
+                        onChange={(field, value) => { set(field, value); setStepErrors(p => ({ ...p, [field]: '' })) }}
+                        errors={stepErrors} inputClass={cardInputClass} labelStyle={labelStyle}
+                      />
                     </>
                   )}
                 </div>

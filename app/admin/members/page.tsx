@@ -38,9 +38,9 @@ type Household = {
   delivery_preference: string | null
   delivery_notes: string | null
   account_status: string | null
-  swap_day: string | null
+  signup_zone_id: string | null
+  bonkers_day: string | null
   created_at: string
-  communities: { id: string; name: string } | null
   subscriptions: Subscription[]
   child_profiles: Child[]
   notify_whatsapp: boolean | null
@@ -49,7 +49,7 @@ type Household = {
 }
 
 type Plan = { id: string; name: string; book_count: number; price_monthly: number }
-type Community = { id: string; name: string; swap_days: string[] }
+type Zone = { id: string; name: string; code: string | null; bonkers_day: string | null }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -148,7 +148,7 @@ function age(dob: string | null) {
 export default function MembersPage() {
   const [members, setMembers] = useState<Household[]>([])
   const [plans, setPlans] = useState<Plan[]>([])
-  const [communities, setCommunities] = useState<Community[]>([])
+  const [zones, setZones] = useState<Zone[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
@@ -170,20 +170,19 @@ export default function MembersPage() {
         .select(`
           id, user_id, first_name, last_name, mobile_phone, whatsapp_number,
           property_type, building, floor, street, sub_community, area,
-          delivery_preference, delivery_notes, account_status, swap_day, created_at,
+          delivery_preference, delivery_notes, account_status, signup_zone_id, bonkers_day, created_at,
           notify_whatsapp, notify_email, agreed_to_marketing,
-          communities(id, name),
           subscriptions(id, status, start_date, plan_id),
           child_profiles(id, name, nickname, date_of_birth, book_slot_allocation, swap_permission, books_read_count)
         `)
         .order('created_at', { ascending: false }),
       supabase.from('subscription_plans').select('id, name, book_count, price_monthly').eq('is_active', true).order('price_monthly'),
-      supabase.from('communities').select('id, name, swap_days').eq('is_active', true).order('name'),
+      supabase.from('zones').select('*'),
     ])
     if (hhErr) console.error('Members query error:', hhErr)
     setMembers((hh as Household[]) ?? [])
     setPlans((pl as Plan[]) ?? [])
-    setCommunities((cm as Community[]) ?? [])
+    setZones(((cm as Zone[]) ?? []).sort((a, b) => (a.code || a.name).localeCompare(b.code || b.name)))
     setLoading(false)
   }, [])
 
@@ -206,7 +205,6 @@ export default function MembersPage() {
       delivery_preference: hh.delivery_preference ?? '',
       delivery_notes: hh.delivery_notes ?? '',
       account_status: hh.account_status ?? 'active',
-      swap_day: hh.swap_day ?? '',
       plan_id: sub?.plan_id ?? '',
       sub_id: sub?.id ?? '',
       sub_status: sub?.status ?? 'active',
@@ -282,7 +280,8 @@ export default function MembersPage() {
     return matchSearch && matchStatus
   })
 
-  const swapDaysForSelected = communities.find(c => c.id === selected?.communities?.id)?.swap_days ?? []
+  const zoneName = (id: string | null) => zones.find(z => z.id === id)?.name ?? null
+  const selectedZone = zoneName(selected?.signup_zone_id ?? null)
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
@@ -336,7 +335,7 @@ export default function MembersPage() {
                       {m.first_name} {m.last_name}
                     </p>
                     <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#9b9b9b' }}>
-                      {m.communities?.name ?? '—'} · {m.child_profiles?.length ?? 0} child{(m.child_profiles?.length ?? 0) !== 1 ? 'ren' : ''}
+                      {zoneName(m.signup_zone_id) ?? 'No zone'}{m.bonkers_day ? ` · ${m.bonkers_day}` : ''} · {m.child_profiles?.length ?? 0} child{(m.child_profiles?.length ?? 0) !== 1 ? 'ren' : ''}
                     </p>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '8px' }}>
@@ -431,13 +430,12 @@ export default function MembersPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={lbl}>Swap day</label>
-                  <select style={inp} value={editHH.swap_day ?? ''} onChange={e => setEditHH(p => ({ ...p, swap_day: e.target.value }))}>
-                    <option value="">— unassigned —</option>
-                    {(swapDaysForSelected.length > 0 ? swapDaysForSelected : ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']).map(d => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
+                  <label style={lbl}>Zone &amp; delivery day</label>
+                  <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#1a1a1a' }}>
+                    {selectedZone ?? 'No zone yet'} · {selected?.bonkers_day ?? 'day not set'}
+                  </p>
+                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#9b9b9b' }}>Set by the address pin — changing the address changes the zone.</p>
+
                 </div>
               </div>
             </div>

@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import SignupMap, { type Zone, type MapResult } from '@/components/SignupMap'
+import AddressFields, { validateAddress, type AddressValue, type AddressField } from '@/components/AddressFields'
 
 type Child = {
   id: string
@@ -74,7 +76,7 @@ export default function SettingsPage() {
   const [household, setHousehold] = useState<Household | null>(null)
   const [children, setChildren] = useState<Child[]>([])
   const [plan, setPlan] = useState<Plan | null>(null)
-  const [communities, setCommunities] = useState<{ id: string; name: string }[]>([])
+  const [zones, setZones] = useState<(Zone & { code?: string | null })[]>([])
   const [loading, setLoading] = useState(true)
   const [isTablet, setIsTablet] = useState(false)
   useEffect(() => {
@@ -91,7 +93,15 @@ export default function SettingsPage() {
   const [savedSection, setSavedSection] = useState<string | null>(null)
 
   const [account, setAccount] = useState({ firstName: '', lastName: '', email: '', mobile: '', whatsapp: '', whatsappCountryCode: '+971', samePhone: false, avatarId: '' })
-  const [delivery, setDelivery] = useState({ villaFlat: '', building: '', street: '', subCommunity: '', area: '', communityId: '', city: 'Dubai', propertyType: '', deliveryPreference: '', safeSpot: '', deliveryNotes: '' })
+  const [delivery, setDelivery] = useState({ deliveryPreference: '', safeSpot: '', deliveryNotes: '' })
+  // Address change uses the same pin → confirm → written-address flow as signup
+  type AddrMode = 'view' | 'pin' | 'fields' | 'outside' | 'waitlisted'
+  const [addrMode, setAddrMode] = useState<AddrMode>('view')
+  const [newPin, setNewPin] = useState<MapResult | null>(null)
+  const [newAddr, setNewAddr] = useState<AddressValue>({ houseType: '', villaFlat: '', building: '', street: '', subCommunity: '', area: '' })
+  const [addrErrors, setAddrErrors] = useState<Partial<Record<string, string>>>({})
+  const [addrSaving, setAddrSaving] = useState(false)
+  const [addrMsg, setAddrMsg] = useState<string | null>(null)
   const [notifications, setNotifications] = useState({ whatsapp: true, email: true, marketing: false })
   const [notifError, setNotifError] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -115,15 +125,14 @@ export default function SettingsPage() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-      const { data: hh } = await supabase.from('households').select('*, communities(name)').eq('user_id', user.id).single()
+      const { data: hh } = await supabase.from('households').select('*').eq('user_id', user.id).single()
       if (!hh) { setLoading(false); return }
-      const communityName = (hh.communities as any)?.name || ''
-      setHousehold({ ...hh, community_name: communityName })
+      setHousehold(hh)
       const whatsappRaw = hh.whatsapp_number || ''
       const whatsappCountryCode = whatsappRaw.startsWith('+') ? whatsappRaw.slice(0, 4) : '+971'
       const whatsappNum = whatsappRaw.startsWith('+') ? whatsappRaw.slice(4) : whatsappRaw
       setAccount({ firstName: hh.first_name || '', lastName: hh.last_name || '', email: user.email || '', mobile: hh.mobile_phone || '', whatsapp: whatsappNum, whatsappCountryCode, samePhone: false, avatarId: hh.avatar_id || '' })
-      setDelivery({ villaFlat: hh.villa_flat || '', building: hh.building || '', street: hh.street || '', subCommunity: hh.sub_community || '', area: hh.area || '', communityId: hh.community_id || '', city: 'Dubai', propertyType: hh.property_type || '', deliveryPreference: hh.delivery_preference || '', safeSpot: hh.safe_spot_description || '', deliveryNotes: hh.delivery_notes || '' })
+      setDelivery({ deliveryPreference: hh.delivery_preference || '', safeSpot: hh.safe_spot_description || '', deliveryNotes: hh.delivery_notes || '' })
       setNotifications({ whatsapp: hh.notify_whatsapp ?? true, email: hh.notify_email ?? true, marketing: hh.agreed_to_marketing ?? false })
       setChildNotifyEnabled((hh as any).child_notify_enabled ?? true)
       const { data: sub } = await supabase.from('subscriptions').select('subscription_plans(name, book_count, price_monthly)').eq('household_id', hh.id).eq('status', 'active').maybeSingle()
@@ -144,8 +153,8 @@ export default function SettingsPage() {
   }, [router])
 
   useEffect(() => {
-    supabase.from('communities').select('id, name').order('name')
-      .then(({ data }) => { if (data) setCommunities(data) })
+    supabase.from('zones').select('*')
+      .then(({ data }) => { if (data) setZones(data as any) })
   }, [])
 
   async function saveSection(section: string, updates: object, table = 'households', id = household?.id) {
@@ -173,8 +182,72 @@ export default function SettingsPage() {
     setTimeout(() => setPasswordSaved(false), 2000)
   }
 
+  // ── Change address (same flow as signup step 3) ──────────────────────────
+  const zoneById = (id: unknown) => zones.find(z => z.id === id) || null
+  const currentZone = zoneById(household?.signup_zone_id)
+  const newZone = newPin ? zoneById(newPin.zoneId) : null
+  const dayChanges = !!(newPin?.zoneId && currentZone && newPin.zoneId !== currentZone.id && (household?.bonkers_day || null) !== (newZone?.bonkers_day || null))
+  const canConfirmPin = !!newPin && newPin.areaStatus !== 'conflict'
+
+  function startAddressChange() {
+    setNewPin(null)
+    setAddrErrors({})
+    setAddrMsg(null)
+    setNewAddr({
+      houseType: household?.property_type || '', villaFlat: household?.villa_flat || '', building: household?.building || '',
+      street: household?.street || '', subCommunity: household?.sub_community || '', area: household?.area || '',
+    })
+    setAddrMode('pin')
+  }
+
+  function confirmNewPin() {
+    if (!newPin) return
+    setAddrMode(newPin.areaStatus === 'out' ? 'outside' : 'fields')
+  }
+
+  async function joinWaitlistForNewAddress() {
+    if (!newPin || !household) return
+    setAddrSaving(true)
+    const { error } = await supabase.from('waitlist_signup').insert({
+      email: account.email, name: `${household.first_name || ''} ${household.last_name || ''}`.trim(),
+      community_name: null, property_type: null, interest_level: 3, phone: household.mobile_phone || null,
+      address: `Existing member — new address pinned at ${newPin.lat.toFixed(6)}, ${newPin.lng.toFixed(6)}`,
+      children_count: children.length || null, children_ages: null,
+    })
+    setAddrSaving(false)
+    if (error) { setAddrMsg('Sorry — we couldn’t add you to the waitlist just now. Please try again.'); return }
+    setAddrMode('waitlisted')
+  }
+
+  async function saveNewAddress() {
+    if (!newPin || !household) return
+    const errs = validateAddress(newAddr)
+    setAddrErrors(errs)
+    if (Object.keys(errs).length) return
+    setAddrSaving(true)
+    const updates: Record<string, unknown> = {
+      property_type: newAddr.houseType, villa_flat: newAddr.villaFlat.trim(),
+      building: newAddr.houseType === 'apartment' ? newAddr.building.trim() : null,
+      street: newAddr.street.trim(), sub_community: newAddr.subCommunity.trim() || null, area: newAddr.area.trim(),
+      latitude: newPin.lat, longitude: newPin.lng,
+    }
+    // the zone (and so the delivery day) follows the pin; if zones couldn't be checked, keep the current zone
+    if (newPin.areaStatus === 'in') { updates.signup_zone_id = newPin.zoneId; updates.bonkers_day = newPin.bonkersDay }
+    const { error } = await supabase.from('households').update(updates).eq('id', household.id)
+    setAddrSaving(false)
+    if (error) { setAddrMsg('Sorry — your new address couldn’t be saved. Please try again.'); return }
+    setHousehold(h => h ? { ...h, ...updates } as Household : h)
+    setAddrMode('view')
+    setAddrMsg('Your new address is saved.')
+  }
+
+  const addressLine = [
+    household?.villa_flat && (household?.property_type === 'apartment' ? `Flat ${household.villa_flat}` : `Villa ${household.villa_flat}`),
+    household?.building, household?.street, household?.sub_community, household?.area, 'Dubai',
+  ].filter(Boolean).join(', ')
+
   async function saveDelivery() {
-    await saveSection('delivery', { villa_flat: delivery.villaFlat || null, building: delivery.building || null, street: delivery.street, sub_community: delivery.subCommunity || null, area: delivery.area || null, community_id: delivery.communityId || null, property_type: delivery.propertyType, delivery_preference: delivery.deliveryPreference, safe_spot_description: delivery.safeSpot || null, delivery_notes: delivery.deliveryNotes || null })
+    await saveSection('delivery', { delivery_preference: delivery.deliveryPreference, safe_spot_description: delivery.safeSpot || null, delivery_notes: delivery.deliveryNotes || null })
   }
 
   async function saveNotifications() {
@@ -232,6 +305,9 @@ export default function SettingsPage() {
 
   const sectionHeading: React.CSSProperties = { fontFamily: 'var(--font-cormorant), serif', fontWeight: 600, color: '#1a2f51', fontSize: '1.2rem', margin: 0, lineHeight: 1.3 }
   const sectionBorder: React.CSSProperties = { borderBottom: '1px solid rgba(26,39,68,0.2)' }
+  const bodyText: React.CSSProperties = { fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', color: '#1a2f51', lineHeight: 1.5, margin: 0 }
+  const linkButton: React.CSSProperties = { background: 'none', border: 'none', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#54bdc0', cursor: 'pointer', textDecoration: 'underline', padding: 0 }
+  const pillButton: React.CSSProperties = { padding: '12px 26px', borderRadius: '999px', border: 'none', backgroundColor: '#1a2f51', color: '#fff', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.8rem', letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }
   const labelStyle: React.CSSProperties = { fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#1a2f51' }
   const chevron = (key: string) => (
     <span style={{ color: '#1a2f51', fontSize: '1.4rem', flexShrink: 0, transition: 'transform 0.2s', transform: expandedSection === key ? 'rotate(45deg)' : 'none', display: 'inline-block', lineHeight: 1 }}>+</span>
@@ -332,52 +408,69 @@ export default function SettingsPage() {
               {chevron('delivery')}
             </button>
             {expandedSection === 'delivery' && <div style={{ paddingBottom: '20px', paddingTop: '16px' }}>
-              {/* Villa / Flat toggle */}
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-                {[{ value: 'villa', label: 'Villa' }, { value: 'apartment', label: 'Flat' }].map(opt => (
-                  <button key={opt.value} type="button" onClick={() => setDelivery(d => ({ ...d, propertyType: opt.value }))}
-                    style={{ flex: 1, padding: '10px 0', borderRadius: '10px', border: `2px solid ${delivery.propertyType === opt.value ? '#1a2744' : '#ddd6cc'}`, backgroundColor: delivery.propertyType === opt.value ? '#1a2744' : '#fefaf2', color: delivery.propertyType === opt.value ? '#fefaf2' : '#1a2744', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}>
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
+              {/* Address: view it, or change it with the same pin → confirm → address flow as signup */}
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ ...labelStyle, display: 'block', marginBottom: '6px' }}>Delivery address</label>
+                {addrMsg && <p style={{ ...bodyText, color: addrMsg.startsWith('Sorry') ? '#e05c3a' : '#2e5c3a', marginBottom: '8px' }}>{addrMsg}</p>}
 
-              {/* Address fields — 2-column grid */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
+                {addrMode === 'view' && (
                   <div>
-                    <label style={labelStyle}>Villa / Flat Number</label>
-                    <input type="text" value={delivery.villaFlat} onChange={e => setDelivery(d => ({ ...d, villaFlat: e.target.value }))} className={inputClass} />
+                    <p style={bodyText}>{addressLine || 'No address saved yet'}</p>
+                    <p style={{ ...bodyText, fontSize: '0.78rem', opacity: 0.75, marginTop: '4px' }}>
+                      {currentZone ? <>Zone: {currentZone.name} · Delivery day: {(household?.bonkers_day as string) || 'to be confirmed'}</> : 'Delivery zone: to be confirmed'}
+                    </p>
+                    <button type="button" onClick={startAddressChange} style={{ ...linkButton, marginTop: '10px', fontSize: '0.85rem' }}>Change address</button>
                   </div>
+                )}
+
+                {addrMode === 'pin' && (
                   <div>
-                    <label style={labelStyle}>Building Name <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.6 }}>(flats only)</span></label>
-                    <input type="text" value={delivery.building} onChange={e => setDelivery(d => ({ ...d, building: e.target.value }))} className={inputClass} disabled={delivery.propertyType !== 'apartment'} style={{ opacity: delivery.propertyType !== 'apartment' ? 0.4 : 1 }} />
+                    <p style={{ ...bodyText, fontSize: '0.8rem', opacity: 0.65, marginBottom: '10px' }}>Drag the pin to your exact door, tap the map, or search to move it.</p>
+                    <SignupMap zones={zones} onProceed={setNewPin} />
+                    <button type="button" disabled={!canConfirmPin} onClick={confirmNewPin}
+                      style={{ width: '100%', marginTop: '12px', padding: '14px', borderRadius: '12px', border: 'none', backgroundColor: canConfirmPin ? '#1a2744' : '#ddd6cc', color: canConfirmPin ? '#fefaf2' : '#aaa', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.88rem', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: canConfirmPin ? 'pointer' : 'not-allowed' }}>
+                      {newPin ? 'Confirm location' : 'Waiting for pin…'}
+                    </button>
+                    <button type="button" onClick={() => setAddrMode('view')} style={{ ...linkButton, marginTop: '10px' }}>Cancel</button>
                   </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
+                )}
+
+                {addrMode === 'outside' && (
+                  <div style={{ padding: '14px 16px', borderRadius: '12px', border: '2px solid #e8e0d4', backgroundColor: '#fffef9' }}>
+                    <p style={bodyText}><strong>We don’t deliver to this address yet.</strong> Would you like to join the waitlist so we can let you know when we do?</p>
+                    <div style={{ display: 'flex', gap: '14px', alignItems: 'center', marginTop: '12px', flexWrap: 'wrap' }}>
+                      <button type="button" disabled={addrSaving} onClick={joinWaitlistForNewAddress} style={{ ...pillButton, opacity: addrSaving ? 0.6 : 1 }}>{addrSaving ? 'Adding…' : 'Join waitlist'}</button>
+                      <button type="button" onClick={() => setAddrMode('pin')} style={linkButton}>← Go back</button>
+                    </div>
+                  </div>
+                )}
+
+                {addrMode === 'waitlisted' && (
+                  <div style={{ padding: '14px 16px', borderRadius: '12px', border: '2px solid #fee297', backgroundColor: '#fffef9' }}>
+                    <p style={bodyText}><strong>You’re on the waitlist for that address.</strong> Your current delivery address hasn’t changed. If you’re moving, please contact us so we can sort out your membership.</p>
+                    <button type="button" onClick={() => setAddrMode('view')} style={{ ...linkButton, marginTop: '10px' }}>Done</button>
+                  </div>
+                )}
+
+                {addrMode === 'fields' && (
                   <div>
-                    <label style={labelStyle}>Street</label>
-                    <input type="text" value={delivery.street} onChange={e => setDelivery(d => ({ ...d, street: e.target.value }))} className={inputClass} />
+                    <button type="button" onClick={() => setAddrMode('pin')} style={{ ...linkButton, marginBottom: '16px' }}>← Move pin</button>
+                    <AddressFields
+                      value={newAddr}
+                      onChange={(field: AddressField, value: string) => { setNewAddr(prev => ({ ...prev, [field]: value })); setAddrErrors(prev => ({ ...prev, [field]: '' })) }}
+                      errors={addrErrors} inputClass={inputClass} labelStyle={{ ...labelStyle, display: 'block', marginBottom: '4px' }}
+                    />
+                    {dayChanges && (
+                      <p style={{ ...bodyText, marginTop: '28px', padding: '10px 14px', borderRadius: '10px', backgroundColor: '#fff6e0', border: '1px solid #f3d57a' }}>
+                        Heads up: this address is in a different delivery zone, so your delivery day will change from <strong>{(household?.bonkers_day as string) || 'your current day'}</strong> to <strong>{newZone?.bonkers_day || 'a day we’ll confirm'}</strong>.
+                      </p>
+                    )}
+                    <div style={{ display: 'flex', gap: '14px', alignItems: 'center', marginTop: '28px', flexWrap: 'wrap' }}>
+                      <button type="button" disabled={addrSaving} onClick={saveNewAddress} style={{ ...pillButton, opacity: addrSaving ? 0.6 : 1 }}>{addrSaving ? 'Saving…' : 'Save new address'}</button>
+                      <button type="button" onClick={() => setAddrMode('view')} style={linkButton}>Cancel</button>
+                    </div>
                   </div>
-                  <div>
-                    <label style={labelStyle}>Sub-community <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.6 }}>(optional)</span></label>
-                    <input type="text" value={delivery.subCommunity} onChange={e => setDelivery(d => ({ ...d, subCommunity: e.target.value }))} className={inputClass} />
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
-                  <div>
-                    <label style={labelStyle}>Community</label>
-                    <select value={delivery.communityId} onChange={e => setDelivery(d => ({ ...d, communityId: e.target.value }))} className={inputClass}
-                      style={{ appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1L6 7L11 1' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', paddingRight: '2rem' }}>
-                      <option value="">Select community</option>
-                      {communities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Emirate</label>
-                    <input type="text" value="Dubai" readOnly disabled className={inputClass} style={{ cursor: 'not-allowed', opacity: 0.6 }} />
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Delivery notes */}
