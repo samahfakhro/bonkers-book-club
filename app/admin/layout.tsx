@@ -6,6 +6,7 @@ const NAV = [
   { label: 'Books', path: '/admin/books' },
   { label: 'Operations', path: '/admin/operations' },
   { label: 'Members', path: '/admin/members' },
+  { label: 'Zones', path: '/admin/zones' },
   { label: 'Reports', path: '/admin/reports' },
   { label: 'Settings', path: '/admin/settings' },
 ]

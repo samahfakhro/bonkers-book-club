@@ -19,18 +19,22 @@ export type MapAddress = {
   lng: number
 }
 
+// in: inside exactly one zone · out: outside every zone (waitlist) · conflict: inside 2+ zones (zone setup error)
+// unchecked: zone check couldn't run
+export type AreaStatus = 'in' | 'out' | 'conflict' | 'unchecked'
+
 export type MapResult = {
   lat: number
   lng: number
   zoneId: string | null
   bonkersDay: string | null
+  areaStatus: AreaStatus
   address: MapAddress
 }
 
 type Props = {
   zones: Zone[]
   onProceed: (result: MapResult) => void
-  onOutOfArea: (result: MapResult) => void
 }
 
 const DUBAI_CENTER = { lat: 25.2048, lng: 55.2708 }
@@ -38,7 +42,12 @@ const DUBAI_BOUNDS = { north: 25.36, south: 24.79, east: 55.93, west: 54.89 }
 
 let mapsConfigured = false
 
-export default function SignupMap({ zones, onProceed, onOutOfArea }: Props) {
+export default function SignupMap({ zones, onProceed }: Props) {
+  // The map's tap/drag/location handlers are set up once, so they read zones through a ref
+  // (zones arrive from the database after the map has loaded)
+  const zonesRef = useRef(zones)
+  zonesRef.current = zones
+  const [areaStatus, setAreaStatus] = useState<AreaStatus | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
   const markerRef = useRef<google.maps.Marker | null>(null)
@@ -49,6 +58,7 @@ export default function SignupMap({ zones, onProceed, onOutOfArea }: Props) {
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [status, setStatus] = useState<'idle' | 'locating' | 'checking' | 'done'>('idle')
+  const [locationFailed, setLocationFailed] = useState(false)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -95,6 +105,20 @@ export default function SignupMap({ zones, onProceed, onOutOfArea }: Props) {
         runZoneCheck(pos.lat(), pos.lng())
       })
 
+      // Tap the map to drop/move the pin — zoom in to street level so they can fine-tune by dragging
+      map.addListener('click', (e: google.maps.MapMouseEvent) => {
+        if (!e.latLng) return
+        const lat = e.latLng.lat()
+        const lng = e.latLng.lng()
+        marker.setPosition({ lat, lng })
+        marker.setMap(map)
+        if ((map.getZoom() ?? 0) < 16) {
+          map.panTo({ lat, lng })
+          map.setZoom(17)
+        }
+        runZoneCheck(lat, lng)
+      })
+
       // Auto-request location as soon as map is ready
       if (navigator.geolocation) {
         setStatus('locating')
@@ -110,10 +134,12 @@ export default function SignupMap({ zones, onProceed, onOutOfArea }: Props) {
             runZoneCheck(lat, lng)
           },
           () => {
-            if (!cancelled) setStatus('idle')
+            if (!cancelled) { setStatus('idle'); setLocationFailed(true) }
           },
           { enableHighAccuracy: true, timeout: 10000 }
         )
+      } else {
+        setLocationFailed(true)
       }
     }
 
@@ -176,31 +202,32 @@ export default function SignupMap({ zones, onProceed, onOutOfArea }: Props) {
   async function runZoneCheck(lat: number, lng: number) {
     setStatus('checking')
     const addr: MapAddress = { street: '', subCommunity: '', area: '', fullText: '', lat, lng }
-
-    if (!zones.length) {
+    const zones = zonesRef.current
+    const finish = (areaStatus: AreaStatus, zone?: Zone) => {
       setStatus('done')
-      onProceed({ lat, lng, zoneId: null, bonkersDay: null, address: addr })
-      return
+      setAreaStatus(areaStatus)
+      onProceed({ lat, lng, zoneId: zone?.id ?? null, bonkersDay: zone?.bonkers_day ?? null, areaStatus, address: addr })
     }
+
+    // TODO: fail safe (block + "try again") once zones are loaded into the database — see zones plan step 4
+    if (!zones.length) return finish('unchecked')
 
     try {
       const { default: booleanPIP } = await import('@turf/boolean-point-in-polygon')
       const { point } = await import('@turf/helpers')
       const pt = point([lng, lat])
-      for (const zone of zones) {
-        try {
-          if (booleanPIP(pt, zone.polygon as any)) {
-            setStatus('done')
-            onProceed({ lat, lng, zoneId: zone.id, bonkersDay: zone.bonkers_day, address: addr })
-            return
-          }
-        } catch { /* skip invalid polygon */ }
+      // Check every zone — a pin must be in exactly one
+      const matches = zones.filter(zone => {
+        try { return booleanPIP(pt, zone.polygon as any) } catch { return false /* skip invalid polygon */ }
+      })
+      if (matches.length > 1) {
+        console.error('Pin is inside more than one delivery zone — zone boundaries overlap', { lat, lng, zones: matches.map(z => z.name) })
+        return finish('conflict')
       }
-      setStatus('done')
-      onOutOfArea({ lat, lng, zoneId: null, bonkersDay: null, address: addr })
+      if (matches.length === 1) return finish('in', matches[0])
+      finish('out')
     } catch {
-      setStatus('done')
-      onProceed({ lat, lng, zoneId: null, bonkersDay: null, address: addr })
+      finish('unchecked')
     }
   }
 
@@ -259,6 +286,12 @@ export default function SignupMap({ zones, onProceed, onOutOfArea }: Props) {
         </p>
       )}
 
+      {locationFailed && status === 'idle' && (
+        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', color: '#1a2f51', margin: 0, opacity: 0.75 }}>
+          We couldn&apos;t find your location. Search for your address or tap the map to drop your pin.
+        </p>
+      )}
+
       {/* Map */}
       <div
         ref={containerRef}
@@ -268,6 +301,18 @@ export default function SignupMap({ zones, onProceed, onOutOfArea }: Props) {
       {status === 'checking' && (
         <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', color: '#1a2f51', margin: 0, textAlign: 'center', opacity: 0.6 }}>
           Checking your area…
+        </p>
+      )}
+
+      {status === 'done' && areaStatus === 'out' && (
+        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', color: '#1a2f51', margin: 0, lineHeight: 1.5 }}>
+          This spot is outside our delivery area. Move the pin if that&apos;s not quite right, or confirm to join the waitlist.
+        </p>
+      )}
+
+      {status === 'done' && areaStatus === 'conflict' && (
+        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', color: '#e05c3a', margin: 0, lineHeight: 1.5 }}>
+          We couldn&apos;t work out your delivery day for this spot. Please try moving the pin slightly, or contact us.
         </p>
       )}
     </div>

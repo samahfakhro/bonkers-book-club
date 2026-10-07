@@ -294,8 +294,17 @@ function SignupForm() {
     setMapResult(result)
   }
 
-  const handleMapOutOfArea = (result: MapResult) => {
-    setMapResult(result)
+  // A pin in two zones means the zone setup is wrong — don't let them continue on a guessed day
+  const canConfirmPin = !!mapResult && mapResult.areaStatus !== 'conflict'
+
+  const confirmPin = () => {
+    if (mapResult?.areaStatus === 'out') return goToWaitlist()
+    setPinConfirmed(true)
+    setStepErrors(p => ({ ...p, mapPin: '' }))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const goToWaitlist = () => {
     setWaitlistForm({ name: '', email: '' })
     setStep('waitlist')
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -332,7 +341,12 @@ function SignupForm() {
       errs.houseType = 'Please select Villa or Flat'
     }
     if (currentStep === 3 && form.houseType === 'apartment' && !form.building.trim()) {
-      errs.building = 'Building name is required for flats'
+      errs.building = 'Required'
+    }
+    if (currentStep === 3 && pinConfirmed) {
+      if (!form.villaFlat.trim()) errs.villaFlat = 'Required'
+      if (!form.street.trim()) errs.street = 'Required'
+      if (!form.area.trim()) errs.area = 'Required'
     }
     if (currentStep === 4 && !form.deliveryPreference) {
       errs.deliveryPreference = 'Please choose a delivery option'
@@ -442,7 +456,7 @@ function SignupForm() {
 
       {/* Step progress bar â€" only shown in signup flow */}
       {step === 'signup' && (
-        <div style={{ padding: `0 ${isTablet ? '60px' : '16px'}`, maxWidth: isTablet ? '680px' : '440px', margin: `${isTablet ? '-6px' : '24px'} auto ${isTablet ? '16px' : '10px'}`, marginLeft: isTablet ? 'auto' : '24px', position: 'relative', zIndex: 2 }}>
+        <div style={{ padding: `0 ${isTablet ? '60px' : '16px'}`, maxWidth: isTablet ? '680px' : '440px', margin: `${isTablet ? '64px' : '24px'} auto ${isTablet ? '16px' : '10px'}`, marginLeft: isTablet ? 'auto' : '24px', position: 'relative', zIndex: 2 }}>
           {/* Circles + lines row */}
           <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
             {currentStep < 5 && (
@@ -510,7 +524,7 @@ function SignupForm() {
               </button>
             </div>
           </form>
-          <button onClick={() => setStep('map')} style={{ color: '#1a2f51', opacity: 0.6, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', marginTop: '20px', background: 'none', border: 'none', cursor: 'pointer' }}>← Go back</button>
+          <button onClick={() => { setMapResult(null); setStep('signup') }} style={{ color: '#1a2f51', opacity: 0.6, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', marginTop: '20px', background: 'none', border: 'none', cursor: 'pointer' }}>← Go back</button>
         </div>
       )}
 
@@ -687,9 +701,9 @@ function SignupForm() {
                   <div style={{ marginBottom: pinConfirmed ? '24px' : '0' }}>
                     <label style={labelStyle}>Pin your home on the map</label>
                     <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', color: '#1a2f51', opacity: 0.65, margin: '0 0 10px' }}>
-                      Your location is set automatically — drag the pin to your exact door, or search to move it.
+                      Drag the pin to your exact door, tap the map, or search to move it.
                     </p>
-                    <SignupMap zones={zones} onProceed={handleMapProceed} onOutOfArea={handleMapOutOfArea} />
+                    <SignupMap zones={zones} onProceed={handleMapProceed} />
 
                     {!pinConfirmed && (
                       <div style={{ marginTop: '12px' }}>
@@ -701,11 +715,11 @@ function SignupForm() {
                         )}
                         <button
                           type="button"
-                          disabled={!mapResult}
-                          onClick={() => { setPinConfirmed(true); setStepErrors(p => ({ ...p, mapPin: '' })); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-                          style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', backgroundColor: mapResult ? '#1a2744' : '#ddd6cc', color: mapResult ? '#fefaf2' : '#aaa', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.88rem', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: mapResult ? 'pointer' : 'not-allowed', transition: 'background-color 0.2s' }}
+                          disabled={!canConfirmPin}
+                          onClick={confirmPin}
+                          style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', backgroundColor: canConfirmPin ? '#1a2744' : '#ddd6cc', color: canConfirmPin ? '#fefaf2' : '#aaa', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.88rem', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: canConfirmPin ? 'pointer' : 'not-allowed', transition: 'background-color 0.2s' }}
                         >
-                          {mapResult ? 'Confirm location →' : 'Waiting for pin…'}
+                          {mapResult ? 'Confirm location' : 'Waiting for pin…'}
                         </button>
                       </div>
                     )}
@@ -736,22 +750,24 @@ function SignupForm() {
                       </div>
                       {stepErrors.houseType && <p style={{ color: '#e05c3a', fontSize: '0.78rem', marginTop: '-12px', marginBottom: '12px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.houseType}</p>}
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
                           <div>
                             <label style={labelStyle}>Villa / Flat Number</label>
-                            <input type="text" value={form.villaFlat} onChange={e => set('villaFlat', e.target.value)} className={cardInputClass} />
+                            <input type="text" value={form.villaFlat} onChange={e => { set('villaFlat', e.target.value); setStepErrors(p => ({ ...p, villaFlat: '' })) }} className={cardInputClass} />
+                            {stepErrors.villaFlat && <p style={{ position: 'absolute', color: '#e05c3a', fontSize: '0.75rem', lineHeight: 1.2, marginTop: '2px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.villaFlat}</p>}
                           </div>
                           <div>
                             <label style={labelStyle}>Building Name <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.6 }}>(flats only)</span></label>
                             <input type="text" value={form.building} onChange={e => { set('building', e.target.value); setStepErrors(p => ({ ...p, building: '' })) }} className={cardInputClass} disabled={form.houseType !== 'apartment'} style={{ opacity: form.houseType !== 'apartment' ? 0.4 : 1 }} />
-                            {stepErrors.building && <p style={{ color: '#e05c3a', fontSize: '0.75rem', marginTop: '4px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.building}</p>}
+                            {stepErrors.building && <p style={{ position: 'absolute', color: '#e05c3a', fontSize: '0.75rem', lineHeight: 1.2, marginTop: '2px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.building}</p>}
                           </div>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
                           <div>
-                            <label style={labelStyle}>Street <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.55 }}>(optional)</span></label>
-                            <input type="text" value={form.street} onChange={e => set('street', e.target.value)} placeholder="e.g. Street 12" className={cardInputClass} />
+                            <label style={labelStyle}>Street</label>
+                            <input type="text" value={form.street} onChange={e => { set('street', e.target.value); setStepErrors(p => ({ ...p, street: '' })) }} placeholder="e.g. Street 12" className={cardInputClass} />
+                            {stepErrors.street && <p style={{ position: 'absolute', color: '#e05c3a', fontSize: '0.75rem', lineHeight: 1.2, marginTop: '2px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.street}</p>}
                           </div>
                           <div>
                             <label style={labelStyle}>Sub-community <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.55 }}>(optional)</span></label>
@@ -760,8 +776,9 @@ function SignupForm() {
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
                           <div>
-                            <label style={labelStyle}>Community / Area <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.55 }}>(optional)</span></label>
-                            <input type="text" value={form.area} onChange={e => set('area', e.target.value)} placeholder="e.g. Arabian Ranches" className={cardInputClass} />
+                            <label style={labelStyle}>Community / Area</label>
+                            <input type="text" value={form.area} onChange={e => { set('area', e.target.value); setStepErrors(p => ({ ...p, area: '' })) }} placeholder="e.g. Arabian Ranches" className={cardInputClass} />
+                            {stepErrors.area && <p style={{ position: 'absolute', color: '#e05c3a', fontSize: '0.75rem', lineHeight: 1.2, marginTop: '2px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.area}</p>}
                           </div>
                           <div>
                             <label style={labelStyle}>Emirate</label>
@@ -775,7 +792,7 @@ function SignupForm() {
 
                 {/* Delivery notes — only after pin confirmed */}
                 {pinConfirmed && (
-                  <div style={{ marginTop: '14px' }}>
+                  <div style={{ marginTop: '24px' }}>
                     <label style={labelStyle}>Delivery Notes <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.6 }}>(optional)</span></label>
                     <input type="text" placeholder="e.g. gate code, beware tiny ferocious dog..." value={form.deliveryNotes} onChange={e => set('deliveryNotes', e.target.value)} className={cardInputClass} />
                   </div>
