@@ -42,7 +42,7 @@ const FAQS = [
   { q: 'How often can we get new books?', a: 'As often as every week. Just open the app, choose your new books and let us know which ones you\'re returning. You can keep any you\'re still reading for as long as you like. On your community\'s next Bonkers Day, we\'ll collect the books you\'re returning and deliver your new ones.' },
   { q: 'What if we lose or damage a book?', a: 'We understand — kids and books can be a messy combination. Minor wear is totally fine. For lost or heavily damaged books, we may charge a replacement fee.' },
   { q: 'Can siblings share a membership?', a: 'Absolutely — that\'s how most families use Bonkers. You can set up a profile for each child and allocate books across them based on your plan.' },
-  { q: 'Which areas do you deliver to?', a: 'We currently deliver across selected communities in Dubai. Hit "Check My Area" to see if we cover yours — and if we don\'t yet, you can join our waitlist and we\'ll let you know when we arrive.' },
+  { q: 'Which areas do you deliver to?', a: 'We deliver across Dubai. If you\'re not sure whether we reach your doorstep, just sign up and we\'ll confirm your delivery details when you join.' },
   { q: 'Can I cancel anytime?', a: 'Yes, no questions asked. You can pause, change your plan, or cancel at any time from your account. If you cancel, books should be returned within 14 days.' },
 ]
 
@@ -131,19 +131,12 @@ export default function LandingPage() {
   const goCheck = () => router.push('/signup')
 
   return (
-    <>
-    <style>{`
-      @media (min-width: 768px) {
-        .lp-hero-section { zoom: 1.35; }
-        .lp-hero-content { max-width: 560px !important; }
-      }
-    `}</style>
-    <main style={{ backgroundColor: '#080402', backgroundImage: 'url(/Background_3.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', minHeight: '100vh', overflowX: 'hidden', fontFamily: 'var(--font-montserrat), sans-serif', position: 'relative' }}>
-      {/* ── STICKY HEADER ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', backgroundColor: 'transparent' }}>
+    <main style={{ backgroundColor: '#1a2744', backgroundImage: 'url(/Background_3.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', minHeight: '100vh', overflowX: 'hidden', fontFamily: 'var(--font-montserrat), sans-serif', position: 'relative' }}>
+      {/* ── HEADER ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isTablet ? '0 20px' : '16px 20px', position: 'relative', zIndex: 30 }}>
         <div style={{ lineHeight: 1 }}>
-          <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3.2rem', color: '#eddbc3', letterSpacing: '0.04em', margin: 0 }}>BOOKY</p>
-          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.58rem', color: '#eddbc3', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0', lineHeight: 1.4 }}>THE CHILDREN'S<br />LIBRARY</p>
+          <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#eddbc3', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
+          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.58rem', color: '#eddbc3', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0', lineHeight: 1.4 }}>THE CHILDREN'S LIBRARY</p>
         </div>
         <button onClick={() => router.push('/login')} style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', color: '#eddbc3', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, letterSpacing: '0.04em' }}>
           <span style={{ borderBottom: '2px solid #f9ce71', paddingBottom: '1px' }}>Log in</span>
@@ -151,149 +144,179 @@ export default function LandingPage() {
       </div>
 
       {/* ── 1. HERO ── */}
-      <section className="lp-hero-section" style={{ minHeight: '70svh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: isTablet ? 'flex-start' : 'center', position: 'relative', backgroundColor: 'transparent', padding: isTablet ? '0 44px 60px' : '0 24px 60px', marginTop: isTablet ? '-40px' : '0' }}>
+      <section className="lp-hero-section" style={{ position: 'relative', marginTop: isTablet ? '-70px' : '-60px', zIndex: 20 }}>
 
-        <div className="lp-hero-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', width: '100%', position: 'relative' }}>
+        {/* Full-width hero image — text flows naturally below it */}
+        <img src="/bonkers_mainimagea.png" alt="" style={{ width: '100%', display: 'block', height: 'auto' }} />
+
+        <div className="lp-hero-content" style={{ textAlign: 'center', width: '100%', position: 'relative', padding: isTablet ? '0 44px 60px' : '0 24px 40px' }}>
 
           {isTablet ? (
             <>
-              <img src="/bgnew.png" alt="Bonkers" style={{ width: '120%', maxWidth: '1000px', height: 'auto', marginTop: '60px', marginBottom: '-90px', alignSelf: 'flex-end', marginRight: '-110px' }} />
-              <div style={{ position: 'absolute', left: '-80px', top: '120px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', maxWidth: '65%' }}>
-                <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontWeight: 700, lineHeight: 1.05, margin: '0 0 14px' }}>
-                  <span style={{ fontSize: '2.2rem', display: 'block', whiteSpace: 'nowrap', marginTop: '-35px' }}>Brilliant books.</span>
-                  <span style={{ fontSize: '1.25rem', display: 'block', marginTop: '28px' }}>Delivered &amp; collected<br />from your <span style={{ display: 'inline-block', position: 'relative' }}>doorstep<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-18px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
-                </h1>
-                <p style={{ color: '#eddbc3', fontSize: '0.65rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '36px' }}>
-                  Curated by kids.<br />Approved by parents.<br />No commitment.<br />No late fees.
+              <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontWeight: 700, lineHeight: 1.05, margin: '0 0 14px', textAlign: 'center', width: '100%' }}>
+                <span style={{ fontSize: '3.7rem', display: 'block' }}>Brilliant books.</span>
+                <span style={{ fontSize: '1.9rem', display: 'block', marginTop: '8px' }}>Delivered &amp; collected from your <span style={{ display: 'inline-block', position: 'relative' }}>doorstep<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-18px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
+              </h1>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <p style={{ color: '#eddbc3', fontSize: '1.1rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '8px', position: 'relative', zIndex: 1, textAlign: 'center', width: '100%' }}>
+                  Curated by kids. Approved by parents.<br />No commitment. No late fees.
                 </p>
-                <div style={{ marginTop: '36px' }}><CheckAreaButton onClick={goCheck} /></div>
+                <img src="/penguin_sneak.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-180px', height: '240px', width: 'auto', zIndex: -1 }} />
               </div>
+              <div style={{ marginTop: '56px', transform: 'scale(1.4)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} /></div>
             </>
           ) : (
             <>
-              <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontWeight: 700, lineHeight: 1.05, margin: '140px 0 14px' }}>
+              <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontWeight: 700, lineHeight: 1.05, margin: '0 0 14px', textAlign: 'center', width: '100%' }}>
                 <span style={{ fontSize: 'clamp(3rem, 10vw, 4.2rem)', display: 'block' }}>Brilliant books.</span>
                 <span style={{ fontSize: 'clamp(1.7rem, 6vw, 2.6rem)', display: 'block' }}>Delivered &amp; collected from your <span style={{ display: 'inline-block', position: 'relative' }}>doorstep<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-18px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
               </h1>
-              <img src="/bgnew.png" alt="Bonkers" style={{ width: 'calc(100% + 80px)', maxWidth: 'none', height: 'auto', marginTop: '-20px', marginLeft: '-40px' }} />
-              <p style={{ color: '#eddbc3', fontSize: '0.92rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', maxWidth: '320px', marginTop: '32px' }}>
-                Curated by kids. Approved by parents.<br />No commitment. No late fees.
-              </p>
-              <div style={{ marginTop: '16px' }}><CheckAreaButton onClick={goCheck} /></div>
+              <div style={{ position: 'relative' }}>
+                <p style={{ color: '#eddbc3', fontSize: '0.92rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '0', marginLeft: 'auto', marginRight: 'auto', maxWidth: '320px', position: 'relative', zIndex: 2, textAlign: 'center' }}>
+                  Curated by kids. Approved by parents.<br />No commitment. No late fees.
+                </p>
+                <div style={{ marginTop: '16px', position: 'relative', zIndex: 20 }}><CheckAreaButton onClick={goCheck} /></div>
+                <img src="/penguin_sneak.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-8px', height: '110px', width: 'auto', zIndex: 1, pointerEvents: 'none' }} />
+              </div>
             </>
           )}
 
-        </div>
-
-        {/* Wavy cream transition */}
-        <div style={{ position: 'absolute', bottom: isTablet ? '310px' : '300px', left: 0, right: 0, lineHeight: 0, pointerEvents: 'none' }}>
-          <svg viewBox="0 0 1200 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '80px', display: 'block' }}>
-            <path d="M0,40 C150,80 300,0 450,40 C600,80 750,0 900,40 C1050,80 1150,20 1200,40 L1200,80 L0,80 Z" fill="#fdf5e9" />
-          </svg>
         </div>
       </section>
 
       {/* ── HOW IT WORKS ── */}
-      <section style={{ backgroundColor: '#fdf5e9', padding: isTablet ? '60px 44px 60px' : '40px 24px 40px', marginTop: isTablet ? '-430px' : '-300px', paddingTop: isTablet ? 'calc(60px + 430px)' : 'calc(40px + 300px)' }}>
-        <div style={{ maxWidth: isTablet ? '100%' : '480px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#080402', fontSize: 'clamp(1.6rem, 5vw, 2.2rem)', fontWeight: 700, lineHeight: 1.1, marginBottom: '20px', marginTop: isTablet ? '-460px' : '0', textAlign: 'left' }}>
-            How Booky Works
-          </h2>
+      <section className="lp-hiw-section" style={{ position: 'relative', zIndex: isTablet ? 5 : 15 }}>
+        {/* Top decorative image — sits over hero with no cream behind it */}
+        <img src="/mainimage2a.png" alt="" style={{ width: '100%', display: 'block', height: 'auto' }} />
 
-          {/* Steps */}
-          {isTablet ? (
-            <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', gap: '8px', marginTop: '56px', width: '100%' }}>
-              {[
-                { num: '1', label: 'Choose books', img: '/bonky_choosingbooks.png', ml: '-16px', mr: '0' },
-                { num: '2', label: 'Bonkers Day!', img: '/bonky_delivering2.png', ml: '-12px', mr: '0' },
-                { num: '3', label: 'Keep Reading', img: '/bonky_reading.png', ml: '0', mr: '-28px' },
-              ].map((step, i) => (
-                <>
-                  <div key={step.num} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', flex: 1 }}>
-                    <div style={{ width: '52px', height: '52px', borderRadius: '50%', border: '1.5px solid #080402', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '2rem', fontWeight: 700, color: '#080402', lineHeight: 1 }}>{step.num}</span>
-                    </div>
-                    <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', fontWeight: 600, color: '#080402', letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0, textAlign: 'center', whiteSpace: 'nowrap' }}>{step.label}</p>
-                    <img src={step.img} alt="" style={{ height: '200px', width: 'auto', marginLeft: step.ml, marginRight: step.mr }} />
-                  </div>
-                  {i < 2 && <img key={`a${i}`} src="/arrow_cream.png" alt="" style={{ width: '48px', height: 'auto', alignSelf: 'flex-start', marginTop: '12px', flexShrink: 0, filter: 'brightness(0)' }} />}
-                </>
-              ))}
-            </div>
-          ) : (
-            <>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', gap: '8px' }}>
-                {[
-                  { num: '1', label: 'Choose books' },
-                  { num: '2', label: 'Bonkers Day!' },
-                  { num: '3', label: 'Keep Reading' },
-                ].map((step, i) => (
-                  <>
-                    <div key={step.num} style={{ width: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                      <div style={{ width: '52px', height: '52px', borderRadius: '50%', border: '1.5px solid #080402', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '2rem', fontWeight: 700, color: '#080402', lineHeight: 1 }}>{step.num}</span>
-                      </div>
-                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.65rem', fontWeight: 600, color: '#080402', letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0, textAlign: 'center', width: '100%', whiteSpace: 'nowrap' }}>{step.label}</p>
-                    </div>
-                    {i < 2 && (
-                      <img key={`a${i}`} src="/arrow_cream.png" alt="" style={{ width: '32px', height: 'auto', marginTop: '12px', flexShrink: 0, filter: 'brightness(0)' }} />
-                    )}
-                  </>
-                ))}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '16px', width: '100%' }}>
-                <img src="/bonky_choosingbooks.png" alt="" style={{ height: '110px', width: 'auto', marginLeft: '-16px' }} />
-                <img src="/bonky_delivering2.png" alt="" style={{ height: '110px', width: 'auto', marginLeft: '-12px' }} />
-                <img src="/bonky_reading.png" alt="" style={{ height: '110px', width: 'auto', marginRight: '-28px' }} />
-              </div>
-            </>
-          )}
-          <div style={{ marginTop: isTablet ? '80px' : '52px', textAlign: 'left' }}>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#080402', fontSize: isTablet ? '1.1rem' : '0.9rem', lineHeight: 1.6, marginBottom: '16px', fontWeight: 700 }}>
-              Every community has a weekly Bonkers Day, when we deliver new books and collect the ones you're returning.
-            </p>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#080402', fontSize: isTablet ? '1.1rem' : '0.9rem', lineHeight: 1.6 }}>
-              Still halfway through a dragon battle? Keep the book. A week, a month, until someone finally finds out what happens to the dragon — we don't mind.
-            </p>
+        {/* Cream starts here, after mainimage2a */}
+        <div style={{ backgroundColor: '#faf2e4' }}>
+
+        {/* How It Works label + heading — in normal flow on cream background */}
+        <div className="lp-hiw-content" style={{ backgroundColor: '#faf2e4', textAlign: 'center', padding: isTablet ? '0px 44px 24px' : '0px 24px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isTablet ? '16px' : '10px', marginBottom: '12px' }}>
+            <div style={{ width: isTablet ? '50px' : '32px', height: '2px', backgroundColor: '#8ba8b2', borderRadius: '1px' }} />
+            <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#8ba8b2', fontSize: isTablet ? '1.2rem' : '0.95rem', fontWeight: 600, whiteSpace: 'nowrap' }}>How It Works</span>
+            <div style={{ width: isTablet ? '50px' : '32px', height: '2px', backgroundColor: '#8ba8b2', borderRadius: '1px' }} />
           </div>
+          <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? 'clamp(2.4rem, 6vw, 3.4rem)' : '1.6rem', fontWeight: 800, lineHeight: 1.1, margin: 0, textAlign: 'center', whiteSpace: isTablet ? 'normal' : 'nowrap' }}>
+            Borrow. Read. Return. Repeat.
+          </h2>
+        </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '6px', marginTop: isTablet ? '100px' : '32px' }}>
+        {/* Middle decorative image */}
+        <img src="/mainimage2b.png" alt="" style={{ width: '100%', display: 'block', height: 'auto' }} />
+
+        {/* Steps, stars, pricing — in normal flow on cream background */}
+        <div style={{ backgroundColor: '#faf2e4', textAlign: 'center', padding: isTablet ? '32px 44px 0' : '20px 16px 0' }}>
+          <div className="lp-hiw-steps" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: isTablet ? '24px' : '8px', textAlign: 'center' }}>
             {[
-              { star: '/sparklestar_yellow.png', label: 'No due dates' },
+              { heading: 'Choose books', sub: 'from our curated library', subMobile: 'from our curated' },
+              { heading: 'We deliver', sub: "weekly on your Bonkers Day" },
+              { heading: 'Read', sub: 'and keep books as long as you like', subMobile: 'and keep as long as you like' },
+              { heading: 'Return', sub: "any books you've finished on your Bonkers Day", subMobile: 'books on your Bonkers Day' },
+            ].map(({ heading, sub, subMobile }, i) => (
+              <div key={i}>
+                <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.4rem' : '1.25rem', fontWeight: 600, lineHeight: isTablet ? 1.3 : 1.1, margin: '0 0 4px', whiteSpace: isTablet ? 'nowrap' : 'normal' }}>{heading}</p>
+                {sub && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.78rem', lineHeight: 1.4, margin: 0, marginTop: isTablet ? '0' : '-4px', opacity: 0.8 }}>{!isTablet && subMobile ? subMobile : sub}</p>}
+              </div>
+            ))}
+          </div>
+          <div className="lp-hiw-stars" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '6px', marginTop: isTablet ? '32px' : '24px' }}>
+            {[
+              { star: '/sparklestar_yellow.png', label: 'Weekly delivery' },
               { star: '/sparklestar_turquoise.png', label: 'No late fees' },
               { star: '/sparklestar_pink.png', label: 'Cancel anytime' },
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <img src={item.star} alt="" style={{ height: isTablet ? '48px' : '26px', width: 'auto' }} />
-                <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#080402', fontSize: '1rem', letterSpacing: '0.04em' }}>{item.label}</span>
-                {i < 2 && <span style={{ color: '#080402', opacity: 0.4, marginLeft: '2px' }}>·</span>}
+                <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#1a2744', fontSize: '1rem', letterSpacing: '0.04em' }}>{item.label}</span>
+                {i < 2 && <img src="/divider_vertical.png" alt="" style={{ height: '32px', width: 'auto', margin: '0 6px', filter: 'brightness(0) saturate(100%)' }} />}
               </div>
             ))}
           </div>
+          <div style={{ display: 'flex', gap: '16px', marginTop: '24px', justifyContent: 'center' }}>
+            <div style={{ textAlign: 'center', flex: 1, border: '1.5px solid rgba(26,39,68,0.2)', borderRadius: '12px', padding: '16px 12px' }}>
+              <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2rem' : '1.5rem', fontWeight: 700 }}>AED 149</span>
+              <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '1rem', fontWeight: 400, marginLeft: '6px' }}>/ month</span>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, margin: '4px 0 0', opacity: 0.8 }}>4 books at home at a time</p>
+            </div>
+            <div style={{ textAlign: 'center', flex: 1, border: '1.5px solid rgba(26,39,68,0.2)', borderRadius: '12px', padding: '16px 12px' }}>
+              <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2rem' : '1.5rem', fontWeight: 700 }}>AED 199</span>
+              <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '1rem', fontWeight: 400, marginLeft: '6px' }}>/ month</span>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, margin: '4px 0 0', opacity: 0.8 }}>6 books at home at a time</p>
+            </div>
+          </div>
+          <div style={{ marginTop: '36px', marginBottom: '0', transform: 'scale(1.15)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} /></div>
         </div>
+
+        {/* Bottom decorative image */}
+        <img src="/mainimage2c.png" alt="" style={{ width: '100%', display: 'block', height: 'auto' }} />
+        </div>{/* end cream wrapper */}
       </section>
 
       {/* ── 3. THE BOOKS ── */}
-      <section style={{ backgroundColor: 'transparent', padding: 0 }}>
+      <section className="lp-books-section" style={{ backgroundColor: 'transparent', padding: 0, marginTop: isTablet ? '-30px' : '0' }}>
         <div style={{ maxWidth: isTablet ? '100%' : '480px', margin: '0 auto', textAlign: 'center', padding: isTablet ? '0 44px' : '0 24px' }}>
 
           {/* Divider with star */}
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: isTablet ? '620px' : '440px', margin: isTablet ? '140px auto 50px' : '50px auto 50px' }}>
-            <img src="/underline_divider.png" alt="" style={{ width: '100%', height: 'auto', transform: 'scaleY(2)', transformOrigin: 'center' }} />
-            <img src="/star_button_on.png" alt="" style={{ position: 'absolute', width: isTablet ? '40px' : '20px', height: isTablet ? '40px' : '20px', transform: 'translateY(-4px)' }} />
-          </div>
-
           {/* Take a peek */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px', marginTop: isTablet ? '100px' : '56px' }}>
+          <div className="lp-take-peek" style={{ position: 'relative', display: 'inline-block' }}>
+            <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', top: '-88px', left: '-160px', width: '54px', height: '54px', pointerEvents: 'none' }} />
+            <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', top: '-90px', right: '-200px', width: '40px', height: '40px', pointerEvents: 'none' }} />
+            <img src="/sparklestar_pink.png" alt="" style={{ position: 'absolute', top: '-24px', right: '-320px', width: '40px', height: '40px', pointerEvents: 'none' }} />
+            <img src="/sparklestar_turquoise.png" alt="" style={{ position: 'absolute', top: '100px', right: '-360px', width: '40px', height: '40px', pointerEvents: 'none' }} />
+            <img src="/sparklestar_blue.png" alt="" style={{ position: 'absolute', top: '-20px', left: '-320px', width: '40px', height: '40px', pointerEvents: 'none' }} />
+            <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', top: '100px', left: '-360px', width: '40px', height: '40px', pointerEvents: 'none' }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px', marginTop: isTablet ? '-70px' : '24px' }}>
             <img src="/whiskers_left.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
             <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, color: '#eddbc3', fontSize: '1.8rem', letterSpacing: '0.04em', margin: 0, lineHeight: 1 }}>
               Take a peek
             </p>
             <img src="/whiskers_right.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
           </div>
-          <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: 'clamp(2.8rem, 9vw, 4rem)', fontWeight: 700, lineHeight: 1.1, marginBottom: '12px', marginTop: isTablet ? '48px' : '0' }}>
-            What's on our shelves?
-          </h2>
+          </div>
+          <div style={{ position: 'relative', display: 'inline-block', width: '100%', marginTop: isTablet ? '20px' : '0', marginBottom: '12px' }}>
+            <div style={{ transform: 'translateY(-80px)', position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+            {[
+              { top: '-60px',  left: '5%',   s: 5, o: 0.6 },
+              { top: '-40px',  left: '18%',  s: 4, o: 0.4 },
+              { top: '-100px', left: '10%',  s: 3, o: 0.5 },
+              { top: '-80px',  left: '30%',  s: 4, o: 0.3 },
+              { top: '-120px', left: '2%',   s: 4, o: 0.6 },
+              { top: '-150px', left: '8%',   s: 3, o: 0.4 },
+              { top: '-170px', left: '22%',  s: 5, o: 0.5 },
+              { top: '-140px', left: '35%',  s: 3, o: 0.3 },
+              { top: '-200px', left: '5%',   s: 4, o: 0.5 },
+              { top: '-180px', left: '15%',  s: 3, o: 0.3 },
+              { top: '-80px',  right: '10%', s: 5, o: 0.7 },
+              { top: '-50px',  right: '25%', s: 4, o: 0.5 },
+              { top: '-110px', right: '3%',  s: 3, o: 0.4 },
+              { top: '-70px',  right: '30%', s: 4, o: 0.3 },
+              { top: '-130px', right: '18%', s: 5, o: 0.6 },
+              { top: '-160px', right: '8%',  s: 3, o: 0.4 },
+              { top: '-185px', right: '22%', s: 4, o: 0.5 },
+              { top: '-145px', right: '35%', s: 3, o: 0.3 },
+              { top: '-210px', right: '12%', s: 4, o: 0.4 },
+              { top: '-175px', right: '4%',  s: 3, o: 0.5 },
+              { top: '10%',   left: '2%',   s: 5, o: 0.7 },
+              { top: '55%',   left: '6%',   s: 4, o: 0.5 },
+              { top: '80%',   left: '3%',   s: 6, o: 0.4 },
+              { top: '20%',   right: '4%',  s: 5, o: 0.8 },
+              { top: '65%',   right: '7%',  s: 4, o: 0.5 },
+              { top: '85%',   right: '2%',  s: 5, o: 0.6 },
+              { top: '120%',  left: '8%',   s: 5, o: 0.5 },
+              { top: '140%',  left: '22%',  s: 4, o: 0.4 },
+              { top: '130%',  right: '12%', s: 5, o: 0.6 },
+              { top: '150%',  right: '5%',  s: 4, o: 0.5 },
+            ].map((d, i) => (
+              <span key={i} style={{ position: 'absolute', top: d.top, left: (d as any).left, right: (d as any).right, width: `${d.s}px`, height: `${d.s}px`, borderRadius: '50%', backgroundColor: '#fff', opacity: d.o, pointerEvents: 'none' }} />
+            ))}
+            </div>
+            <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: 'clamp(2.8rem, 9vw, 4rem)', fontWeight: 700, lineHeight: 1.1, margin: 0 }}>
+              What's on our shelves?
+            </h2>
+          </div>
           <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: isTablet ? '1.1rem' : '1.05rem', lineHeight: 1.6, marginBottom: '24px', marginTop: isTablet ? '24px' : '0' }}>
             Every book in Bonkers is handpicked. Popular favourites, hidden gems and wonderfully weird discoveries, organised so kids can find something they genuinely want to read.
           </p>
@@ -301,7 +324,7 @@ export default function LandingPage() {
           {/* Reading level selector — artwork cards */}
           <div style={{ marginBottom: '36px', marginTop: isTablet ? '80px' : '0' }}>
             <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: isTablet ? '0.85rem' : '0.75rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '12px', textAlign: 'left' }}>Browse by Age</p>
-            <div style={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: isTablet ? '10px' : '6px', marginLeft: isTablet ? '0' : '-8px', marginRight: isTablet ? '0' : '-8px' }}>
               {readingLevels.map(level => {
                 const key = level.name.toLowerCase()
                 const isSelected = activeLevels.some(l => l.id === level.id)
@@ -312,11 +335,11 @@ export default function LandingPage() {
                 const age = AGE_MAP[key] ?? ''
                 return (
                   <button key={level.id} onClick={() => toggleLevel(level)}
-                    style={{ background: 'transparent', border: `1.5px solid ${isSelected ? '#f9ce71' : 'rgba(237,219,195,0.3)'}`, borderRadius: '12px', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', overflow: 'hidden', transition: 'border-color 0.15s', flex: 1, flexDirection: 'column', alignItems: 'center', padding: '10px 8px', gap: '6px' }}>
-                    <div style={{ height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <img src={art} alt={level.name} style={{ width: isTablet ? (key.startsWith('hatchling') || key === '3-5' ? '70px' : key.startsWith('chick') || key === '5-7' ? '66px' : '88px') : (key.startsWith('hatchling') ? '44px' : key.startsWith('chick') ? '42px' : '58px'), height: isTablet ? (key.startsWith('hatchling') || key === '3-5' ? '70px' : key.startsWith('chick') || key === '5-7' ? '66px' : '88px') : (key.startsWith('hatchling') ? '44px' : key.startsWith('chick') ? '42px' : '58px'), objectFit: 'contain', display: 'block' }} />
+                    style={{ background: 'transparent', border: `1.5px solid ${isSelected ? '#f9ce71' : 'rgba(237,219,195,0.3)'}`, borderRadius: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'row', alignItems: 'center', overflow: 'hidden', transition: 'border-color 0.15s', flex: 1, padding: isTablet ? '18px 12px' : '18px 2px', gap: isTablet ? '10px' : '0px' }}>
+                    <div style={{ height: '60px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: isTablet ? 'center' : 'flex-start' }}>
+                      <img src={art} alt={level.name} style={{ width: isTablet ? (key.startsWith('hatchling') || key === '3-5' ? '70px' : key.startsWith('chick') || key === '5-7' ? '66px' : '88px') : (key.startsWith('hatchling') ? '34px' : key.startsWith('chick') ? '32px' : '46px'), height: isTablet ? (key.startsWith('hatchling') || key === '3-5' ? '70px' : key.startsWith('chick') || key === '5-7' ? '66px' : '88px') : (key.startsWith('hatchling') ? '34px' : key.startsWith('chick') ? '32px' : '46px'), objectFit: 'contain', display: 'block' }} />
                     </div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div style={{ textAlign: 'left' }}>
                       <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: isTablet ? '1rem' : '0.78rem', fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{displayName}</p>
                       <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: isTablet ? '0.88rem' : '0.76rem', fontWeight: 400, margin: 0 }}>{age}</p>
                     </div>
@@ -328,9 +351,9 @@ export default function LandingPage() {
 
           {/* Category blob filter */}
           {categories.length > 0 && (
-            <div style={{ marginBottom: '16px', marginTop: isTablet ? '48px' : '0' }}>
+            <div style={{ marginBottom: '16px', marginTop: isTablet ? '80px' : '0' }}>
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: isTablet ? '0.85rem' : '0.75rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '10px', textAlign: 'left' }}>Browse by Category</p>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', flexWrap: 'wrap', overflowX: 'visible', padding: '4px 2px' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', flexWrap: isTablet ? 'nowrap' : 'wrap', overflowX: isTablet ? 'auto' : 'visible', padding: isTablet ? '4px 44px' : '4px 2px', margin: isTablet ? '0 -44px' : '0', WebkitOverflowScrolling: 'touch' as any }}>
                 {(() => {
                   const visible = categories.filter(c => getCategoryBlob(c.name))
                   const shown = visible
@@ -398,7 +421,11 @@ export default function LandingPage() {
         </div>
 
         {/* Bookshelf with scrollable covers behind transparent windows */}
-        <div style={{ position: 'relative', width: '100%', marginTop: '52px' }}>
+        <div style={{ position: 'relative', width: '100%', marginTop: '90px' }}>
+          {/* Walking book peeking from left */}
+          <img src="/book_walking_left.png" alt="" style={{ position: 'absolute', left: isTablet ? '-36px' : '-16px', bottom: '26%', height: '28%', width: 'auto', zIndex: 4, pointerEvents: 'none' }} />
+          {/* Penguin on right side of shelf */}
+          <img src="/penguin_bookshelf.png" alt="" style={{ position: 'absolute', right: '-10px', bottom: '22%', height: '35%', width: 'auto', zIndex: 4, pointerEvents: 'none' }} />
           {/* Scrollable book strip — sits behind the PNG overlay */}
           <div style={{ position: 'absolute', top: '3%', left: 0, right: 0, height: '67%', display: 'flex', gap: '2%', overflowX: 'auto', scrollbarWidth: 'none', paddingLeft: '8%', paddingRight: '8%', zIndex: 3, boxSizing: 'border-box', alignItems: 'flex-end' }}>
             {books.map(book => (
@@ -413,17 +440,11 @@ export default function LandingPage() {
           <img src="/bookshelf.png" alt="" style={{ width: '100%', height: 'auto', display: 'block', position: 'relative', zIndex: 2, pointerEvents: 'none' }} />
         </div>
 
-        <div style={{ textAlign: 'center', padding: '10px 24px 8px' }}>
-          <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', left: '-36px', height: '48px', width: 'auto', zIndex: 1, pointerEvents: 'none', filter: 'none' }} />
-            <button onClick={() => setShowLibraryExpand(v => !v)}
-              style={{ background: 'transparent', border: '1.5px solid #eddbc3', borderRadius: '999px', cursor: 'pointer', padding: '14px 32px' }}>
-              <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#eddbc3' }}>
-                Explore the Whole Library
-              </span>
-            </button>
-            <img src="/whiskers_right.png" alt="" style={{ position: 'absolute', right: '-36px', height: '48px', width: 'auto', zIndex: 1, pointerEvents: 'none', filter: 'none' }} />
-          </div>
+        <div style={{ textAlign: 'center', marginTop: isTablet ? '32px' : '24px', transform: 'scale(1.15)', transformOrigin: 'center' }}>
+          <CheckAreaButton onClick={goCheck} />
+        </div>
+
+        <div style={{ textAlign: 'center', padding: isTablet ? '60px 24px 8px' : '10px 24px 8px' }}>
 
           {/* Inline expand */}
           <div style={{ overflow: 'hidden', maxHeight: showLibraryExpand ? '200px' : '0', transition: 'max-height 0.4s ease', marginTop: showLibraryExpand ? '20px' : '0' }}>
@@ -466,12 +487,22 @@ export default function LandingPage() {
       )}
 
       {/* ── 4. WHY BONKERS ── */}
-      <section style={{ backgroundColor: 'transparent', padding: isTablet ? '0 44px 0' : '0 24px 0' }}>
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: isTablet ? '620px' : '440px', margin: isTablet ? '140px auto 50px' : '50px auto 50px' }}>
-          <img src="/underline_divider.png" alt="" style={{ width: '100%', height: 'auto', transform: 'scaleY(2)', transformOrigin: 'center' }} />
-          <img src="/star_button_on.png" alt="" style={{ position: 'absolute', width: isTablet ? '40px' : '20px', height: isTablet ? '40px' : '20px', transform: 'translateY(-4px)' }} />
-        </div>
-        <div style={{ maxWidth: isTablet ? '100%' : '480px', margin: '0 auto' }}>
+      <section style={{ padding: isTablet ? '1280px 44px 0' : '560px 16px 0', backgroundImage: 'url(/whybonkerspage.png)', backgroundSize: '100% auto', backgroundPosition: isTablet ? 'center 380px' : 'center 200px', backgroundRepeat: 'no-repeat', position: 'relative', zIndex: 5 }}>
+          <img src="/whybonkersbooks.png" alt="" className="lp-books-img" style={{ position: 'absolute', right: '0', bottom: '40px', height: '18%', width: 'auto', pointerEvents: 'none', zIndex: 1 }} />
+          <div style={{ position: 'absolute', top: isTablet ? '76px' : '58px', left: 0, right: 0, textAlign: 'center', padding: isTablet ? '0 44px' : '0 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <img src="/whiskers_left.png" alt="" style={{ height: isTablet ? '40px' : '28px', width: 'auto', pointerEvents: 'none' }} />
+              <p style={{ fontFamily: 'var(--font-amatic), sans-serif', fontWeight: 700, color: '#eddbc3', fontSize: isTablet ? '2rem' : '1.5rem', letterSpacing: '0.04em', margin: 0, lineHeight: 1 }}>Bonkers World</p>
+              <img src="/whiskers_right.png" alt="" style={{ height: isTablet ? '40px' : '28px', width: 'auto', pointerEvents: 'none' }} />
+            </div>
+            <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: isTablet ? 'clamp(2.6rem, 5vw, 3.6rem)' : 'clamp(1.8rem, 7vw, 2.4rem)', fontWeight: 600, lineHeight: 1.2, margin: 0, width: '100%' }}>
+              Every reader gets a world of their own.
+            </h2>
+            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: isTablet ? '0.95rem' : '0.82rem', lineHeight: 1.6, margin: 0, opacity: 0.85, maxWidth: '720px', width: '100%' }}>
+              Every book they read unlocks something new. The more they read, the more their world grows.
+            </p>
+          </div>
+        <div style={{ maxWidth: isTablet ? '100%' : '480px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px', marginTop: isTablet ? '100px' : '40px' }}>
             <img src="/whiskers_left.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
             <p style={{ fontFamily: 'var(--font-amatic), sans-serif', color: '#eddbc3', fontSize: '1.8rem', fontWeight: 700, letterSpacing: '0.04em', margin: 0 }}>
@@ -479,13 +510,13 @@ export default function LandingPage() {
             </p>
             <img src="/whiskers_right.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
           </div>
-          <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: 'clamp(2.16rem, 7.2vw, 3.12rem)', fontWeight: 700, lineHeight: 1.1, marginBottom: '36px', marginTop: isTablet ? '48px' : '16px', textAlign: 'center' }}>
+          <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: 'clamp(2.16rem, 7.2vw, 3.12rem)', fontWeight: 700, lineHeight: 1.1, marginBottom: '36px', marginTop: isTablet ? '48px' : '16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
             The 'Great Book' Hunt
           </h2>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', marginTop: isTablet ? '48px' : '0' }}>
             {[
-              { title: 'Nine billion books. Good luck.', desc: 'There are approximately nine billion children\'s books to choose from.* You have twenty minutes in the bookshop, and one increasingly bored child. Let Bonkers do the digging for you. Every Bonkers book is handpicked, read and judged by actual kids, with the boring ones shown the door.\n\n* Possibly an exaggeration.' },
+              { title: 'Nine billion books. Good luck.', desc: 'There are approximately nine billion children\'s books to choose from.* You have twenty minutes in the bookshop, and one increasingly bored child. Let Bonkers do the digging for you. Every Bonkers book is handpicked, read and judged by actual kids, with the boring ones shown the door.\n* Possibly an exaggeration.' },
               { title: 'The AED 50+ Gamble', desc: 'They begged for it. They read six pages. They never touched it again. Joining Bonkers means kids can experiment with new books and genres without every experiment costing AED 50+.' },
               { title: 'Your bookshelf called. It\'s full.', desc: 'Books are wonderful. Four hundred books your children have outgrown are... storage. Joining Bonkers means they can keep the books they can\'t part with as long as they like, and exchange the rest for fresh new stories.' },
               { title: '"Muuuum, can I get this?"', desc: 'No dragging everyone around a bookshop and mysteriously leaving with 7 squishies and a slime kit. Independent readers can choose their own Bonkers books and even arrange their own delivery and collection.' },
@@ -493,199 +524,94 @@ export default function LandingPage() {
               <div key={i} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
                 <img src="/star_button_on.png" alt="" style={{ width: isTablet ? '26px' : '18px', height: isTablet ? '26px' : '18px', flexShrink: 0, marginTop: isTablet ? '22px' : '10px' }} />
                 <div>
-                  <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.61rem', fontWeight: 700, marginBottom: '4px' }}>{reason.title}</p>
-                  <p style={{ color: '#eddbc3', fontSize: '1rem', lineHeight: 1.5, opacity: 0.9, whiteSpace: 'pre-line' }}>{reason.desc}</p>
+                  <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.61rem', fontWeight: 700, marginBottom: '4px', whiteSpace: 'nowrap' }}>{reason.title}</p>
+                  <p style={{ color: '#eddbc3', fontSize: '1rem', lineHeight: 1.5, opacity: 0.9, whiteSpace: 'pre-line', margin: 0 }}>{reason.desc}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: isTablet ? '620px' : '440px', margin: isTablet ? '140px auto 50px' : '50px auto 50px' }}>
-            <img src="/underline_divider.png" alt="" style={{ width: '100%', height: 'auto', transform: 'scaleY(2)', transformOrigin: 'center' }} />
-            <img src="/star_button_on.png" alt="" style={{ position: 'absolute', width: isTablet ? '40px' : '20px', height: isTablet ? '40px' : '20px', transform: 'translateY(-4px)' }} />
+          <div style={{ marginTop: isTablet ? '140px' : '120px', marginLeft: isTablet ? '-44px' : '-24px', width: isTablet ? 'calc(100% + 88px)' : 'calc(100% + 48px)', position: 'relative' }}>
+            <img src="/bonkers_questions.png" alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
+            <h2 style={{ position: 'absolute', top: '65%', left: '63%', transform: 'translate(-50%, -50%)', fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: 'clamp(4rem, 10vw, 7rem)', fontWeight: 700, margin: 0, whiteSpace: 'nowrap' }}>uestions?</h2>
+            <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', top: '8%', left: '12%', width: isTablet ? '48px' : '30px', height: isTablet ? '48px' : '30px', pointerEvents: 'none' }} />
+
+            <img src="/sparklestar_blue.png" alt="" style={{ position: 'absolute', top: '55%', left: '6%', width: isTablet ? '44px' : '28px', height: isTablet ? '44px' : '28px', pointerEvents: 'none' }} />
+            <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', bottom: '12%', left: '20%', width: isTablet ? '34px' : '22px', height: isTablet ? '34px' : '22px', pointerEvents: 'none' }} />
+            <img src="/sparklestar_pink.png" alt="" style={{ position: 'absolute', bottom: '8%', right: '18%', width: isTablet ? '42px' : '26px', height: isTablet ? '42px' : '26px', pointerEvents: 'none' }} />
+            <img src="/sparklestar_blue.png" alt="" style={{ position: 'absolute', top: '35%', right: '6%', width: isTablet ? '32px' : '20px', height: isTablet ? '32px' : '20px', pointerEvents: 'none' }} />
+            <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', top: '4%', right: '28%', width: isTablet ? '30px' : '18px', height: isTablet ? '30px' : '18px', pointerEvents: 'none' }} />
+            <img src="/sparklestar_blue.png" alt="" style={{ position: 'absolute', top: '22%', left: '4%', width: isTablet ? '28px' : '18px', height: isTablet ? '28px' : '18px', pointerEvents: 'none' }} />
+            <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', bottom: isTablet ? '22%' : '8%', right: '8%', width: isTablet ? '46px' : '28px', height: isTablet ? '46px' : '28px', pointerEvents: 'none' }} />
+            <img src="/sparklestar_pink.png" alt="" style={{ position: 'absolute', top: '45%', right: '22%', width: isTablet ? '28px' : '18px', height: isTablet ? '28px' : '18px', pointerEvents: 'none' }} />
+            <img src="/sparklestar_blue.png" alt="" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: isTablet ? '34px' : '22px', height: isTablet ? '34px' : '22px', pointerEvents: 'none' }} />
+            <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', top: '30%', left: '28%', width: isTablet ? '28px' : '18px', height: isTablet ? '28px' : '18px', pointerEvents: 'none' }} />
           </div>
         </div>
       </section>
 
-      {/* ── 5. PRICING ── */}
-      <section style={{ backgroundColor: 'transparent', padding: isTablet ? '0 44px 0' : '0 24px 0', borderTop: '1px solid rgba(237,219,195,0.1)' }}>
-        <div style={{ maxWidth: isTablet ? '100%' : '480px', margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '4px', marginTop: isTablet ? '80px' : '0' }}>
-            <img src="/whiskers_left.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
-            <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, color: '#eddbc3', fontSize: '1.8rem', letterSpacing: '0.04em', margin: 0 }}>
-              How bonkers are you?
-            </p>
-            <img src="/whiskers_right.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
-          </div>
-          <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: 'clamp(3.2rem, 10vw, 4.8rem)', fontWeight: 700, lineHeight: 1.1, marginBottom: '8px', marginTop: isTablet ? '48px' : '0' }}>
-            Our Bonkers Plans
-          </h2>
+      {/* ── 6. FAQ + FINAL CTA + FOOTER ── cream background wrapper */}
+      <div style={{ backgroundColor: '#fdf8ea', marginTop: '-4px' }}>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: isTablet ? '80px' : '44px' }}>
-            {[
-              { label: 'A Little Bonkers', price: 149, books: 8, swaps: 2, badge: null },
-              { label: 'Quite Bonkers', price: 199, books: 16, swaps: 4, badge: 'Most popular' },
-              { label: 'Absolutely Bonkers', price: 249, books: 24, swaps: 6, badge: null },
-            ].map((plan, i) => (
-              <div key={plan.label} style={{ position: 'relative', fontFamily: 'var(--font-cormorant), serif', backgroundColor: 'transparent', border: i === 1 ? '2px solid #fecf57' : '1.5px solid rgba(237,219,195,0.3)', borderRadius: '16px', padding: i === 2 ? '20px 20px 30px' : '20px 20px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                {i === 0 && (
-                  <>
-                    <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', bottom: '68px', right: '90px', height: '18px', width: '18px' }} />
-                    <img src="/sparklestar_orange.png" alt="" style={{ position: 'absolute', bottom: '58px', right: '68px', height: '18px', width: '18px', zIndex: 2 }} />
-                    <img src="/books_2a.png" alt="" style={{ position: 'absolute', bottom: '8px', right: '10px', height: '52px', width: 'auto', objectFit: 'contain' }} />
-                  </>
-                )}
-                {i === 1 && (
-                  <>
-                    <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', bottom: '48px', right: '105px', height: '36px', width: 'auto', pointerEvents: 'none', filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
-                    <img src="/whiskers_right.png" alt="" style={{ position: 'absolute', bottom: '20px', right: '2px', height: '26px', width: 'auto', pointerEvents: 'none', filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
-                    <img src="/books_4a.png" alt="" style={{ position: 'absolute', bottom: '-2px', right: '10px', height: '80px', width: 'auto', objectFit: 'contain' }} />
-                  </>
-                )}
-                {i === 2 && (
-                  <>
-                    <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', bottom: '38px', right: '110px', height: '32px', width: 'auto', pointerEvents: 'none', filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
-                    <img src="/whiskers_right.png" alt="" style={{ position: 'absolute', bottom: '38px', right: '-4px', height: '32px', width: 'auto', pointerEvents: 'none', filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
-                    <img src="/books_6a.png" alt="" style={{ position: 'absolute', bottom: '8px', right: '10px', height: '110px', width: 'auto', objectFit: 'contain' }} />
-                  </>
-                )}
-                {plan.badge && (
-                  <span style={{ position: 'absolute', top: '-14px', left: '16px', backgroundColor: '#fecf57', color: '#374151', fontSize: '1rem', fontWeight: 900, padding: '3px 12px', borderRadius: '999px', whiteSpace: 'nowrap', fontFamily: 'var(--font-cormorant), serif', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <img src="/star_button_on.png" alt="" style={{ height: '16px', width: '16px' }} />
-                    {plan.badge}
-                  </span>
-                )}
-                <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', width: '100%', gap: '8px' }}>
-                  {/* Title row with price aligned right */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', width: '100%' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <span style={{ fontWeight: 700, color: '#eddbc3', fontSize: isTablet ? '1.6rem' : '2rem', lineHeight: 1 }}>{plan.label}</span>
-                      <span style={{ fontSize: isTablet ? '0.95rem' : '1.1rem', fontWeight: 400, color: '#eddbc3', fontFamily: 'var(--font-montserrat), sans-serif' }}>{plan.swaps} books at a time</span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
-                      <span style={{ fontSize: isTablet ? '1.8rem' : '2.2rem', fontWeight: 900, color: '#eddbc3', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                        {plan.price}<span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#eddbc3', fontFamily: 'var(--font-cormorant), serif' }}>AED</span>
-                      </span>
-                      <span style={{ fontSize: '0.75rem', color: '#eddbc3', fontFamily: 'var(--font-montserrat), sans-serif' }}>/month</span>
-                    </div>
-                  </div>
-                  {/* Big book count */}
-                  <div style={{ display: 'flex', alignItems: 'baseline', width: '100%', gap: '6px' }}>
-                    <span style={{ fontSize: isTablet ? '0.85rem' : '0.95rem', color: 'rgba(237,219,195,0.7)', fontFamily: 'var(--font-montserrat), sans-serif' }}>Up to</span>
-                    <span style={{ fontSize: isTablet ? '1.6rem' : '1.9rem', fontWeight: 900, color: '#eddbc3', lineHeight: 1 }}>{plan.books}</span>
-                    <span style={{ fontSize: isTablet ? '0.85rem' : '0.95rem', color: 'rgba(237,219,195,0.7)', fontFamily: 'var(--font-montserrat), sans-serif' }}>books / month*</span>
-                  </div>
+        <section style={{ padding: isTablet ? '60px 44px 120px' : '40px 24px 120px' }}>
+          <div style={{ maxWidth: isTablet ? '680px' : '480px', margin: '0 auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {FAQS.map((faq, i) => (
+                <div key={i} style={{ borderBottom: '1px solid rgba(26,39,68,0.2)', overflow: 'hidden' }}>
+                  <button
+                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                    style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: '16px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.35rem' : '1.15rem', fontWeight: 600, lineHeight: 1.3 }}>{faq.q}</span>
+                    <span style={{ color: '#1a2744', fontSize: '1.2rem', flexShrink: 0, transition: 'transform 0.2s', transform: openFaq === i ? 'rotate(45deg)' : 'none' }}>+</span>
+                  </button>
+                  {openFaq === i && (
+                    <p style={{ color: '#1a2744', fontSize: isTablet ? '1.05rem' : '0.9rem', lineHeight: 1.6, paddingBottom: '16px' }}>
+                      {faq.a}
+                    </p>
+                  )}
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+        </section>
 
+        <img src="/bonkers_bottompage.png" alt="" style={{ width: '100%', height: 'auto', display: 'block', position: 'relative', zIndex: 1 }} />
 
-
-          <p style={{ color: '#eddbc3', fontSize: '0.82rem', fontFamily: 'var(--font-montserrat), sans-serif', marginTop: '10px', opacity: 0.9 }}>
-            *Based on choosing new books each week
-          </p>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: isTablet ? '64px' : '28px', marginBottom: '8px' }}>
-            <img src="/whiskers_left.png" alt="" style={{ height: isTablet ? '48px' : '28px', width: 'auto', pointerEvents: 'none' }} />
-            <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, color: '#eddbc3', fontSize: '1.6rem', letterSpacing: '0.04em', margin: 0, lineHeight: 1 }}>All plans include:</p>
-            <img src="/whiskers_right.png" alt="" style={{ height: isTablet ? '48px' : '28px', width: 'auto', pointerEvents: 'none' }} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left', marginTop: isTablet ? '24px' : '0' }}>
-            {[
-              { star: '/sparklestar_yellow.png', size: 24, label: 'Weekly Bonkers Day delivery & collection' },
-              { star: '/sparklestar_orange.png', size: 22, label: 'No due dates or late fees' },
-              { star: '/sparklestar_turquoise.png', size: 22, label: 'Keep books as long as you like' },
-              { star: '/sparklestar_pink.png', size: 22, label: 'Upgrade/downgrade or cancel anytime' },
-            ].map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                <img src={item.star} alt="" style={{ height: isTablet ? `${item.size + 10}px` : `${item.size}px`, width: isTablet ? `${item.size + 10}px` : `${item.size}px`, objectFit: 'contain', flexShrink: 0 }} />
-                <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#eddbc3', fontSize: isTablet ? '1.05rem' : '0.88rem', letterSpacing: '0.02em' }}>{item.label}</span>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ marginTop: isTablet ? '100px' : '56px' }}>
+        <section style={{ padding: isTablet ? '0 24px 200px' : '0 24px 100px', textAlign: 'center', position: 'relative', zIndex: 2, marginTop: isTablet ? '-280px' : '-180px' }}>
+          <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+            <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: 'clamp(2rem, 7vw, 2.8rem)', fontWeight: 700, lineHeight: 1.05, marginBottom: '28px', whiteSpace: 'nowrap' }}>
+              Ready to go Bonkers?
+            </h2>
             <CheckAreaButton onClick={goCheck} />
           </div>
+        </section>
 
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: isTablet ? '620px' : '440px', margin: isTablet ? '140px auto 50px' : '80px auto 50px' }}>
-            <img src="/underline_divider.png" alt="" style={{ width: '100%', height: 'auto', transform: 'scaleY(2)', transformOrigin: 'center' }} />
-            <img src="/star_button_on.png" alt="" style={{ position: 'absolute', width: isTablet ? '40px' : '20px', height: isTablet ? '40px' : '20px', transform: 'translateY(-4px)' }} />
-          </div>
-        </div>
-      </section>
+        <footer style={{ backgroundColor: '#1a2744', padding: '20px 24px', textAlign: 'center', position: 'relative', zIndex: 2 }}>
+          <p style={{ color: '#eddbc3', opacity: 0.45, fontSize: '0.75rem', letterSpacing: '0.06em', margin: 0 }}>
+            © {new Date().getFullYear()} Bonkers The Children's Library · Dubai · hello@bonkers.ae
+          </p>
+        </footer>
 
-      {/* ── 6. FAQ ── */}
-      <section style={{ backgroundColor: 'transparent', padding: isTablet ? '0 44px 60px' : '0 24px 60px', borderTop: '1px solid rgba(237,219,195,0.1)' }}>
-        <div style={{ maxWidth: isTablet ? '680px' : '480px', margin: '0 auto' }}>
-          <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: 'clamp(1.8rem, 6vw, 2.4rem)', fontWeight: 700, marginBottom: '28px', textAlign: 'center' }}>
-            Questions
-          </h2>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            {FAQS.map((faq, i) => (
-              <div key={i} style={{ borderBottom: '1px solid rgba(237,219,195,0.35)', overflow: 'hidden' }}>
-                <button
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: '16px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: isTablet ? '1.35rem' : '1.15rem', fontWeight: 600, lineHeight: 1.3 }}>{faq.q}</span>
-                  <span style={{ color: '#eddbc3', fontSize: '1.2rem', flexShrink: 0, transition: 'transform 0.2s', transform: openFaq === i ? 'rotate(45deg)' : 'none' }}>+</span>
-                </button>
-                {openFaq === i && (
-                  <p style={{ color: '#eddbc3', fontSize: isTablet ? '1.05rem' : '0.9rem', lineHeight: 1.6, paddingBottom: '16px' }}>
-                    {faq.a}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── 7. FINAL CTA ── */}
-      <section style={{ backgroundColor: 'transparent', padding: '60px 24px 48px', borderTop: '1px solid rgba(237,219,195,0.1)', textAlign: 'center' }}>
-        <div style={{ maxWidth: '400px', margin: '0 auto' }}>
-          <img src="/logo11.png" alt="" style={{ width: '140px', height: 'auto', display: 'block', margin: '0 auto 8px' }} />
-          <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: 'clamp(2rem, 7vw, 2.8rem)', fontWeight: 700, lineHeight: 1.05, marginBottom: '28px' }}>
-            Ready to go Bonkers?
-          </h2>
-
-          <CheckAreaButton onClick={goCheck} />
-
-          <button onClick={() => router.push('/login')}
-            style={{ display: 'block', margin: '16px auto 0', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', opacity: 0.5, fontSize: '0.85rem', letterSpacing: '0.04em' }}>
-            Already a member? Log in
-          </button>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer style={{ backgroundColor: '#040201', padding: '24px', textAlign: 'center', borderTop: '1px solid rgba(237,219,195,0.08)' }}>
-        <p style={{ color: '#eddbc3', opacity: 0.35, fontSize: '0.75rem', letterSpacing: '0.06em' }}>
-          © {new Date().getFullYear()} Bonkers The Children's Library · Dubai · hello@bonkers.ae
-        </p>
-      </footer>
+      </div>
 
       <style>{`
         section::-webkit-scrollbar { display: none; }
         div::-webkit-scrollbar { display: none; }
       `}</style>
     </main>
-    </>
   )
 }
 
 function CheckAreaButton({ onClick }: { onClick: () => void }) {
   const whiskerFilter = 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)'
   return (
-    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+      <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', left: '-44px', height: '60px', width: 'auto', pointerEvents: 'none', zIndex: 1, filter: whiskerFilter }} />
       <button onClick={onClick}
-        style={{ backgroundColor: '#f9ce71', border: 'none', borderRadius: '999px', cursor: 'pointer', padding: '14px 32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#080402' }}>
-          Join Booky
-        </span>
+        style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', backgroundImage: 'url(/button2.png)', backgroundSize: '300% 300%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: 'transparent', border: 'none', borderRadius: '999px', padding: '12px 28px', cursor: 'pointer' }}>
+        Join Bonkers
       </button>
+      <img src="/whiskers_right.png" alt="" style={{ position: 'absolute', right: '-44px', height: '60px', width: 'auto', pointerEvents: 'none', zIndex: 1, filter: whiskerFilter }} />
     </div>
   )
 }

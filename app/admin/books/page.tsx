@@ -159,6 +159,7 @@ export default function AdminBooksPage() {
   const [generatingCollectibleFor, setGeneratingCollectibleFor] = useState<string | null>(null)
   const [collectibleFeedback, setCollectibleFeedback] = useState('')
   const [showCollectibleFeedback, setShowCollectibleFeedback] = useState(false)
+  const [collectibleCustomPrompt, setCollectibleCustomPrompt] = useState('')
 
   // Fetch / enrich
   const [fetchQuery, setFetchQuery] = useState('')
@@ -616,7 +617,7 @@ export default function AdminBooksPage() {
 
   // â”€â”€ Collectible generation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  async function generateCollectible(book: Book, mode: 'new' | 'retry' | 'revise', feedbackText?: string) {
+  async function generateCollectible(book: Book, mode: 'new' | 'retry' | 'revise', feedbackText?: string, customPrompt?: string) {
     setGeneratingCollectibleFor(book.id)
     setShowCollectibleFeedback(false)
     setCollectibleFeedback('')
@@ -628,6 +629,7 @@ export default function AdminBooksPage() {
         mode,
         previousResponseId: book.collectible_openai_response_id,
         feedback: feedbackText,
+        customPrompt,
       }),
     })
     const json = await res.json()
@@ -1147,7 +1149,15 @@ export default function AdminBooksPage() {
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           {status === 'generation_failed' && <p style={{ color: '#dc2626', fontSize: '12px', margin: 0 }}>Last generation failed.</p>}
-                          <Btn onClick={() => generateCollectible(book, 'new')} style={{ alignSelf: 'flex-start' }}>Generate Collectible</Btn>
+                          <label style={lbl}>Custom direction (optional)</label>
+                          <textarea
+                            value={collectibleCustomPrompt}
+                            onChange={e => setCollectibleCustomPrompt(e.target.value)}
+                            placeholder='e.g. "Focus on the flying carpet scene, warm sunset colours, no characters"'
+                            rows={3}
+                            style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }}
+                          />
+                          <Btn onClick={() => generateCollectible(book, 'new', undefined, collectibleCustomPrompt || undefined)} style={{ alignSelf: 'flex-start' }}>Generate Collectible</Btn>
                         </div>
                       )
                     }
@@ -1201,7 +1211,7 @@ export default function AdminBooksPage() {
                           {status === 'awaiting_approval' && (
                             <Btn onClick={() => approveCollectible(book.id)} style={{ backgroundColor: '#7c3aed', color: '#fff' }}>✓ Approve</Btn>
                           )}
-                          <Btn variant="secondary" onClick={() => generateCollectible(book, 'retry')} disabled={isGenerating}>↻ Another Idea</Btn>
+                          <Btn variant="secondary" onClick={() => generateCollectible(book, 'retry', undefined, collectibleCustomPrompt || undefined)} disabled={isGenerating}>↻ Another Idea</Btn>
                           <Btn variant="secondary" onClick={() => { setShowCollectibleFeedback(s => !s); setCollectibleFeedback('') }}>✦ Tweak This</Btn>
                           <Btn variant="secondary" onClick={() => rejectCollectible(book.id)} style={{ color: '#dc2626' }}>✕ Reject</Btn>
                         </div>

@@ -90,6 +90,7 @@ export async function POST(req: NextRequest) {
     const mode: 'new' | 'retry' | 'revise' = body.mode || 'new'
     const previousResponseId: string | undefined = body.previousResponseId
     const feedback: string | undefined = body.feedback
+    const customPrompt: string | undefined = body.customPrompt
 
     if (!bookId) return NextResponse.json({ error: 'bookId required' }, { status: 400 })
 
@@ -169,6 +170,10 @@ export async function POST(req: NextRequest) {
       userText += `\nIMPORTANT: The previous concept was REJECTED. You must create a SUBSTANTIALLY DIFFERENT concept for the same book. Do not repeat themes, object types, or visual approaches from your previous attempt. Think differently about what makes this book special.\n`
     } else if (mode === 'revise' && feedback) {
       userText += `\nFEEDBACK ON PREVIOUS CONCEPT:\n"${feedback}"\n\nPlease incorporate this feedback in your revised concept and image. The creative direction above comes from the Bonkers team — follow it precisely.\n`
+    }
+
+    if (customPrompt && customPrompt.trim()) {
+      userText += `\nADMIN DIRECTION:\n"${customPrompt.trim()}"\n`
     }
 
     userText += `\nNow apply the Bonkers Collectible Bible. Think carefully about the best concept, then output your JSON metadata block, then call the image_generation tool.`

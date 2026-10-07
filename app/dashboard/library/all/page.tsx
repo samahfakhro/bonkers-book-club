@@ -72,16 +72,19 @@ export default function AllBooksPage() {
   const sortLabel = sort === 'popular' ? 'Most Loved' : sort === 'az' ? 'A–Z' : 'New to Bonkers'
 
   return (
-    <main className="min-h-screen pb-24">
+    <main className="min-h-screen pb-24" style={{ position: 'relative' }}>
+      <div style={{ position: 'absolute', top: '20px', left: '20px', lineHeight: 1, zIndex: 10 }}>
+        <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#eddbc3', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
+        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.5rem', color: '#eddbc3', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0' }}>THE CHILDREN'S LIBRARY</p>
+      </div>
       <div className="max-w-xl mx-auto px-4 pt-8">
 
         {/* Top bar */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6" style={{ paddingTop: '60px' }}>
           <button onClick={() => router.back()}
             style={{ color: '#eddbc3', fontSize: '1.5rem', lineHeight: 1, background: 'none', border: 'none', cursor: 'pointer' }}>
             ‹
           </button>
-          <img src="/Bonkers_Word_Logo_White1.png" alt="Bonkers Book Club" style={{ width: '120px', height: 'auto' }} />
           <div style={{ width: '28px' }} />
         </div>
 

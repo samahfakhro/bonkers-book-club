@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -26,16 +26,24 @@ type NextStackBook = {
   childName: string
 }
 
+type WishlistBook = {
+  id: string
+  title: string
+  cover_image_url: string | null
+}
+
 type Child = {
   id: string
   first_name: string
   age: number | null
   interests: string | null
-  avatar_url: string | null
-  swap_permission: 'parent_only' | 'child_confirm_parent_approve' | 'independent_submit'
+  avatar_id: string | null
+  swap_permission: 'parent_only' | 'independent_submit' | 'prepare_only'
   swap_status: 'not_submitted' | 'child_confirmed_pending_approval' | 'submitted'
+  swap_request_id: string | null
   books_read_count: number
   top_category: string | null
+  book_allocation?: number
 }
 
 const AVATARS = [
@@ -60,30 +68,40 @@ type Member = {
   avatar_id: string | null
 }
 
-function getNextCutoff(cutoffDay: string, cutoffTime: string): Date {
+function getNextCutoff(swapDay: string, cutoffTime: string): Date {
   const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
   const now = new Date()
-  const targetDay = days.indexOf(cutoffDay.toLowerCase())
-  if (targetDay === -1) return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+  const swapIdx = days.indexOf(swapDay.toLowerCase())
+  if (swapIdx === -1) return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+  const cutoffDayIdx = (swapIdx - 2 + 7) % 7  // 2 days before Bonkers Day
   const [hours, minutes] = cutoffTime.split(':').map(Number)
   const result = new Date(now)
   result.setHours(hours, minutes, 0, 0)
-  const diff = (targetDay - now.getDay() + 7) % 7
+  const diff = (cutoffDayIdx - now.getDay() + 7) % 7
   result.setDate(now.getDate() + (diff === 0 && result <= now ? 7 : diff))
   return result
 }
 
-function getNextBonkersDateParts(swapDay: string): { dayName: string; dateStr: string } {
+function getNextBonkersDateParts(swapDay: string): { dayName: string; dateStr: string; isToday: boolean } {
   const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December']
   const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
   const now = new Date()
   const targetDay = days.indexOf(swapDay.toLowerCase())
-  if (targetDay === -1) return { dayName: swapDay, dateStr: '' }
+  if (targetDay === -1) return { dayName: swapDay, dateStr: '', isToday: false }
   const diff = (targetDay - now.getDay() + 7) % 7
+  if (diff === 0) return { dayName: '', dateStr: '', isToday: true }
   const result = new Date(now)
-  result.setDate(now.getDate() + (diff === 0 ? 7 : diff))
-  return { dayName: dayNames[result.getDay()], dateStr: `${result.getDate()} ${months[result.getMonth()]}` }
+  result.setDate(now.getDate() + diff)
+  return { dayName: dayNames[result.getDay()], dateStr: `${result.getDate()} ${months[result.getMonth()]}`, isToday: false }
+}
+
+function getChooseCutoffDay(swapDay: string): string {
+  const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
+  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+  const idx = days.indexOf(swapDay.toLowerCase())
+  if (idx === -1) return swapDay
+  return dayNames[(idx - 2 + 7) % 7]
 }
 
 function formatCutoffTime(time: string): string {
@@ -125,22 +143,51 @@ function Countdown({ cutoffDay, cutoffTime, urgent, compact }: { cutoffDay: stri
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={urgent ? '#e57451' : '#f9d174'} strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, color: urgent ? '#e57451' : '#f9d174', fontSize: '1.1rem', letterSpacing: '0.08em', margin: 0 }}>Time left to choose</p>
         </div>
-        <p style={{ fontFamily: 'var(--font-cormorant), serif', color: urgent ? '#e57451' : '#eddbc3', fontSize: '2.2rem', fontWeight: 700, lineHeight: 1, margin: 0, whiteSpace: 'nowrap' }}>{timeLeft}</p>
+        <p style={{ fontFamily: 'var(--font-cormorant), serif', color: urgent ? '#e57451' : '#1a2f51', fontSize: '2.2rem', fontWeight: 700, lineHeight: 1, margin: 0, whiteSpace: 'nowrap' }}>{timeLeft}</p>
       </div>
     )
   }
 
   return (
-    <p style={{ fontFamily: 'var(--font-cormorant), serif', color: urgent ? '#e57451' : '#eddbc3', fontSize: '2.4rem', fontWeight: 700, lineHeight: 1, margin: '4px 0 0' }}>
+    <p style={{ fontFamily: 'var(--font-cormorant), serif', color: urgent ? '#e57451' : '#1a2f51', fontSize: '1.4rem', fontWeight: 700, lineHeight: 1, margin: '4px 0 0' }}>
       {timeLeft}
     </p>
   )
 }
 
+const CHARACTERS = [
+  { src: '/mouse_teacup.png', slot: 'bottom-center' },
+  { src: '/mouse_1.png',      slot: 'bottom-left' },
+  { src: '/mouse_2.png',      slot: 'add-a-reader' },
+  { src: '/mouse_3.png',      slot: 'bottom-right' },
+  { src: '/mouse_4.png',      slot: 'bottom-center' },
+  { src: '/mouse_5.png',      slot: 'bottom-right' },
+  { src: '/mouse_6.png',      slot: 'bottom-left' },
+  { src: '/mouse_7.png',      slot: 'first-reader-top' },
+  { src: '/mouse_8.png',      slot: 'bottom-left' },
+  { src: '/mouse_9.png',      slot: 'bottom-center' },
+  { src: '/mouse_10.png',     slot: 'bottom-right' },
+  { src: '/mouse_11.png',     slot: 'bottom-left' },
+  { src: '/mouse_12.png',     slot: 'bottom-center' },
+  { src: '/mouse_13.png',     slot: 'bottom-center' },
+  { src: '/mouse_14.png',     slot: 'bottom-center' },
+]
+
 export default function DashboardPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const pathname = usePathname()
+  const [characterIndex] = useState(() => {
+    const today = new Date().toDateString()
+    try {
+      const stored = JSON.parse(localStorage.getItem('bonkers_char_parent') || 'null')
+      if (stored?.date === today && typeof stored.index === 'number') return stored.index
+    } catch {}
+    const index = Math.floor(Math.random() * CHARACTERS.length)
+    try { localStorage.setItem('bonkers_char_parent', JSON.stringify({ date: today, index })) } catch {}
+    return index
+  })
+  const activeCharacter = CHARACTERS[characterIndex]
   const [member, setMember] = useState<Member | null>(null)
   const [children, setChildren] = useState<Child[]>([])
   const [loans, setLoans] = useState<Loan[]>([])
@@ -148,6 +195,14 @@ export default function DashboardPage() {
   const [returnMarked, setReturnMarked] = useState<Set<string>>(new Set())
   const [showNoSlotsPopup, setShowNoSlotsPopup] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [savedBooks, setSavedBooks] = useState<Map<string, WishlistBook[]>>(new Map())
+  const [notifyingBookIds, setNotifyingBookIds] = useState<Set<string>>(new Set())
+  const [availableSavedBookIds, setAvailableSavedBookIds] = useState<Set<string>>(new Set())
+  const [approvingChildIds, setApprovingChildIds] = useState<Set<string>>(new Set())
+  const [userId, setUserId] = useState<string | null>(null)
+  const [collapsedChildren, setCollapsedChildren] = useState<Set<string>>(new Set())
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+  const toggleCollapse = (id: string) => setCollapsedChildren(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
 
   useEffect(() => {
     const load = async () => {
@@ -162,10 +217,11 @@ export default function DashboardPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/login'); return }
       const user = session.user
+      setUserId(user.id)
 
       const { data: hh } = await supabase
         .from('households')
-        .select('*, communities(swap_days)')
+        .select('*, communities(swap_days, swap_cutoff_time)')
         .eq('user_id', user.id)
         .single()
 
@@ -190,7 +246,7 @@ export default function DashboardPage() {
         plan_books: planBooks,
         swap_day: cutoffDay,
         swap_cutoff_day: cutoffDay,
-        swap_cutoff_time: '20:00',
+        swap_cutoff_time: (hh as any).communities?.swap_cutoff_time ?? '20:00',
         avatar_id: (hh as any).avatar_id ?? null,
       })
 
@@ -207,12 +263,13 @@ export default function DashboardPage() {
         for (const child of childrenData) {
           const { data: loanRows } = await supabase
             .from('loans')
-            .select('id, return_requested, book_copies(books(id, title, cover_url, author))')
+            .select('id, return_requested, book_copies(books(id, title, cover_image_url, author))')
             .eq('child_id', child.id)
             .eq('status', 'checked_out')
 
           for (const l of loanRows ?? []) {
-            const book = (l as any).book_copies?.books
+            const raw = (l as any).book_copies?.books
+            const book = raw ? { ...raw, cover_url: raw.cover_image_url ?? null } : null
             if (book) {
               allLoans.push({
                 loanId: l.id,
@@ -228,22 +285,25 @@ export default function DashboardPage() {
             .from('swap_requests')
             .select('id, status')
             .eq('household_id', hh.id)
+            .eq('child_id', child.id)
+            .in('status', ['draft', 'child_confirmed', 'submitted', 'confirmed'])
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle()
 
           let swapStatus: Child['swap_status'] = 'not_submitted'
           if (swapReq?.status === 'submitted' || swapReq?.status === 'confirmed') swapStatus = 'submitted'
-          else if (swapReq?.status === 'child_confirmed') swapStatus = 'child_confirmed_pending_approval'
+          else if (swapReq?.status === 'child_confirmed' || (swapReq?.status === 'draft' && child.swap_permission === 'prepare_only')) swapStatus = 'child_confirmed_pending_approval'
 
           childList.push({
             id: child.id,
             first_name: child.name,
             age: child.date_of_birth ? Math.floor((Date.now() - new Date(child.date_of_birth).getTime()) / (1000 * 60 * 60 * 24 * 365.25)) : null,
             interests: null,
-            avatar_url: child.avatar_id ?? null,
+            avatar_id: child.avatar_id ?? null,
             swap_permission: child.swap_permission,
             swap_status: swapStatus,
+            swap_request_id: swapReq?.id ?? null,
             books_read_count: child.books_read_count ?? 0,
             top_category: null,
           })
@@ -283,30 +343,76 @@ export default function DashboardPage() {
       // Seed returnMarked from DB state
       const preMarked = new Set(allLoans.filter(l => l.returnRequested).map(l => l.loanId))
 
-      // Fetch next stack (swap_request_items pending delivery)
-      const { data: nextItems } = await supabase
-        .from('swap_request_items')
-        .select('id, child_id, books(id, title, cover_url, author)')
+      // Fetch next stack — all per-child swap requests that are active
+      const { data: allReqs } = await supabase
+        .from('swap_requests')
+        .select('id, status, child_id')
         .eq('household_id', hh.id)
-        .eq('status', 'confirmed')
-        .order('created_at')
+        .in('status', ['draft', 'child_confirmed', 'submitted', 'confirmed'])
+
+      const reqIds = (allReqs ?? []).map(r => r.id)
+
+      const { data: nextItems } = reqIds.length > 0 ? await supabase
+        .from('swap_request_items')
+        .select('id, child_id, books(id, title, cover_image_url, author)')
+        .in('swap_request_id', reqIds) : { data: null }
 
       const picks: NextStackBook[] = (nextItems ?? []).map((item: any) => {
         const child = childList.find(c => c.id === item.child_id)
+        const b = item.books ? { ...item.books, cover_url: item.books.cover_image_url ?? null } : null
         return {
           id: item.id,
-          book: item.books,
+          book: b,
           childId: item.child_id,
           childName: child?.first_name ?? '',
         }
       }).filter((item: NextStackBook) => item.book)
+      // Fetch saved (wishlisted) books per child
+      if (childList.length > 0) {
+        const childIds = childList.map(c => c.id)
+        const { data: wl } = await supabase
+          .from('wishlists')
+          .select('child_id, book_id, books(id, title, cover_image_url)')
+          .in('child_id', childIds)
+        if (wl) {
+          const wlMap = new Map<string, WishlistBook[]>()
+          for (const row of wl as any[]) {
+            const book = row.books
+            if (!book) continue
+            const existing = wlMap.get(row.child_id) || []
+            wlMap.set(row.child_id, [...existing, { id: book.id, title: book.title, cover_image_url: book.cover_image_url }])
+          }
+          setSavedBooks(wlMap)
+          // Load availability for saved books
+          const allSavedIds = [...new Set([...wlMap.values()].flatMap(books => books.map(b => b.id)))]
+          if (allSavedIds.length > 0) {
+            const { data: availCopies } = await supabase.from('book_copies').select('book_id').in('book_id', allSavedIds).eq('status', 'available')
+            setAvailableSavedBookIds(new Set((availCopies || []).map((c: any) => c.book_id)))
+          }
+        }
+      }
+
+      // Load parent notification subscriptions
+      const { data: notifData } = await supabase.from('book_availability_notifications').select('book_id').eq('user_id', user.id)
+      if (notifData) setNotifyingBookIds(new Set(notifData.map((n: any) => n.book_id)))
+
       setChildren(childList)
+      setCollapsedChildren(prev => prev.size === 0 ? new Set(childList.map(c => c.id)) : prev)
       setLoans(allLoans)
       setReturnMarked(preMarked)
       setNextStack(picks)
       setLoading(false)
     }
     load()
+    window.addEventListener('focus', load)
+    const channel = supabase.channel('dashboard-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'swap_request_items' }, load)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wishlists' }, load)
+      .subscribe()
+    return () => {
+      window.removeEventListener('focus', load)
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   useEffect(() => {
@@ -320,6 +426,7 @@ export default function DashboardPage() {
 
   const cutoffDay = member?.swap_cutoff_day ?? 'tuesday'
   const cutoffTime = member?.swap_cutoff_time ?? '20:00'
+  const isBonkersToday = getNextBonkersDateParts(cutoffDay).isToday
   const cutoff = getNextCutoff(cutoffDay, cutoffTime)
   const cutoffPassed = cutoff.getTime() <= Date.now()
   const cutoffUrgent = !cutoffPassed && cutoff.getTime() - Date.now() < 24 * 60 * 60 * 1000
@@ -328,8 +435,6 @@ export default function DashboardPage() {
   const booksKept = loans.filter(l => !returnMarked.has(l.loanId)).length
   const availableSlots = Math.max(0, planTotal - booksKept - nextStack.length)
   const hasSlots = availableSlots > 0
-
-  const pendingApprovalChildren = children.filter(c => c.swap_status === 'child_confirmed_pending_approval')
 
   const toggleReturn = async (loanId: string) => {
     setReturnMarked(prev => {
@@ -342,9 +447,80 @@ export default function DashboardPage() {
     await supabase.from('loans').update({ return_requested: isNowReturning }).eq('id', loanId)
   }
 
-  const removeFromStack = async (itemId: string) => {
-    setNextPile(prev => prev.filter(b => b.id !== itemId))
+  const removeFromStack = async (itemId: string, childId: string) => {
+    setNextStack(prev => prev.filter(b => b.id !== itemId))
     await supabase.from('swap_request_items').delete().eq('id', itemId)
+
+    const child = children.find(c => c.id === childId)
+    if (child?.swap_status === 'submitted' && child.swap_request_id) {
+      // prepare_only reverts to child_confirmed (parent can re-submit immediately, Option A)
+      // others revert to draft
+      const targetStatus = child.swap_permission === 'prepare_only' ? 'child_confirmed' : 'draft'
+      const newSwapStatus: Child['swap_status'] = child.swap_permission === 'prepare_only' ? 'child_confirmed_pending_approval' : 'not_submitted'
+      await supabase.from('swap_requests').update({ status: targetStatus }).eq('id', child.swap_request_id)
+      setChildren(prev => prev.map(c => c.id === childId ? { ...c, swap_status: newSwapStatus } : c))
+    }
+  }
+
+  const removeFromSaved = async (childId: string, bookId: string) => {
+    await supabase.from('wishlists').delete().eq('child_id', childId).eq('book_id', bookId)
+    setSavedBooks(prev => {
+      const n = new Map(prev)
+      n.set(childId, (n.get(childId) || []).filter(b => b.id !== bookId))
+      return n
+    })
+  }
+
+  const quickAddToDelivery = async (e: React.MouseEvent, childId: string, bookId: string) => {
+    e.stopPropagation()
+    const targetChild = children.find(c => c.id === childId)
+    let reqId = targetChild?.swap_request_id ?? null
+    if (!reqId && member?.id) {
+      const { data: newReq } = await supabase.from('swap_requests').insert({ household_id: member.id, child_id: childId, status: 'draft' }).select('id').single()
+      if (newReq) {
+        reqId = newReq.id
+        setChildren(prev => prev.map(c => c.id === childId ? { ...c, swap_request_id: newReq.id } : c))
+      }
+    }
+    if (!reqId) return
+    await supabase.from('swap_request_items').insert({ swap_request_id: reqId, book_id: bookId, child_id: childId })
+    const book = [...savedBooks.values()].flat().find(b => b.id === bookId)
+    setNextStack(prev => {
+      if (prev.some(n => n.book?.id === bookId)) return prev
+      return [...prev, { id: `temp-${bookId}`, book: { id: bookId, title: book?.title || '', cover_url: book?.cover_image_url || null, author: '' }, childId, childName: targetChild?.first_name || '' }]
+    })
+  }
+
+  const approveSwap = async (requestId: string, childId: string) => {
+    setApprovingChildIds(prev => new Set(prev).add(childId))
+    await supabase.from('swap_requests').update({ status: 'submitted' }).eq('id', requestId)
+    setChildren(prev => prev.map(c => c.id === childId ? { ...c, swap_status: 'submitted' } : c))
+    setApprovingChildIds(prev => { const n = new Set(prev); n.delete(childId); return n })
+  }
+
+  const unsubmitSwap = async (requestId: string, childId: string) => {
+    const child = children.find(c => c.id === childId)
+    // prepare_only reverts to child_confirmed (Option A: parent can re-submit immediately)
+    const targetStatus = child?.swap_permission === 'prepare_only' ? 'child_confirmed' : 'draft'
+    const newSwapStatus: Child['swap_status'] = child?.swap_permission === 'prepare_only' ? 'child_confirmed_pending_approval' : 'not_submitted'
+    await supabase.from('swap_requests').update({ status: targetStatus }).eq('id', requestId)
+    setChildren(prev => prev.map(c => c.id === childId ? { ...c, swap_status: newSwapStatus } : c))
+  }
+
+  const quickToggleNotify = async (e: React.MouseEvent, bookId: string) => {
+    e.stopPropagation()
+    if (!userId) return
+    const isNowNotifying = notifyingBookIds.has(bookId)
+    setNotifyingBookIds(prev => {
+      const n = new Set(prev)
+      if (isNowNotifying) n.delete(bookId); else n.add(bookId)
+      return n
+    })
+    if (isNowNotifying) {
+      await supabase.from('book_availability_notifications').delete().eq('user_id', userId).eq('book_id', bookId)
+    } else {
+      await supabase.from('book_availability_notifications').insert({ user_id: userId, book_id: bookId })
+    }
   }
 
   const handleChooseBooks = () => {
@@ -367,343 +543,291 @@ export default function DashboardPage() {
 
   const heading: React.CSSProperties = {
     fontFamily: 'var(--font-cormorant), serif',
-    color: '#eddbc3',
+    color: '#1a2f51',
     fontSize: '2rem',
     fontWeight: 700,
     lineHeight: 1.05,
     margin: '2px 0 0',
+    textTransform: 'capitalize',
   }
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#080402' }}>
-        <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.5rem' }}>Loading...</p>
+      <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#fefaf2' }}>
+        <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1.5rem' }}>Loading...</p>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen pb-28" style={{ backgroundColor: '#080402' }}>
+    <main className="min-h-screen pb-28" style={{ backgroundColor: '#fefaf2' }}>
+      <style>{`
+        .ghost-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, 1fr); }
+        @media (min-width: 600px) { .ghost-grid { grid-template-columns: repeat(4, 1fr); } }
+        .dash-heading-lg { font-size: 0.94rem !important; }
+        .dash-heading-sm { font-size: 0.85rem !important; }
+        .dash-action-pill { padding: 16px 28px; font-size: 0.9rem; }
+        @media (min-width: 768px) { .dash-action-pill { padding: 22px 36px; font-size: 1.05rem; } }
+        .dash-whisker { height: 44px; }
+        @media (min-width: 768px) { .dash-whisker { height: 64px; } }
+      `}</style>
       <div className="max-w-xl mx-auto px-4 pt-6">
 
         {/* Header */}
         <div className="flex items-start justify-between mb-7">
           <div style={{ lineHeight: 1 }}>
-            <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#eddbc3', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.5rem', color: '#eddbc3', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0' }}>THE CHILDREN'S LIBRARY</p>
+            <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#1a2f51', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
+            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.5rem', color: '#1a2f51', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0' }}>THE CHILDREN'S LIBRARY</p>
           </div>
           {(() => {
             const av = AVATARS.find(a => a.id === member?.avatar_id)
             return (
-              <button onClick={() => router.push('/dashboard/settings')} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: av ? av.bg : 'rgba(237,219,195,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.7rem', flexShrink: 0, border: '2px solid rgba(237,219,195,0.25)' }}>
-                  {av ? av.emoji : '👤'}
+              <button onClick={() => setProfileMenuOpen(o => !o)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: av ? av.bg : 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: av ? '1.7rem' : '1.3rem', flexShrink: 0, border: '2px solid rgba(26,47,81,0.2)', fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51' }}>
+                  {av ? av.emoji : (member?.first_name?.[0]?.toUpperCase() || '?')}
                 </div>
-                <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '1.5rem', color: '#f9d174', letterSpacing: '0.04em', margin: 0, lineHeight: 1 }}>
-                  {member?.first_name || ''}
-                </p>
+                {member?.first_name && <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.55rem', color: '#1a2f51', letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1 }}>{member.first_name}</span>}
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1a2f51" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: profileMenuOpen ? 'rotate(180deg)' : 'none' }}><polyline points="6 9 12 15 18 9"/></svg>
               </button>
             )
           })()}
         </div>
 
-        {/* Hello greeting */}
-        <div className="flex items-center gap-3" style={{ marginBottom: '20px' }}>
-          {(() => {
-            const av = AVATARS.find(a => a.id === member?.avatar_id)
-            return av ? (
-              <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: av.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', flexShrink: 0 }}>
-                {av.emoji}
-              </div>
-            ) : null
-          })()}
-          <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '1.5rem', color: '#eddbc3', letterSpacing: '0.04em', margin: 0, lineHeight: 1 }}>
-            Hello, {member?.first_name || 'there'}!
-          </p>
-          <img src="/whiskers_right.png" alt="" style={{ height: '32px', width: 'auto', pointerEvents: 'none', filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
-        </div>
+        <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '2.8rem', fontWeight: 700, lineHeight: 1, marginTop: '24px', marginBottom: '34px', textAlign: 'center' }}>Hello, {member?.first_name || 'there'}!</h1>
 
-        {/* ── BOOKS AT HOME ── */}
-        <section style={{ marginBottom: '28px' }}>
-          <h2 style={{ ...heading, marginBottom: '2px' }}>Books at Home</h2>
-          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.82rem', margin: '10px 0 2px' }}>
-            {loans.length} book{loans.length !== 1 ? 's' : ''} at home
-          </p>
-
-          {loans.length === 0 ? (
-            <>
-              <div style={{ position: 'relative', marginBottom: '24px' }}>
-                <style>{`@media (max-width: 360px) { .ghost-grid { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)) !important; } } @media (min-width: 600px) { .ghost-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important; } }`}</style>
-                <div className="ghost-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '10px', marginTop: '16px' }}>
-                  {Array.from({ length: planTotal }).map((_, i) => (
-                    <div key={i} style={{ aspectRatio: '3/4', borderRadius: '10px', border: '2px dashed rgba(237,219,195,0.45)', backgroundColor: 'rgba(237,219,195,0.09)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                      <img src="/bonky_front.png" alt="" style={{ height: '70%', width: 'auto', opacity: 0.32, pointerEvents: 'none' }} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-
-              {/* Cover grid — wraps to next row if needed */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '14px', paddingTop: '52px' }}>
-                {loans.map((loan, index) => {
-                  const isReturn = returnMarked.has(loan.loanId)
-                  const isLast = index === loans.length - 1
-                  return (
-                    <div key={loan.loanId} style={{ textAlign: 'center', position: 'relative' }}>
-                      {isLast && (
-                        <img src="/bonky_34a.png" alt="" style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', height: '64px', width: 'auto', pointerEvents: 'none', zIndex: 2 }} />
-                      )}
-                      <div style={{ width: '66px', height: '90px', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'rgba(237,219,195,0.1)', border: `2px solid ${isReturn ? 'rgba(232,83,58,0.5)' : 'rgba(237,219,195,0.15)'}`, opacity: isReturn ? 0.45 : 1, transition: 'all 0.2s' }}>
-                        {loan.book.cover_url
-                          ? <img src={loan.book.cover_url} alt={loan.book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}>
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="#eddbc3"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/></svg>
-                            </div>
-                        }
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* Keep/Return list */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {loans.map(loan => {
-                  const isReturn = returnMarked.has(loan.loanId)
-                  return (
-                    <div key={loan.loanId} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '14px', backgroundColor: isReturn ? 'rgba(232,83,58,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isReturn ? 'rgba(232,83,58,0.3)' : 'rgba(237,219,195,0.12)'}`, transition: 'all 0.2s' }}>
-                      <div style={{ width: '44px', height: '60px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, backgroundColor: 'rgba(237,219,195,0.1)' }}>
-                        {loan.book.cover_url
-                          ? <img src={loan.book.cover_url} alt={loan.book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: isReturn ? 0.5 : 1, transition: 'opacity 0.2s' }} />
-                          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}>
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="#eddbc3"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/></svg>
-                            </div>
-                        }
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: isReturn ? 'rgba(237,219,195,0.45)' : '#eddbc3', fontSize: '0.82rem', fontWeight: 600, margin: 0, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: isReturn ? 'line-through' : 'none' }}>{loan.book.title}</p>
-                        {children.length > 1 && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#f9d174', fontSize: '0.68rem', opacity: 0.7, margin: '2px 0 0' }}>{loan.childName}</p>}
-                      </div>
-                      <button
-                        onClick={() => toggleReturn(loan.loanId)}
-                        style={{
-                          flexShrink: 0, padding: '6px 12px', borderRadius: '20px', border: 'none', cursor: 'pointer',
-                          fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.68rem', letterSpacing: '0.08em',
-                          backgroundColor: isReturn ? '#e8533a' : 'rgba(237,219,195,0.12)',
-                          color: isReturn ? '#fff' : '#eddbc3',
-                          transition: 'all 0.2s',
-                        }}>
-                        {isReturn ? 'Returning' : 'Keeping'}
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            </>
-          )}
-        </section>
-
-        {/* ── NEXT BONKERS DAY CARD ── */}
-        <section style={{ marginBottom: '28px', position: 'relative' }}>
-          {(() => {
-            const { dayName, dateStr } = getNextBonkersDateParts(cutoffDay)
-            return (
-              <div style={{ borderRadius: '20px', border: `2px solid ${cutoffUrgent ? '#e57451' : 'rgba(237,219,195,0.2)'}`, backgroundColor: 'rgba(255,255,255,0.03)', padding: '18px 20px', textAlign: 'center' }}>
-                <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '1.1rem', letterSpacing: '0.12em', color: cutoffUrgent ? '#e57451' : '#f9d174', margin: '0 0 2px' }}>Next Bonkers Day</p>
-                <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.4rem', fontWeight: 700, lineHeight: 1, margin: 0 }}>{dayName} {dateStr}</p>
-                <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={cutoffUrgent ? '#e57451' : '#f9d174'} strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, color: cutoffUrgent ? '#e57451' : '#f9d174', fontSize: '1rem', letterSpacing: '0.08em', margin: 0 }}>Time left to choose</p>
-                  </div>
-                  <Countdown cutoffDay={cutoffDay} cutoffTime={cutoffTime} urgent={cutoffUrgent} compact />
-                </div>
-              </div>
-            )
-          })()}
-        </section>
-
-        {/* ── PENDING CHILD APPROVALS ── */}
-        {pendingApprovalChildren.length > 0 && (
-          <section style={{ marginBottom: '28px' }}>
-            <p style={eyebrow}>Waiting for You</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
-              {pendingApprovalChildren.map(child => (
-                <div key={child.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', borderRadius: '16px', border: '1.5px solid rgba(249,209,116,0.35)', backgroundColor: 'rgba(249,209,116,0.06)' }}>
-                  <div style={{ width: '42px', height: '42px', borderRadius: '50%', backgroundColor: 'rgba(237,219,195,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {child.avatar_url
-                      ? <img src={child.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
-                      : <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.2rem', fontWeight: 700 }}>{child.first_name[0]}</span>
-                    }
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#f9d174', fontSize: '0.78rem', fontWeight: 700, margin: 0 }}>{child.first_name} has chosen their books</p>
-                    <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.72rem', opacity: 0.6, margin: '2px 0 0' }}>Tap to review and approve</p>
-                  </div>
-                  <button
-                    onClick={() => router.push(`/dashboard/approve/${child.id}`)}
-                    style={{ flexShrink: 0, padding: '8px 14px', borderRadius: '10px', backgroundColor: '#f9d174', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.08em', color: '#1a1a1a' }}>
-                    Review →
-                  </button>
-                </div>
-              ))}
+        {/* ── NEXT BONKERS DAY ── */}
+        {(() => {
+          const { dayName, dateStr, isToday } = getNextBonkersDateParts(cutoffDay)
+          return (
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <p className="dash-heading-sm" style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#1a2f51', margin: '0 0 4px' }}>Your next Bonkers Day is</p>
+              <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1.8rem', fontWeight: 700, lineHeight: 1, margin: '0 0 6px' }}>{isToday ? 'Today!' : `${dayName} ${dateStr}`}</p>
+              {!isToday && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.72rem', color: '#1a2f51', opacity: 0.65, margin: 0 }}>Choose your books by {getChooseCutoffDay(cutoffDay)} at {formatCutoffTime(cutoffTime)}</p>}
             </div>
-          </section>
+          )
+        })()}
+
+        {/* ── YOUR READERS HEADING ── */}
+        <h2 style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51', fontSize: '2rem', margin: '0 0 16px', lineHeight: 1 }}>Your Readers</h2>
+
+        {/* ── PER-CHILD SECTIONS ── */}
+        {(() => {
+          const allocatedTotal = children.reduce((sum, c) => sum + (c.book_allocation ?? 0), 0)
+          const sharedPool = Math.max(0, planTotal - allocatedTotal)
+          const sharedKept = loans.filter(l => {
+            const c = children.find(ch => ch.id === l.childId)
+            return !c?.book_allocation && !returnMarked.has(l.loanId)
+          }).length
+          const sharedNextCount = nextStack.filter(n => {
+            const c = children.find(ch => ch.id === n.childId)
+            return !c?.book_allocation
+          }).length
+          const sharedAvailable = Math.max(0, sharedPool - sharedKept - sharedNextCount)
+
+          return children.map((child, ci) => {
+            const childLoans = loans.filter(l => l.childId === child.id)
+            const childNext = nextStack.filter(n => n.childId === child.id)
+            const childSaved = savedBooks.get(child.id) || []
+            const isPending = child.swap_status === 'child_confirmed_pending_approval' && childNext.length > 0
+
+            const childAvailableSlots = child.book_allocation
+              ? Math.max(0, child.book_allocation - childLoans.filter(l => !returnMarked.has(l.loanId)).length - childNext.length)
+              : sharedAvailable
+
+            const displayedSaved = cutoffPassed
+              ? childSaved.filter(book => !childNext.some(n => n.book?.id === book.id))
+              : childSaved
+
+            return (
+              <React.Fragment key={child.id}>
+              {ci === 0 && activeCharacter.slot === 'first-reader-top' && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-50px', position: 'relative', zIndex: 1, paddingRight: '24px' }}>
+                  <img src={activeCharacter.src} alt="" className="dashboard-character-sm" style={{ height: '45px', width: 'auto', pointerEvents: 'none', position: 'relative', top: '-38px' }} />
+                </div>
+              )}
+              <section style={{ marginBottom: '16px', backgroundColor: 'transparent', borderRadius: '16px', border: '2px solid #e8e0d4', padding: '20px 16px' }}>
+                {/* Child header */}
+                {(() => {
+                  const isCollapsed = collapsedChildren.has(child.id)
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: isCollapsed ? 0 : '18px' }}>
+                      <div onClick={() => router.push(`/dashboard/children/${child.id}`)} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, cursor: 'pointer' }}>
+                      {(() => { const av = AVATARS.find(a => a.id === child.avatar_id); return (
+                      <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: av?.bg || 'rgba(26,47,81,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '2px solid rgba(26,47,81,0.1)', fontSize: av ? '1.7rem' : '1.3rem' }}>
+                        {av ? av.emoji : <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontWeight: 700 }}>{child.first_name[0]}</span>}
+                      </div>) })()}
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51', fontSize: '1.6rem', margin: 0, lineHeight: 1 }}>{child.first_name}</p>
+                        {child.age && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.72rem', opacity: 0.45, margin: '2px 0 0' }}>Age {child.age}</p>}
+                      </div>
+                      </div>
+                      <div onClick={() => toggleCollapse(child.id)} style={{ cursor: 'pointer', padding: '4px', flexShrink: 0 }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a2f51" strokeWidth="2.5" style={{ opacity: 0.7, transition: 'transform 0.2s', transform: isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)', display: 'block' }}><polyline points="6 9 12 15 18 9"/></svg>
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {!collapsedChildren.has(child.id) && <>
+
+
+                {/* At home */}
+                {(() => {
+                  const childTotalSlots = child.book_allocation ?? planTotal
+                  const atHomeGhostCount = Math.max(0, childTotalSlots - childLoans.length)
+                  return (
+                    <div style={{ marginBottom: '18px' }}>
+                      <p className="dash-heading-lg" style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '1.1rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#1a2f51', margin: '0 0 10px' }}>At home</p>
+                      <div className="ghost-grid" style={{ display: 'grid', gap: '10px' }}>
+                        {childLoans.map(loan => {
+                          const isReturn = returnMarked.has(loan.loanId)
+                          return (
+                            <div key={loan.loanId} style={{ textAlign: 'center' }}>
+                              <div style={{ aspectRatio: '3/4', borderRadius: '10px', overflow: 'hidden', backgroundColor: 'rgba(26,47,81,0.07)', border: `1.5px solid ${isReturn ? 'rgba(232,83,58,0.35)' : 'rgba(26,47,81,0.1)'}`, opacity: isReturn ? 0.5 : 1, transition: 'all 0.2s' }}>
+                                {loan.book.cover_url
+                                  ? <img src={loan.book.cover_url} alt={loan.book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="#1a2f51"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/></svg></div>
+                                }
+                              </div>
+                              <button onClick={() => toggleReturn(loan.loanId)} style={{ marginTop: '5px', padding: '3px 8px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.52rem', letterSpacing: '0.06em', backgroundColor: isReturn ? '#e8533a' : 'rgba(26,47,81,0.08)', color: isReturn ? '#fff' : 'rgba(26,47,81,0.45)', transition: 'all 0.2s' }}>
+                                {isReturn ? 'Returning' : 'Keeping'}
+                              </button>
+                            </div>
+                          )
+                        })}
+                        {Array.from({ length: atHomeGhostCount }).map((_, i) => (
+                          <div key={i} style={{ aspectRatio: '3/4', borderRadius: '10px', border: '2px dashed rgba(26,47,81,0.3)', backgroundColor: 'transparent' }} />
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Coming next */}
+                <div style={{ marginBottom: displayedSaved.length > 0 ? '18px' : 0 }}>
+                  <div style={{ marginBottom: '20px' }}>
+                    <p className="dash-heading-lg" style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '1.1rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#1a2f51', margin: '0 0 16px' }}>{isBonkersToday ? 'Coming Today' : 'Coming Next'}</p>
+                    {(isPending || (child.swap_permission === 'parent_only' && childNext.length > 0 && child.swap_status !== 'submitted')) && child.swap_request_id && (
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '22px' }}>
+                        <img src="/spines/whiskers_left_yellow.png" alt="" className="dash-whisker" style={{ width: 'auto', flexShrink: 0, marginRight: '8px', pointerEvents: 'none' }} />
+                        <button
+                          onClick={e => { e.stopPropagation(); approveSwap(child.swap_request_id!, child.id) }}
+                          disabled={approvingChildIds.has(child.id)}
+                          className="dash-action-pill"
+                          style={{ borderRadius: '999px', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 500, fontSize: '0.9rem', letterSpacing: '0.15em', textTransform: 'uppercase', backgroundColor: '#1a2f51', color: 'white', opacity: approvingChildIds.has(child.id) ? 0.6 : 1 }}>
+                          {approvingChildIds.has(child.id) ? 'Approving…' : 'Approve'}
+                        </button>
+                        <img src="/spines/whiskers_right_yellow.png" alt="" className="dash-whisker" style={{ width: 'auto', flexShrink: 0, marginLeft: '8px', pointerEvents: 'none' }} />
+                      </div>
+                    )}
+                    {child.swap_status === 'submitted' && childNext.length > 0 && !cutoffPassed && child.swap_request_id && (
+                      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '22px' }}>
+                        <div className="dash-action-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px', backgroundColor: 'rgba(72,199,142,0.2)', border: 'none' }}>
+                          <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.15em', textTransform: 'uppercase' }}>Submitted</span>
+                        </div>
+                        <button
+                          onClick={e => { e.stopPropagation(); unsubmitSwap(child.swap_request_id!, child.id) }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', color: '#1a2f51', WebkitTapHighlightColor: 'transparent', transition: 'transform 0.1s', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                          onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.9)')}
+                          onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+                          onTouchStart={e => (e.currentTarget.style.transform = 'scale(0.9)')}
+                          onTouchEnd={e => (e.currentTarget.style.transform = 'scale(1)')}>
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a2f51" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.4"/>
+                          </svg>
+                          <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#1a2f51', marginLeft: '6px' }}>Undo</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {cutoffPassed && childNext.length > 0 ? (
+                    <>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginBottom: '8px', padding: '4px 10px', borderRadius: '20px', backgroundColor: 'rgba(80,200,120,0.1)', border: '1px solid rgba(80,200,120,0.25)' }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#50c878" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#50c878', fontSize: '0.6rem', fontWeight: 700, margin: 0, letterSpacing: '0.08em' }}>Locked in — on their way!</p>
+                      </div>
+                      <div className="ghost-grid" style={{ display: 'grid', gap: '10px' }}>
+                        {childNext.map(item => (
+                          <div key={item.id}>
+                            <div style={{ aspectRatio: '3/4', borderRadius: '10px', overflow: 'hidden', backgroundColor: 'rgba(26,47,81,0.07)', border: '1px solid rgba(26,47,81,0.1)' }}>
+                              {item.book.cover_url ? <img src={item.book.cover_url} alt={item.book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="#1a2f51"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2"/></svg></div>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="ghost-grid" style={{ display: 'grid', gap: '10px' }}>
+                      {childNext.map(item => (
+                        <div key={item.id} style={{ position: 'relative' }}>
+                          <div style={{ aspectRatio: '3/4', borderRadius: '10px', overflow: 'hidden', backgroundColor: 'rgba(26,47,81,0.07)', border: '1px solid rgba(26,47,81,0.1)' }}>
+                            {item.book.cover_url ? <img src={item.book.cover_url} alt={item.book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="#1a2f51"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/></svg></div>}
+                          </div>
+                          <button onClick={() => removeFromStack(item.id, child.id)} style={{ position: 'absolute', top: '-5px', right: '-5px', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: 'rgba(26,47,81,0.9)', border: '1.5px solid #fefaf2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, zIndex: 1 }}>
+                            <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#fefaf2" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                          </button>
+                        </div>
+                      ))}
+                      {Array.from({ length: childAvailableSlots }).map((_, i) => (
+                        <button key={i} onClick={() => router.push('/dashboard/library?from=parent')} style={{ aspectRatio: '3/4', borderRadius: '10px', border: '2px dashed rgba(26,47,81,0.3)', backgroundColor: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', padding: '6px', width: '100%' }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(26,47,81,0.4)" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                          <span style={{ fontFamily: 'var(--font-cormorant), serif', color: 'rgba(26,47,81,0.5)', fontSize: '0.65rem', fontWeight: 600, lineHeight: 1.2, textAlign: 'center' }}>Add a book</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Saved */}
+                {displayedSaved.length > 0 && (
+                  <div>
+                    <p className="dash-heading-lg" style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '1.1rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#1a2f51', margin: '0 0 10px' }}>Saved</p>
+                    <div className="ghost-grid" style={{ display: 'grid', gap: '10px' }}>
+                      {displayedSaved.map(book => {
+                        const isAvail = availableSavedBookIds.has(book.id)
+                        const inDelivery = childNext.some(n => n.book?.id === book.id)
+                        const isNotifying = notifyingBookIds.has(book.id)
+                        return (
+                          <div key={book.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                            <div onClick={() => router.push(`/dashboard/library/${book.id}`)} style={{ cursor: 'pointer', width: '100%' }}>
+                              <div style={{ aspectRatio: '3/4', borderRadius: '10px', overflow: 'hidden', backgroundColor: 'rgba(26,47,81,0.07)' }}>
+                                {book.cover_image_url ? <img src={book.cover_image_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="rgba(26,47,81,0.15)" stroke="none"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/></svg></div>}
+                              </div>
+                            </div>
+                            {isAvail ? (
+                              <button onClick={e => { if (!inDelivery) quickAddToDelivery(e, child.id, book.id); else e.stopPropagation() }} style={{ background: 'none', border: 'none', cursor: inDelivery ? 'default' : 'pointer', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {inDelivery ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#84a98c" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg> : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f9d174" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>}
+                              </button>
+                            ) : (
+                              <button onClick={e => quickToggleNotify(e, book.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill={isNotifying ? '#f9d174' : 'none'} stroke="#f9d174" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                              </button>
+                            )}
+                            <button onClick={e => { e.stopPropagation(); removeFromSaved(child.id, book.id) }} style={{ position: 'absolute', top: '-4px', right: '-4px', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'rgba(26,47,81,0.9)', border: '1px solid rgba(26,47,81,0.25)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                              <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#fefaf2" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                </>}
+              </section>
+              </React.Fragment>
+            )
+          })
+        })()}
+
+        <button onClick={() => router.push('/dashboard/children/new')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px 16px', borderRadius: '16px', backgroundColor: 'transparent', border: '1.5px dashed rgba(26,47,81,0.45)', cursor: 'pointer', width: '100%', marginBottom: activeCharacter.slot === 'add-a-reader' ? '0px' : '28px' }}>
+          <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.68rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(26,47,81,0.6)' }}>+ Add a Reader</span>
+        </button>
+        {activeCharacter.slot === 'add-a-reader' && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '28px' }}>
+            <img src={activeCharacter.src} alt="" className="dashboard-character-addreader" style={{ height: '120px', width: 'auto', pointerEvents: 'none' }} />
+          </div>
         )}
-
-        {/* ── YOUR READERS ── */}
-        <section style={{ marginBottom: '28px' }}>
-          <p style={{ ...eyebrow, fontFamily: 'var(--font-amatic)', fontSize: '1.5rem', letterSpacing: '0.08em', textTransform: 'none', color: '#f9d174' }}>Your readers</p>
-          <h2 style={{ ...heading, marginBottom: '16px' }}>Who&apos;s reading?</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-            {children.map(child => (
-              <button key={child.id} onClick={() => router.push(`/dashboard/children/${child.id}`)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '20px 16px 16px', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(237,219,195,0.12)', textAlign: 'left', cursor: 'pointer', width: '100%' }}>
-                {/* Avatar */}
-                <div style={{ width: '64px', height: '64px', borderRadius: '50%', overflow: 'hidden', backgroundColor: 'rgba(237,219,195,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px', border: '2px solid rgba(237,219,195,0.15)' }}>
-                  {child.avatar_url
-                    ? <img src={child.avatar_url} alt={child.first_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700 }}>{child.first_name[0]}</span>
-                  }
-                </div>
-                {/* Name */}
-                <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#eddbc3', fontSize: '1.6rem', margin: 0, lineHeight: 1 }}>{child.first_name}</p>
-                {/* Age */}
-                {child.age && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.82rem', margin: '4px 0 0' }}>Age {child.age}</p>}
-                {/* Books read */}
-                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, color: '#eddbc3', fontSize: '0.78rem', margin: '6px 0 0' }}>
-                  {!child.books_read_count ? 'No books read yet' : `${child.books_read_count} book${child.books_read_count !== 1 ? 's' : ''} read`}
-                </p>
-                {/* Top category */}
-                {child.top_category && (
-                  <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, color: '#eddbc3', fontSize: '0.78rem', margin: '4px 0 0' }}>
-                    Loves {child.top_category}
-                  </p>
-                )}
-                {/* Interests — shown when built */}
-                {child.interests && (
-                  <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: 'rgba(237,219,195,0.6)', fontSize: '0.68rem', margin: '6px 0 0', lineHeight: 1.4 }}>
-                    {child.first_name} loves {child.interests}
-                  </p>
-                )}
-              </button>
-            ))}
-            {/* Add a Reader — square card only when odd number of children */}
-            {children.length % 2 !== 0 && (
-              <button onClick={() => router.push('/dashboard/children/new')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '20px 16px', borderRadius: '20px', backgroundColor: 'transparent', border: '1px dashed rgba(237,219,195,0.25)', cursor: 'pointer', width: '100%', minHeight: '160px' }}>
-                <span style={{ fontSize: '1.6rem', color: 'rgba(237,219,195,0.3)' }}>+</span>
-                <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.68rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(237,219,195,0.35)' }}>Add a Reader</span>
-              </button>
-            )}
-          </div>
-          {/* Add a Reader — thin wide button when even number of children */}
-          {children.length % 2 === 0 && (
-            <button onClick={() => router.push('/dashboard/children/new')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px 16px', borderRadius: '16px', backgroundColor: 'transparent', border: '1px dashed rgba(237,219,195,0.25)', cursor: 'pointer', width: '100%', marginTop: '12px' }}>
-              <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.68rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(237,219,195,0.35)' }}>+ Add a Reader</span>
-            </button>
-          )}
-        </section>
-
-        {/* ── YOUR NEXT PILE ── */}
-        <section id="next-stack" style={{ marginBottom: '28px' }}>
-          <p style={{ ...eyebrow, fontFamily: 'var(--font-amatic)', fontSize: '1.5rem', letterSpacing: '0.08em', textTransform: 'none', color: '#f9d174' }}>Coming your way</p>
-          <h2 style={heading}>Your Next Stack</h2>
-
-          {cutoffPassed && nextStack.length > 0 ? (
-            <>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '8px', padding: '6px 12px', borderRadius: '20px', backgroundColor: 'rgba(80,200,120,0.12)', border: '1px solid rgba(80,200,120,0.3)' }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#50c878" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#50c878', fontSize: '0.72rem', fontWeight: 700, margin: 0, letterSpacing: '0.08em' }}>Locked in — on their way!</p>
-              </div>
-              <div className="flex gap-3 mt-4" style={{ overflowX: 'auto', paddingBottom: '4px' }}>
-                {nextStack.map(item => (
-                  <div key={item.id} style={{ flexShrink: 0 }}>
-                    <div style={{ width: '80px', height: '108px', borderRadius: '10px', overflow: 'hidden', backgroundColor: 'rgba(237,219,195,0.08)', border: '1px solid rgba(237,219,195,0.2)' }}>
-                      {item.book.cover_url
-                        ? <img src={item.book.cover_url} alt={item.book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}><svg width="24" height="24" viewBox="0 0 24 24" fill="#eddbc3"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/></svg></div>
-                      }
-                    </div>
-                    {children.length > 1 && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#f9d174', fontSize: '0.62rem', margin: '4px 0 0', textAlign: 'center' }}>{item.childName}</p>}
-                  </div>
-                ))}
-              </div>
-            </>
-          ) : nextStack.length > 0 ? (
-            <>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.78rem', opacity: 0.5, marginTop: '6px' }}>
-                Still editable until {cutoffDay.charAt(0).toUpperCase() + cutoffDay.slice(1)} at {formatCutoffTime(cutoffTime)}.
-              </p>
-              <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {nextStack.map(item => (
-                  <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '14px', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(237,219,195,0.12)' }}>
-                    <div style={{ width: '44px', height: '60px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, backgroundColor: 'rgba(237,219,195,0.1)' }}>
-                      {item.book.cover_url
-                        ? <img src={item.book.cover_url} alt={item.book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="#eddbc3"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/></svg></div>
-                      }
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.82rem', fontWeight: 600, margin: 0, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.book.title}</p>
-                      {children.length > 1 && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#f9d174', fontSize: '0.68rem', opacity: 0.7, margin: '2px 0 0' }}>For {item.childName}</p>}
-                    </div>
-                    <button
-                      onClick={() => removeFromStack(item.id)}
-                      style={{ flexShrink: 0, width: '30px', height: '30px', borderRadius: '50%', border: '1px solid rgba(237,219,195,0.2)', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#eddbc3', opacity: 0.5 }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-              {availableSlots > 0 && (
-                <div className="ghost-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '10px', marginTop: '16px' }}>
-                  {Array.from({ length: availableSlots }).map((_, i) => (
-                    <div key={i} style={{ aspectRatio: '3/4', borderRadius: '10px', border: '2px dashed rgba(237,219,195,0.45)', backgroundColor: 'rgba(237,219,195,0.09)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                      <img src="/bonky_front.png" alt="" style={{ height: '70%', width: 'auto', opacity: 0.32, pointerEvents: 'none' }} />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
-            <div style={{ marginTop: '12px' }}>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.82rem', opacity: 0.5, margin: '0 0 12px' }}>
-                {nextStack.length} book{nextStack.length !== 1 ? 's' : ''} chosen
-              </p>
-              {availableSlots > 0 && (
-                <div className="ghost-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '10px', marginTop: '4px' }}>
-                  {Array.from({ length: availableSlots }).map((_, i) => (
-                    <div key={i} style={{ aspectRatio: '3/4', borderRadius: '10px', border: '2px dashed rgba(237,219,195,0.45)', backgroundColor: 'rgba(237,219,195,0.09)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                      <img src="/bonky_front.png" alt="" style={{ height: '70%', width: 'auto', opacity: 0.32, pointerEvents: 'none' }} />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </section>
-
-        {/* ── YOUR BONKERS (settings) ── */}
-        <section style={{ marginBottom: '28px' }}>
-          <p style={{ ...eyebrow, fontFamily: 'var(--font-amatic)', fontSize: '1.5rem', letterSpacing: '0.08em', textTransform: 'none', color: '#f9d174', marginBottom: '12px' }}>Support</p>
-          <div style={{ borderRadius: '16px', border: '1px solid rgba(237,219,195,0.12)', backgroundColor: 'rgba(255,255,255,0.03)', overflow: 'hidden' }}>
-            <button
-              onClick={() => router.push('/dashboard/settings')}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px 18px', background: 'none', outline: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-              <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.85rem' }}>Help & FAQs</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#eddbc3" strokeWidth="2" style={{ opacity: 0.3 }}><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-            <div style={{ borderTop: '1px solid rgba(237,219,195,0.08)', margin: '0 18px' }} />
-            <button
-              onClick={() => router.push('/dashboard/settings')}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px 18px', background: 'none', outline: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-              <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.85rem' }}>Contact us</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#eddbc3" strokeWidth="2" style={{ opacity: 0.3 }}><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-          </div>
-        </section>
 
       </div>
 
@@ -715,10 +839,10 @@ export default function DashboardPage() {
           onClick={() => setShowNoSlotsPopup(false)}>
           <div
             onClick={e => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: '576px', backgroundColor: '#14100d', borderRadius: '24px 24px 0 0', padding: '28px 24px 40px', border: '1px solid rgba(237,219,195,0.15)', borderBottom: 'none' }}>
-            <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'rgba(237,219,195,0.2)', margin: '0 auto 20px' }} />
-            <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700, margin: '0 0 8px' }}>No slots available</p>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.85rem', opacity: 0.7, lineHeight: 1.6, margin: '0 0 24px' }}>
+            style={{ width: '100%', maxWidth: '576px', backgroundColor: '#fefaf2', borderRadius: '24px 24px 0 0', padding: '28px 24px 40px', border: '1px solid rgba(26,47,81,0.1)', borderBottom: 'none' }}>
+            <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'rgba(26,47,81,0.15)', margin: '0 auto 20px' }} />
+            <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1.6rem', fontWeight: 700, margin: '0 0 8px' }}>No slots available</p>
+            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.85rem', opacity: 0.7, lineHeight: 1.6, margin: '0 0 24px' }}>
               You've filled all your slots for next stack. To add more books, mark some of your current books to return — that frees up the space.
             </p>
             <button
@@ -731,17 +855,17 @@ export default function DashboardPage() {
       )}
 
       {/* ── BOTTOM NAV ── */}
-      <div className="fixed bottom-0 left-0 right-0" style={{ backgroundColor: 'rgba(8,4,2,0.95)', borderTop: '1px solid rgba(237,219,195,0.12)', backdropFilter: 'blur(16px)', zIndex: 40 }}>
+      <div className="fixed bottom-0 left-0 right-0" style={{ backgroundColor: '#1a2f51', borderTop: 'none', zIndex: 40 }}>
         <div className="max-w-xl mx-auto flex items-center justify-around px-2" style={{ paddingTop: '8px', paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
           {[
             { label: 'Home', path: '/dashboard', exact: true, icon: <svg className="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>, onClick: () => router.push('/dashboard') },
             { label: 'Library', path: '/dashboard/library', exact: false, icon: <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>, onClick: () => router.push('/dashboard/library?from=parent') },
-            { label: 'Account', path: '/dashboard/account', exact: false, icon: <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>, onClick: () => router.push('/dashboard/account') },
             { label: 'Settings', path: '/dashboard/settings', exact: false, icon: <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>, onClick: () => router.push('/dashboard/settings') },
+            { label: 'Support', path: '/dashboard/support', exact: false, icon: <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>, onClick: () => router.push('/dashboard/support') },
           ].map((item, i) => {
             const active = item.exact ? pathname === item.path : pathname.startsWith(item.path)
             return (
-              <button key={i} onClick={item.onClick} className="flex flex-col items-center gap-1 flex-1" style={{ background: 'none', border: 'none', cursor: 'pointer', color: active ? '#f9d174' : '#eddbc3', opacity: 1, padding: '6px 0' }}>
+              <button key={i} onClick={item.onClick} className="flex flex-col items-center gap-1 flex-1" style={{ background: 'none', border: 'none', cursor: 'pointer', color: active ? '#f9d174' : '#fefaf2', opacity: 1, padding: '6px 0' }}>
                 {item.icon}
                 <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.58rem', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700 }}>{item.label}</span>
               </button>
@@ -749,6 +873,58 @@ export default function DashboardPage() {
           })}
         </div>
       </div>
+
+      {/* Profile dropdown */}
+      {profileMenuOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 60 }} onClick={() => setProfileMenuOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: '72px', right: '16px', width: 'min(260px, calc(100vw - 32px))', backgroundColor: '#fefaf2', borderRadius: '16px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', overflow: 'hidden', border: '1px solid rgba(26,47,81,0.1)' }}>
+            {children.length > 0 && (
+              <>
+                <div style={{ padding: '12px 16px 10px', borderBottom: '1px solid rgba(26,47,81,0.1)' }}>
+                  <p className="dash-heading-sm" style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#1a2f51', margin: 0 }}>Your Readers</p>
+                </div>
+                <div style={{ padding: '6px 0' }}>
+                  {children.map(child => (
+                    <button key={child.id}
+                      onClick={() => { setProfileMenuOpen(false); router.push(`/dashboard/children/${child.id}`) }}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                      {(() => { const av = AVATARS.find(a => a.id === child.avatar_id); return (
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: av?.bg || 'rgba(26,47,81,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1.5px solid rgba(26,47,81,0.12)', fontSize: av ? '1rem' : undefined }}>
+                        {av ? av.emoji : <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1rem', fontWeight: 700 }}>{child.first_name[0]}</span>}
+                      </div>) })()}
+                      <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '1.05rem', color: '#1a2f51', margin: 0 }}>{child.first_name}</p>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+            <div style={{ borderTop: '1px solid rgba(26,47,81,0.1)' }}>
+              <button onClick={async () => { setProfileMenuOpen(false); await supabase.auth.signOut(); router.push('/') }}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a2f51" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#1a2f51', margin: 0, fontWeight: 600 }}>Log out</p>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CHARACTER IMAGE ── */}
+      {activeCharacter.slot === 'bottom-left' && (
+        <div className="dashboard-character-bottom" style={{ display: 'flex', justifyContent: 'flex-start', paddingBottom: '8px', paddingLeft: '8px' }}>
+          <img src={activeCharacter.src} alt="" className="dashboard-character" style={{ width: 'auto', pointerEvents: 'none' }} />
+        </div>
+      )}
+      {activeCharacter.slot === 'bottom-center' && (
+        <div className="dashboard-character-bottom" style={{ display: 'flex', justifyContent: 'center', paddingBottom: '8px' }}>
+          <img src={activeCharacter.src} alt="" className="dashboard-character" style={{ width: 'auto', pointerEvents: 'none' }} />
+        </div>
+      )}
+      {activeCharacter.slot === 'bottom-right' && (
+        <div className="dashboard-character-bottom" style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: '8px', paddingRight: '8px' }}>
+          <img src={activeCharacter.src} alt="" className="dashboard-character" style={{ width: 'auto', pointerEvents: 'none' }} />
+        </div>
+      )}
     </main>
   )
 }

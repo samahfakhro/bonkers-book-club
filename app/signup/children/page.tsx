@@ -138,9 +138,10 @@ function ChildrenForm() {
   }
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: '#faf7f0' }}>
-      <div className="bg-white border-b border-gray-100 px-6 py-4">
-        <img src="/logo_test.png" alt="Bonkers Book Club" className="h-14 w-auto" />
+    <main className="min-h-screen" style={{ backgroundColor: '#faf7f0', position: 'relative' }}>
+      <div style={{ position: 'absolute', top: '20px', left: '20px', lineHeight: 1, zIndex: 10 }}>
+        <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#eddbc3', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
+        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.5rem', color: '#eddbc3', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0' }}>THE CHILDREN'S LIBRARY</p>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-10">
@@ -342,7 +343,7 @@ function ChildrenForm() {
           <button type="submit" disabled={loading}
             className="w-full py-4 rounded-2xl font-black text-base text-white transition-all disabled:opacity-50"
             style={{ backgroundColor: '#052059' }}>
-            {loading ? 'Setting up your account...' : 'Complete Setup →'}
+            {loading ? 'Setting up your account...' : 'Complete Setup'}
           </button>
 
           <p className="text-center text-gray-400 text-xs -mt-4">

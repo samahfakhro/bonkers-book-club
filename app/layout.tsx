@@ -1,9 +1,9 @@
 export const dynamic = 'force-dynamic'
 
 import type { Metadata, Viewport } from "next";
-import { Montserrat, Patrick_Hand, Amatic_SC, Love_Ya_Like_A_Sister, Cormorant_Garamond, Instrument_Serif, Chelsea_Market, Nunito } from "next/font/google";
+import { Montserrat, Patrick_Hand, Amatic_SC, Love_Ya_Like_A_Sister, Cormorant_Garamond, Instrument_Serif, Chelsea_Market, Nunito, Caveat } from "next/font/google";
 import "./globals.css";
-import BonkyFlying from "./components/BonkyFlying";
+import MoonDisplay from "./components/MoonDisplay";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -52,8 +52,14 @@ const nunito = Nunito({
   variable: "--font-nunito",
 });
 
+const caveat = Caveat({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-caveat",
+});
+
 export const metadata: Metadata = {
-  title: "Bonkers Book Club",
+  title: "Bonkers — The Children's Library",
   description: "Dubai's most magical children's book swap",
 };
 
@@ -69,14 +75,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${montserrat.variable} ${patrickHand.variable} ${amaticSC.variable} ${loveYa.variable} ${cormorant.variable} ${instrumentSerif.variable} ${chelseaMarket.variable} ${nunito.variable} h-full`}>
-      <body className="min-h-full flex flex-col font-[family-name:var(--font-montserrat)]" style={{ position: 'relative' }}>
+    <html lang="en" className={`${montserrat.variable} ${patrickHand.variable} ${amaticSC.variable} ${loveYa.variable} ${cormorant.variable} ${instrumentSerif.variable} ${chelseaMarket.variable} ${nunito.variable} ${caveat.variable}`}>
+      <body className="flex flex-col font-[family-name:var(--font-montserrat)]">
         {/* Full-screen background — always fills the viewport */}
-        <div style={{ position: 'fixed', inset: 0, backgroundImage: 'url(/background_3.png)', backgroundSize: 'cover', backgroundPosition: 'center', zIndex: -1 }} />
-        {/* Content constrained to phone width, centred */}
-        <div style={{ width: '100%', maxWidth: '768px', margin: '0 auto', position: 'relative', minHeight: '100vh' }}>
-          <img src="/moon.png" alt="" style={{ position: 'absolute', top: '52px', left: '40px', width: '52px', height: 'auto', zIndex: 50, pointerEvents: 'none' }} />
-          <BonkyFlying />
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: '#fefaf2', zIndex: -1 }} />
+        {/* Content constrained to iPad Pro width, centred */}
+        <div className="main-wrapper" style={{ width: '100%', maxWidth: '768px', margin: '0 auto', position: 'relative', minHeight: '100vh' }}>
           {children}
         </div>
       </body>

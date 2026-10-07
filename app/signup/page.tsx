@@ -1,15 +1,15 @@
-﻿﻿﻿﻿﻿﻿'use client'
+﻿﻿'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Suspense } from 'react'
+import SignupMap, { type Zone, type MapResult } from '@/components/SignupMap'
 
 const PLANS = [
-  { id: 'starter', label: 'A Little Bonkers', price: 149, badge: null, books: 8, swapBooks: 2, perBook: '18', weeklyNote: 'Up to 2 books each week' },
-  { id: 'mid', label: 'Quite Bonkers', price: 199, badge: 'MOST POPULAR', books: 16, swapBooks: 4, perBook: '12', weeklyNote: 'Up to 4 books each week' },
-  { id: 'full', label: 'Absolutely Bonkers', price: 249, badge: null, books: 24, swapBooks: 6, perBook: '10', weeklyNote: 'Up to 6 books each week' },
+  { id: 'mid', label: 'A Little Bonkers', price: 149, badge: null, books: 16, swapBooks: 4 },
+  { id: 'full', label: 'Quite Bonkers', price: 199, badge: null, books: 24, swapBooks: 6 },
 ]
 
 const COUNTRY_CODES = [
@@ -209,22 +209,25 @@ const COUNTRY_CODES = [
 ]
 
 const HOW_OPTIONS = [
-  { value: 'friend', label: 'A friend or family member', followUp: null },
-  { value: 'instagram', label: 'Instagram', followUp: null },
+  { value: 'friend', label: 'Family/Friends', followUp: null },
+  { value: 'instagram', label: 'Instagram/TikTok', followUp: null },
   { value: 'school', label: "My child's school", followUp: 'Which school?' },
-  { value: 'influencer', label: 'An influencer or blogger', followUp: 'Who was it?' },
-  { value: 'flyer', label: 'Flyer or poster', followUp: null },
-  { value: 'google', label: 'Google search', followUp: null },
+  { value: 'influencer', label: 'Influencer/Blogger', followUp: null },
+  { value: 'flyer', label: 'Flyer', followUp: null },
+  { value: 'google', label: 'Internet Search', followUp: null },
+  { value: 'ai', label: 'AI Search', followUp: null },
   { value: 'other', label: 'Other', followUp: 'Tell us more' },
 ]
 
-type CheckStep = 'check' | 'waitlist' | 'waitlist-done' | 'signup' | 'confirm-email'
+const STEP_CONFIG = [
+  { num: 1, label: 'Plan' },
+  { num: 2, label: 'Details' },
+  { num: 3, label: 'Delivery' },
+  { num: 4, label: 'Preferences' },
+  { num: 5, label: 'Payment' },
+]
 
-type Community = {
-  id: string
-  name: string
-  accepted_property_types: string[]
-}
+type CheckStep = 'map' | 'waitlist' | 'waitlist-done' | 'signup' | 'confirm-email'
 
 function SignupForm() {
   const router = useRouter()
@@ -232,825 +235,681 @@ function SignupForm() {
   const communityParam = params.get('community') || ''
   const typeParam = params.get('type') || ''
 
-  const [step, setStep] = useState<CheckStep>(
-    communityParam && typeParam ? 'signup' : 'check'
-  )
-  const [communities, setCommunities] = useState<Community[]>([])
-  const [checkForm, setCheckForm] = useState({
-    communityId: communityParam,
-    communityName: '',
-    propertyType: typeParam,
-  })
-  const [dropdownOpen, setDropdownOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const signupRef = useRef<HTMLDivElement>(null)
-
-  const [checkError, setCheckError] = useState('')
+  const [step, setStep] = useState<CheckStep>('signup')
+  const [currentStep, setCurrentStep] = useState<1|2|3|4|5>(1)
+  const [zones, setZones] = useState<Zone[]>([])
+  const [mapResult, setMapResult] = useState<MapResult | null>(null)
+  const [pinConfirmed, setPinConfirmed] = useState(false)
   const [waitlistForm, setWaitlistForm] = useState({ name: '', email: '' })
   const [waitlistLoading, setWaitlistLoading] = useState(false)
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [stepErrors, setStepErrors] = useState<Record<string, string>>({})
   const [showPassword, setShowPassword] = useState(false)
   const [isTablet, setIsTablet] = useState(false)
+
+  const [countrySearch, setCountrySearch] = useState('')
+  const [countryDropdownOpen, setCountryDropdownOpen] = useState(false)
+  const countryDropdownRef = useRef<HTMLDivElement>(null)
+
+  const [form, setForm] = useState({
+    firstName: '', lastName: '', phone: '', whatsapp: '',
+    whatsappCountryCode: '+971', email: '', password: '',
+    villaFlat: '', building: '', floor: '', street: '',
+    subCommunity: '', area: '', community: communityParam,
+    houseType: typeParam, city: 'Dubai', planId: 'mid',
+    deliveryPreference: '', hearAboutUs: '', hearDetail: '',
+    agreedToTerms: false, agreedToMarketing: false,
+    deliveryNotes: '', safeSpotDescription: '',
+  })
+
+  const set = (field: string, value: unknown) => setForm(f => ({ ...f, [field]: value }))
+  const selectedPlan = PLANS.find(p => p.id === form.planId)!
+  const selectedHowOption = HOW_OPTIONS.find(o => o.value === form.hearAboutUs)
+
   useEffect(() => {
     const check = () => setIsTablet(window.innerWidth >= 768)
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
-  const [countrySearch, setCountrySearch] = useState('')
-  const [countryDropdownOpen, setCountryDropdownOpen] = useState(false)
-  const countryDropdownRef = useRef<HTMLDivElement>(null)
-
-  const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
-    phone: '',
-    whatsapp: '',
-    whatsappCountryCode: '+971',
-    email: '',
-    password: '',
-    villaFlat: '',
-    building: '',
-    floor: '',
-    street: '',
-    subCommunity: '',
-    area: '',
-    community: communityParam,
-    houseType: typeParam,
-    city: 'Dubai',
-    planId: 'mid',
-    deliveryPreference: '',
-    hearAboutUs: '',
-    hearDetail: '',
-    agreedToTerms: false,
-    agreedToMarketing: false,
-    deliveryNotes: '',
-    safeSpotDescription: '',
-  })
-
-  const set = (field: string, value: unknown) => setForm(f => ({ ...f, [field]: value }))
-
-  const selectedPlan = PLANS.find(p => p.id === form.planId)!
-  const selectedHowOption = HOW_OPTIONS.find(o => o.value === form.hearAboutUs)
 
   useEffect(() => {
-    supabase.from('communities').select('id, name, accepted_property_types').eq('is_active', true).order('name')
-      .then(({ data }) => {
-        if (data) {
-          setCommunities(data)
-          if (communityParam) {
-            const found = data.find(c => c.id === communityParam)
-            if (found) setCheckForm(f => ({ ...f, communityName: found.name }))
-          }
-        }
-      })
+    supabase.from('zones').select('id, name, bonkers_day, polygon')
+      .then(({ data }) => { if (data) setZones(data) })
   }, [])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setDropdownOpen(false)
-      }
       if (countryDropdownRef.current && !countryDropdownRef.current.contains(e.target as Node)) {
-        setCountryDropdownOpen(false)
-        setCountrySearch('')
+        setCountryDropdownOpen(false); setCountrySearch('')
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleCheck = () => {
-    if (!checkForm.communityId) { setCheckError('Please select your community.'); return }
-    if (!checkForm.propertyType) { setCheckError('Please select your home type.'); return }
-    setCheckError('')
-    const community = communities.find(c => c.id === checkForm.communityId)
-    if (!community) return
-    const acceptedTypes = community.accepted_property_types || []
-    if (acceptedTypes.includes(checkForm.propertyType)) {
-      setForm(f => ({ ...f, community: checkForm.communityId, houseType: checkForm.propertyType }))
-      setStep('signup')
-      const colors = ['#f06595', '#cc5de8', '#74c0fc', '#f9ce71', '#e599f7', '#66d9e8', '#ffd43b', '#f783ac']
-      confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 }, colors })
-    } else {
-      setWaitlistForm({ name: '', email: '' })
-      setStep('waitlist')
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
+  const handleMapProceed = (result: MapResult) => {
+    setMapResult(result)
+  }
+
+  const handleMapOutOfArea = (result: MapResult) => {
+    setMapResult(result)
+    setWaitlistForm({ name: '', email: '' })
+    setStep('waitlist')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleWaitlist = async (e: React.FormEvent) => {
     e.preventDefault()
     setWaitlistLoading(true)
     await supabase.from('waitlist_signup').insert({
-      email: waitlistForm.email,
-      name: waitlistForm.name,
-      community_name: checkForm.communityName,
-      property_type: checkForm.propertyType,
-      interest_level: 3,
-      phone: null,
-      address: null,
-      children_count: null,
-      children_ages: null,
+      email: waitlistForm.email, name: waitlistForm.name,
+      community_name: mapResult?.address.area || null,
+      property_type: null,
+      interest_level: 3, phone: null,
+      address: mapResult?.address.fullText || null,
+      children_count: null, children_ages: null,
     })
     setWaitlistLoading(false)
     setStep('waitlist-done')
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-
-    const errors: Record<string, string> = {}
-    const phoneDigits = form.phone.replace(/\s/g, '')
-    if (!/^05\d{8}$/.test(phoneDigits)) errors.phone = 'Please enter a valid UAE mobile number (05XXXXXXXX).'
-    if (form.password.length < 8) errors.password = 'Password must be at least 8 characters.'
-    if (!form.agreedToTerms) errors.terms = 'Please agree to the Terms & Conditions to continue.'
-
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors)
-      const firstKey = Object.keys(errors)[0]
-      document.getElementById(`field-${firstKey}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      return
+  const validateAndNext = () => {
+    const errs: Record<string, string> = {}
+    if (currentStep === 2) {
+      if (!form.firstName.trim()) errs.firstName = 'Required'
+      if (!form.lastName.trim()) errs.lastName = 'Required'
+      if (!form.email.trim()) errs.email = 'Required'
+      if (form.password.length < 8) errs.password = 'At least 8 characters'
+      if (!/^05\d{8}$/.test(form.phone.replace(/\s/g, ''))) errs.phone = 'Valid UAE number (05XXXXXXXX)'
     }
-    setFieldErrors({})
+    if (currentStep === 3 && !pinConfirmed) {
+      errs.mapPin = 'Please confirm your location on the map before continuing.'
+    }
+    if (currentStep === 3 && !form.houseType) {
+      errs.houseType = 'Please select Villa or Flat'
+    }
+    if (currentStep === 3 && form.houseType === 'apartment' && !form.building.trim()) {
+      errs.building = 'Building name is required for flats'
+    }
+    if (currentStep === 4 && !form.deliveryPreference) {
+      errs.deliveryPreference = 'Please choose a delivery option'
+    }
+    setStepErrors(errs)
+    if (Object.keys(errs).length > 0) return
+    setCurrentStep(s => (s + 1) as 1|2|3|4|5)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const goBack = () => {
+    setStepErrors({})
+    if (currentStep === 3) { setPinConfirmed(false); setMapResult(null) }
+    setCurrentStep(s => (s - 1) as 1|2|3|4|5)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleFinalSubmit = async () => {
+    setError('')
+    const errs: Record<string, string> = {}
+    if (!form.agreedToTerms) errs.terms = 'Please agree to the Terms & Conditions to continue.'
+    setStepErrors(errs)
+    if (Object.keys(errs).length > 0) return
+
     setLoading(true)
-
     const redirectTo = `${window.location.origin}/auth/callback?next=/dashboard`
-
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
+      email: form.email, password: form.password,
       options: { emailRedirectTo: redirectTo },
     })
-
     if (signUpError || !authData.user) {
       setError(signUpError?.message ?? 'Something went wrong. Please try again.')
-      window.scrollTo({ top: 0, behavior: 'smooth' })
       setLoading(false)
       return
     }
 
     const whatsappFull = `${form.whatsappCountryCode}${form.whatsapp.replace(/^0/, '')}`
     const selectedPlanData = PLANS.find(p => p.id === form.planId)
-
     const res = await fetch('/api/create-household', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        userId: authData.user.id,
-        planLabel: selectedPlanData?.label ?? null,
-        first_name: form.firstName,
-        last_name: form.lastName,
-        mobile_phone: form.phone,
-        whatsapp_number: whatsappFull,
-        community_id: form.community || null,
-        property_type: form.houseType || null,
-        building: form.building || null,
-        floor: form.floor || null,
-        street: form.street || null,
-        sub_community: form.subCommunity || null,
-        area: form.area || null,
-        delivery_preference: form.deliveryPreference || null,
-        delivery_notes: form.deliveryNotes || null,
-        safe_spot_description: form.safeSpotDescription || null,
-        signup_source_category: form.hearAboutUs || null,
-        signup_source_sub_detail: form.hearDetail || null,
-        agreed_to_marketing: form.agreedToMarketing,
-        terms_accepted_at: new Date().toISOString(),
+        userId: authData.user.id, planLabel: selectedPlanData?.label ?? null,
+        first_name: form.firstName, last_name: form.lastName,
+        mobile_phone: form.phone, whatsapp_number: whatsappFull,
+        community_id: form.community || null, property_type: form.houseType || null,
+        building: form.building || null, villa_flat: form.villaFlat || null,
+        street: form.street || null, sub_community: form.subCommunity || null,
+        area: form.area || null, delivery_preference: form.deliveryPreference || null,
+        delivery_notes: form.deliveryNotes || null, safe_spot_description: form.safeSpotDescription || null,
+        signup_source_category: form.hearAboutUs || null, signup_source_sub_detail: form.hearDetail || null,
+        agreed_to_marketing: form.agreedToMarketing, terms_accepted_at: new Date().toISOString(),
         account_status: 'active',
+        latitude: mapResult?.lat ?? null, longitude: mapResult?.lng ?? null,
+        signup_zone_id: mapResult?.zoneId ?? null, bonkers_day: mapResult?.bonkersDay ?? null,
+        service_status: 'active',
       }),
     })
-
     const result = await res.json()
-
     if (!res.ok) {
       setError(result.error ?? 'Something went wrong saving your details. Please try again.')
-      window.scrollTo({ top: 0, behavior: 'smooth' })
       setLoading(false)
       return
     }
-
     setLoading(false)
-
-    // If email confirmation is disabled, session is available immediately
     if (authData.session) {
       router.push('/dashboard')
     } else {
-      // Email confirmation required — show check-your-email screen
       setStep('confirm-email')
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
-  const inputClass = "w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-[#fcf7eb] text-[#1a0a00]"
+  const cardInputClass = "w-full border border-[#ddd6cc] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white text-[#1a2744] font-[var(--font-montserrat)]"
+  const labelStyle: React.CSSProperties = { fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#1a2f51', marginBottom: '4px', display: 'block' }
+
+  const ContinueButton = ({ onClick, label = 'Continue', navy = false }: { onClick: () => void; label?: string; navy?: boolean }) => (
+    <button type="button" onClick={onClick}
+      style={{ backgroundImage: navy ? 'none' : 'url(/button2.png)', backgroundSize: '300% 300%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: navy ? '#1a2f51' : 'transparent', border: 'none', borderRadius: '999px', padding: '18px 56px', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 500, fontSize: '0.9rem', letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '10px', minWidth: '220px', justifyContent: 'center', color: 'white' }}>
+      {label}
+    </button>
+  )
+
+  const BackButton = ({ onClick }: { onClick: () => void }) => (
+    <button type="button" onClick={onClick}
+      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1a2f51', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '12px' }}>
+      ← Back
+    </button>
+  )
+
+  const SectionHeading = ({ title, subtitle }: { stepNum?: number; title: string; subtitle: string }) => (
+    <div style={{ marginBottom: '28px' }}>
+      <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2.8rem' : '2rem', fontWeight: 800, lineHeight: 1.05, margin: '0 0 8px' }}>{title}</h1>
+      {subtitle && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.9rem', margin: 0 }}>{subtitle}</p>}
+    </div>
+  )
 
   return (
-    <main className="min-h-screen" style={{ position: 'relative', backgroundColor: '#080402', backgroundImage: 'url(/Background_3.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
-      <div style={{ position: 'absolute', top: '20px', left: '20px', lineHeight: 1 }}>
-        <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#eddbc3', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
-        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.5rem', color: '#eddbc3', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0' }}>
-          THE CHILDREN'S LIBRARY
-        </p>
+    <>
+    <main style={{ minHeight: '100svh', position: 'relative', backgroundColor: '#fefaf2' }}>
+
+      {/* Header */}
+      <div style={{ padding: isTablet ? '20px 32px 10px' : '16px 20px 8px', position: 'relative', zIndex: 2, lineHeight: 1 }}>
+        <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#1a2744', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
+        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.58rem', color: '#1a2744', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0', lineHeight: 1.4 }}>THE CHILDREN'S LIBRARY</p>
       </div>
-      <div className="mx-auto" style={{ paddingTop: '120px', paddingBottom: '40px', paddingLeft: isTablet ? '44px' : '16px', paddingRight: isTablet ? '44px' : '16px' }}>
 
-        {/* â"€â"€ CHECK STEP â"€â"€ */}
-        {(step === 'check' || step === 'signup') && (
-          <div className="flex flex-col items-center text-center w-full pb-6" style={{ maxWidth: isTablet ? '100%' : '480px', margin: '0 auto' }}>
-            {step === 'signup' ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{ position: 'relative', width: '360px', marginTop: '-40px' }}>
-                  <img src="/bonky_sign.png" alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
-                  <div style={{ position: 'absolute', top: '46%', left: '51%', transform: 'translateX(-50%)', width: '54%', height: '22%', overflow: 'hidden', textAlign: 'center' }}>
-                    <p style={{ position: 'absolute', top: '8px', left: 0, right: 0, fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '1.25rem', color: '#080402', margin: 0, lineHeight: 1.2, letterSpacing: '0.02em' }}>We deliver to</p>
-                    <p style={{ position: 'absolute', top: '36px', left: 0, right: 0, fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '1.15rem', color: '#080402', margin: 0, lineHeight: 1.1, letterSpacing: '0.02em', wordBreak: 'break-word' }}>{checkForm.communityName}</p>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '24px' }}>
-                  <img src="/whiskers_left.png" alt="" style={{ height: '28px', width: 'auto', pointerEvents: 'none' }} />
-                  <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, color: '#eddbc3', fontSize: '1.8rem', letterSpacing: '0.04em', margin: 0, lineHeight: 1 }}>Just a few details</p>
-                  <img src="/whiskers_right.png" alt="" style={{ height: '28px', width: 'auto', pointerEvents: 'none' }} />
-                </div>
-                <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: 'clamp(2.4rem, 8vw, 3.5rem)', fontWeight: 700, lineHeight: 1.1, margin: '8px 0 0', textAlign: 'center' }}>
-                  Let&apos;s get you started.
-                </h2>
-                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.78rem', opacity: 0.7, margin: '10px 0 0', textAlign: 'center' }}>
-                  Create your account and choose a plan below.
-                </p>
-              </div>
-            ) : (
-              <>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '4px' }}>
-              <img src="/whiskers_left.png" alt="" style={{ height: '32px', width: 'auto', pointerEvents: 'none' }} />
-              <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, color: '#eddbc3', fontSize: '1.8rem', letterSpacing: '0.04em', margin: 0, lineHeight: 1 }}>
-                First things first!
-              </p>
-              <img src="/whiskers_right.png" alt="" style={{ height: '32px', width: 'auto', pointerEvents: 'none' }} />
-            </div>
-            <h2 className="font-black mb-2" style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '2.4rem', lineHeight: '1.1', marginTop: isTablet ? '48px' : '12px' }}>
-              Do we deliver to your neighbourhood?
-            </h2>
-
-
-            {/* Community dropdown */}
-            <div ref={dropdownRef} style={{ position: 'relative', width: isTablet ? '55%' : '85%', marginBottom: '8px', marginTop: isTablet ? '100px' : '56px' }}>
-              <img src="/bonky_peeking.png" alt="" style={{ position: 'absolute', top: isTablet ? '-72px' : '-40px', left: '50%', transform: 'translateX(-50%)', height: isTablet ? '88px' : '50px', width: 'auto', zIndex: 10, pointerEvents: 'none' }} />
-              <button type="button" onClick={() => setDropdownOpen(o => !o)}
-                style={{ width: '100%', backgroundColor: '#fcf7eb', border: 'none', borderRadius: '12px', fontFamily: 'var(--font-nunito), sans-serif', fontSize: '1.1rem', cursor: 'pointer', textAlign: 'center', padding: isTablet ? '14px 2rem 14px 1rem' : '14px 2.5rem 14px 1rem', color: checkForm.communityId ? '#1a1a1a' : '#3d3d3d', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {checkForm.communityName || 'Select your community...'}
-                <svg style={{ position: 'absolute', right: '1rem', top: '50%', transform: dropdownOpen ? 'translateY(-50%) rotate(180deg)' : 'translateY(-50%)', transition: 'transform 0.2s', pointerEvents: 'none' }} width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1L6 7L11 1" stroke="#555" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </button>
-              {dropdownOpen && (
-                <div style={{ position: 'absolute', top: '100%', left: '0', right: '0', backgroundColor: '#fcf7eb', borderRadius: '12px', zIndex: 50, marginTop: '4px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
-                  <div onClick={() => { setCheckForm(f => ({ ...f, communityId: '', communityName: '', propertyType: '' })); setDropdownOpen(false) }}
-                    style={{ padding: '12px 20px', fontFamily: 'var(--font-nunito), sans-serif', fontSize: '1.1rem', cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.08)', color: '#3d3d3d' }}
-                    className="hover:bg-[#fcf7eb] transition-colors">
-                    Select your community...
-                  </div>
-                  {communities.map(c => (
-                    <div key={c.id}
-                      onClick={() => { setCheckForm(f => ({ ...f, communityId: c.id, communityName: c.name })); setDropdownOpen(false) }}
-                      style={{ padding: '12px 20px', fontFamily: 'var(--font-nunito), sans-serif', fontSize: '1.1rem', cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.08)', color: '#1a1a1a' }}
-                      className="hover:bg-[#fcf7eb] transition-colors">
-                      {c.name}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            {/* Property type */}
-            <label style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.5rem', marginBottom: '8px', marginTop: isTablet ? '60px' : '20px' }}>
-              And your home type?
-            </label>
-            <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', width: isTablet ? '40%' : '80%', marginBottom: '32px', marginTop: isTablet ? '24px' : '10px' }}>
-              {[{ value: 'villa', label: 'Villa', img: '/villa.png' }, { value: 'apartment', label: 'Apartment', img: '/apartment.png' }].map(opt => (
-                <button key={opt.value} type="button"
-                  onClick={() => setCheckForm(f => ({ ...f, propertyType: opt.value }))}
-                  style={{ background: 'transparent', border: `1.5px solid ${checkForm.propertyType === opt.value ? '#f9ce71' : 'rgba(237,219,195,0.3)'}`, borderRadius: '12px', cursor: 'pointer', padding: '10px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', flex: 1, transition: 'border-color 0.15s' }}>
-                  <div style={{ height: isTablet ? '100px' : '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <img src={opt.img} alt={opt.label} style={{ width: isTablet ? '90px' : '52px', height: isTablet ? '90px' : '52px', objectFit: 'contain' }} />
-                  </div>
-                  <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.78rem', fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{opt.label}</p>
-                </button>
-              ))}
-            </div>
-
-            {/* Check button */}
-            {(() => {
-              const disabled = !checkForm.communityId || !checkForm.propertyType
-              return (
-                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginTop: isTablet ? '60px' : '20px', opacity: disabled ? 0.4 : 1, transition: 'opacity 0.2s' }}>
-                  <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', left: '-36px', height: '48px', width: 'auto', zIndex: 1, pointerEvents: 'none', filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
-                  <button type="button" onClick={handleCheck} disabled={disabled}
-                    style={{ backgroundImage: 'url(/button2.png)', backgroundSize: '300% 300%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: 'transparent', border: 'none', borderRadius: '999px', cursor: disabled ? 'not-allowed' : 'pointer', padding: '14px 32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.85rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      Check Area
-                      <img src="/magicwand.png" alt="" style={{ height: '18px', width: 'auto' }} />
-                    </span>
-                  </button>
-                  <img src="/whiskers_right.png" alt="" style={{ position: 'absolute', right: '-36px', height: '48px', width: 'auto', zIndex: 1, pointerEvents: 'none', filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
-                </div>
-              )
-            })()}
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.9rem', color: '#eddbc3', marginTop: '20px', opacity: 0.8 }}>
-              Can&apos;t find your community?<br />
-              <button type="button" onClick={() => setStep('waitlist')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#eddbc3', textDecoration: 'none', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.9rem', padding: 0 }}>
-                <span style={{ borderBottom: '2px solid #f9ce71', paddingBottom: '1px' }}>Join our waitlist</span>
-              </button>
-            </p>
-              </>
+      {/* Step progress bar â€" only shown in signup flow */}
+      {step === 'signup' && (
+        <div style={{ padding: `0 ${isTablet ? '60px' : '16px'}`, maxWidth: isTablet ? '680px' : '440px', margin: `${isTablet ? '-6px' : '24px'} auto ${isTablet ? '16px' : '10px'}`, marginLeft: isTablet ? 'auto' : '24px', position: 'relative', zIndex: 2 }}>
+          {/* Circles + lines row */}
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+            {currentStep < 5 && (
+              <img
+                src="/book_walking.png"
+                alt=""
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: currentStep === 1 ? (isTablet ? '9%' : '11%') : currentStep === 2 ? (isTablet ? '34%' : '36%') : currentStep === 3 ? (isTablet ? '57%' : '59%') : (isTablet ? '80%' : '82%'),
+                  transform: 'translate(-15%, -90%)',
+                  width: isTablet ? '100px' : '38px',
+                  height: 'auto',
+                  pointerEvents: 'none',
+                  zIndex: 3,
+                  transition: 'left 0.4s ease',
+                }}
+              />
             )}
-          </div>
-        )}
-
-        {/* â"€â"€ WAITLIST STEP â"€â"€ */}
-        {step === 'waitlist' && (
-          <div className="flex flex-col items-center text-center w-full pb-6" style={{ maxWidth: isTablet ? '100%' : '480px', margin: '0 auto' }}>
-            <h1 className="font-black mb-2" style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '2.2rem', lineHeight: '1.1', marginTop: '-16px' }}>
-              Bonkers hasn&apos;t reached your area...<span style={{ color: '#ebb34d' }}>yet!</span>
-            </h1>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.95rem', opacity: 0.85, marginTop: '12px', marginBottom: '28px', lineHeight: 1.6 }}>
-              Our map grows a little bigger every month. Leave your details and we&apos;ll let you know the moment Bonkers arrives in your neighbourhood.
-            </p>
-
-            <img src="/map_bonkers.png" alt="" className="w-full h-auto" style={{ marginBottom: '28px' }} />
-
-            <form onSubmit={handleWaitlist} className="flex flex-col gap-4 w-full" style={{ maxWidth: '360px', textAlign: 'left' }}>
-              <div className="flex flex-col gap-1">
-                <label style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#eddbc3' }}>Your Name</label>
-                <input type="text" placeholder=""
-                  value={waitlistForm.name}
-                  onChange={e => setWaitlistForm(f => ({ ...f, name: e.target.value }))}
-                  className={inputClass} />
+            {STEP_CONFIG.map((s, i) => (
+              <div key={s.num} style={{ display: 'flex', alignItems: 'center', flex: i < 4 ? 1 : 'none' }}>
+                <div onClick={currentStep > s.num ? () => setCurrentStep(s.num) : undefined} style={{ width: isTablet ? '42px' : '32px', height: isTablet ? '42px' : '32px', borderRadius: '50%', border: '2px solid #1a2f51', backgroundColor: currentStep >= s.num ? '#1a2f51' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s', cursor: currentStep > s.num ? 'pointer' : 'default' }}>
+                  {currentStep > s.num ? (
+                    <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5L4 7.5L10 1" stroke="#fefaf2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  ) : (
+                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.85rem' : '0.7rem', fontWeight: 700, color: currentStep === s.num ? '#fefaf2' : '#1a2f51' }}>{s.num}</span>
+                  )}
+                </div>
+                {i < 4 && (
+                  <div style={{ flex: 1, height: '3px', backgroundColor: '#1a2f51', opacity: currentStep >= s.num ? 1 : 0.25, minWidth: '24px', transition: 'opacity 0.3s' }} />
+                )}
               </div>
-              <div className="flex flex-col gap-1">
-                <label style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#eddbc3' }}>Email Address</label>
-                <input type="email" required placeholder=""
-                  value={waitlistForm.email}
-                  onChange={e => setWaitlistForm(f => ({ ...f, email: e.target.value }))}
-                  className={inputClass} />
+            ))}
+          </div>
+          {/* Labels row */}
+          <div style={{ display: 'flex', marginTop: '5px', height: isTablet ? '28px' : '24px' }}>
+            {STEP_CONFIG.map((s, i) => (
+              <div key={s.num} style={{ display: 'flex', alignItems: 'flex-start', flex: i < 4 ? 1 : 'none' }}>
+                <div style={{ width: isTablet ? '42px' : '32px', flexShrink: 0, position: 'relative', height: isTablet ? '28px' : '24px' }}>
+                  <span style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: isTablet ? '64px' : '50px', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.6rem' : '0.5rem', fontWeight: currentStep === s.num ? 700 : 400, color: '#1a2f51', textAlign: 'center', whiteSpace: 'normal', letterSpacing: '0.02em', lineHeight: 1.2 }}>{s.label}</span>
+                </div>
+                {i < 4 && <div style={{ flex: 1 }} />}
               </div>
-
-              <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginTop: '8px', opacity: waitlistLoading ? 0.7 : 1, transition: 'opacity 0.2s' }}>
-                <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', left: '-36px', height: '48px', width: 'auto', zIndex: 1, pointerEvents: 'none', filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
-                <button type="submit" disabled={waitlistLoading}
-                  style={{ backgroundImage: 'url(/button2.png)', backgroundSize: '300% 300%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: 'transparent', border: 'none', borderRadius: '999px', cursor: waitlistLoading ? 'not-allowed' : 'pointer', padding: '14px 32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                  <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.85rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#fff', whiteSpace: 'nowrap' }}>
-                    {waitlistLoading ? 'Joining...' : 'Join the Waitlist'}
-                  </span>
-                </button>
-                <img src="/whiskers_right.png" alt="" style={{ position: 'absolute', right: '-36px', height: '48px', width: 'auto', zIndex: 1, pointerEvents: 'none', filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
-              </div>
-            </form>
-
-            <button onClick={() => { setStep('check'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-              style={{ color: '#eddbc3', opacity: 0.6, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', marginTop: '24px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              
-←
- Go back
-            </button>
+            ))}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* â"€â"€ WAITLIST DONE â"€â"€ */}
-        {step === 'waitlist-done' && (
-          <div className="flex flex-col items-center text-center w-full pb-6" style={{ maxWidth: isTablet ? '100%' : '480px', margin: '0 auto' }}>
-            <h1 className="font-black mb-4" style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '2.4rem', lineHeight: '1.1', marginTop: '-16px' }}>
-              You&apos;re on the list!
-            </h1>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.95rem', opacity: 0.85, lineHeight: 1.6 }}>
-              We&apos;ll let you know the moment Bonkers lands in your area. Please wait patiently.<br /><br />Or impatiently. Dramatic sighing is permitted.
-            </p>
-            <img src="/bonky_waiting.png" alt="" style={{ width: '100%', maxWidth: '260px', height: 'auto', marginTop: '24px', pointerEvents: 'none' }} />
-          </div>
-        )}
 
-        {/* ── CONFIRM EMAIL ── */}
-        {step === 'confirm-email' && (
-          <div className="flex flex-col items-center text-center w-full pb-6" style={{ maxWidth: isTablet ? '100%' : '480px', margin: '0 auto' }}>
-            <div style={{ fontSize: 'clamp(2.4rem, 8vw, 3.5rem)', marginBottom: '16px' }}>📬</div>
-            <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '2.4rem', fontWeight: 700, lineHeight: 1.1, margin: '0 0 12px' }}>
-              Check your email!
-            </h1>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.9rem', opacity: 0.75, lineHeight: 1.7, margin: '0 0 8px' }}>
-              We've sent a confirmation link to <span style={{ color: '#f9d174', fontWeight: 600 }}>{form.email}</span>.
-            </p>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.85rem', opacity: 0.55, lineHeight: 1.6, margin: 0 }}>
-              Click the link in the email to activate your account and you'll land straight in your Bonkers dashboard. Check your spam folder if it doesn't arrive within a minute.
-            </p>
-          </div>
-        )}
+      {/* â"€â"€ WAITLIST â"€â"€ */}
+      {step === 'waitlist' && (
+        <div style={{ maxWidth: '480px', margin: '0 auto', padding: '0 24px 60px', textAlign: 'center' }}>
+          <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '2.2rem', fontWeight: 700, lineHeight: 1.1 }}>Bonkers hasn&apos;t reached your area...<span style={{ color: '#ebb34d' }}>yet!</span></h1>
+          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.9rem', opacity: 0.85, lineHeight: 1.6, margin: '12px 0 24px' }}>Our map grows a little bigger every month. Leave your details and we&apos;ll let you know the moment Bonkers arrives in your neighbourhood.</p>
+          <img src="/map_bonkers.png" alt="" style={{ width: '100%', height: 'auto', marginBottom: '24px' }} />
+          <form onSubmit={handleWaitlist} style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '360px', margin: '0 auto', textAlign: 'left' }}>
+            <div><label style={labelStyle}>Your Name</label><input type="text" value={waitlistForm.name} onChange={e => setWaitlistForm(f => ({ ...f, name: e.target.value }))} className={cardInputClass} /></div>
+            <div><label style={labelStyle}>Email Address</label><input type="email" required value={waitlistForm.email} onChange={e => setWaitlistForm(f => ({ ...f, email: e.target.value }))} className={cardInputClass} /></div>
+            <div style={{ textAlign: 'center' }}>
+              <button type="submit" disabled={waitlistLoading}
+                style={{ backgroundImage: 'url(/button2.png)', backgroundSize: '300% 300%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: 'transparent', border: 'none', borderRadius: '999px', cursor: 'pointer', padding: '14px 32px' }}>
+                <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.85rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#fff', whiteSpace: 'nowrap' }}>
+                  {waitlistLoading ? 'Joining...' : 'Join the Waitlist'}
+                </span>
+              </button>
+            </div>
+          </form>
+          <button onClick={() => setStep('map')} style={{ color: '#1a2f51', opacity: 0.6, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', marginTop: '20px', background: 'none', border: 'none', cursor: 'pointer' }}>← Go back</button>
+        </div>
+      )}
 
-        {/* ── SIGNUP FORM ── */}
-        {step === 'signup' && (
-          <div ref={signupRef}>
+      {/* â"€â"€ WAITLIST DONE â"€â"€ */}
+      {step === 'waitlist-done' && (
+        <div style={{ maxWidth: '480px', margin: '0 auto', padding: '0 24px 60px', textAlign: 'center' }}>
+          <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '2.4rem', fontWeight: 700, lineHeight: 1.1 }}>You&apos;re on the list!</h1>
+          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.95rem', opacity: 0.85, lineHeight: 1.6, marginTop: '12px' }}>
+            We&apos;ll let you know the moment Bonkers lands in your area. Please wait patiently.<br /><br />Or impatiently. Dramatic sighing is permitted.
+          </p>
+          <img src="/bonky_waiting.png" alt="" style={{ width: '100%', maxWidth: '260px', height: 'auto', marginTop: '24px' }} />
+        </div>
+      )}
+
+      {/* â"€â"€ CONFIRM EMAIL â"€â"€ */}
+      {step === 'confirm-email' && (
+        <div style={{ maxWidth: '480px', margin: '0 auto', padding: '0 24px 60px', textAlign: 'center' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '16px' }}>ðŸ"¬</div>
+          <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '2.4rem', fontWeight: 700, lineHeight: 1.1, margin: '0 0 12px' }}>Check your email!</h1>
+          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.9rem', opacity: 0.75, lineHeight: 1.7 }}>
+            We&apos;ve sent a confirmation link to <span style={{ color: '#f9d174', fontWeight: 600 }}>{form.email}</span>.
+          </p>
+          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.85rem', opacity: 0.55, lineHeight: 1.6 }}>
+            Click the link to activate your account and you&apos;ll land straight in your Bonkers dashboard. Check your spam folder if it doesn&apos;t arrive within a minute.
+          </p>
+        </div>
+      )}
+
+      {/* â"€â"€ 5-STEP SIGNUP CARD â"€â"€ */}
+      {step === 'signup' && (
+        <div style={{ padding: isTablet ? '32px 8px 60px' : '6px 0 60px', position: 'relative', zIndex: isTablet ? 2 : currentStep === 3 ? undefined : 2 }}>
+          <div style={{ maxWidth: isTablet ? '900px' : '100%', margin: '0 auto', padding: isTablet ? '24px 52px 52px' : '8px 12px 40px', position: 'relative' }}>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl px-4 py-3 text-sm mb-6">
+              <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: '12px', padding: '12px 16px', fontSize: '0.875rem', marginBottom: '20px', fontFamily: 'var(--font-montserrat), sans-serif' }}>
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-8">
+            {/* â"€â"€ STEP 1: YOUR PLAN â"€â"€ */}
+            {currentStep === 1 && (
+              <div>
+                <SectionHeading title="Choose your Bonkers membership" subtitle="" />
 
-              {/* ACCOUNT DETAILS */}
-              <section className="flex flex-col gap-4" style={{ marginTop: '16px' }}>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1">
-                    <label style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#eddbc3' }}>First Name</label>
-                    <input type="text" placeholder=""
-                      value={form.firstName} onChange={e => set('firstName', e.target.value)}
-                      className={inputClass} />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#eddbc3' }}>Last Name</label>
-                    <input type="text" placeholder=""
-                      value={form.lastName} onChange={e => set('lastName', e.target.value)}
-                      className={inputClass} />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#eddbc3' }}>Email Address</label>
-                  <input type="email" placeholder=""
-                    value={form.email} onChange={e => set('email', e.target.value)}
-                    className={inputClass} />
-                </div>
-                <div id="field-password" className="flex flex-col gap-1">
-                  <label style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#eddbc3' }}>Password</label>
-                  <div className="relative">
-                    <input type={showPassword ? 'text' : 'password'} placeholder=""
-                      value={form.password} onChange={e => { set('password', e.target.value); setFieldErrors(prev => ({ ...prev, password: '' })) }}
-                      className={`${inputClass} pr-16`} />
-                    <button type="button" onClick={() => setShowPassword(v => !v)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">
-                      {showPassword ? 'Hide' : 'Show'}
-                    </button>
-                  </div>
-                  {fieldErrors.password && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#e57451', fontSize: '0.95rem', marginTop: '4px', paddingLeft: '4px' }}>{fieldErrors.password}</p>}
-                </div>
-<div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', marginTop: '50px', marginBottom: '50px' }}>
-                  <img src="/underline_divider.png" alt="" style={{ width: '100%', height: 'auto', transform: 'scaleY(2)', transformOrigin: 'center' }} />
-                  <img src="/star_button_on.png" alt="" style={{ position: 'absolute', width: '20px', height: '20px', transform: 'translateY(-4px)' }} />
-                </div>
-              </section>
-
-              {/* CHOOSE YOUR PLAN */}
-              <section style={{ marginTop: '-32px' }}>
-                <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-                  <div className="flex items-center justify-center gap-2">
-                    <img src="/whiskers_left.png" alt="" style={{ height: '28px', width: 'auto', pointerEvents: 'none' }} />
-                    <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, color: '#eddbc3', fontSize: '1.5rem', letterSpacing: '0.04em', margin: '0 0 6px', lineHeight: 1 }}>How Bonkers Are You?</p>
-                    <img src="/whiskers_right.png" alt="" style={{ height: '28px', width: 'auto', pointerEvents: 'none' }} />
-                  </div>
-                  <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: 'clamp(2.4rem, 8vw, 3.5rem)', fontWeight: 700, lineHeight: 1.1, margin: '6px 0 0' }}>Choose your plan.</h2>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'row', gap: '12px', alignItems: 'stretch' }}>
-                  {PLANS.map((plan, i) => {
-                    const bookImg = ['/books_2a.png', '/books_4a.png', '/books_6a.png'][i]
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: isTablet ? '16px' : '10px' }}>
+                  {PLANS.map((plan) => {
                     const selected = form.planId === plan.id
                     return (
                       <div key={plan.id} onClick={() => set('planId', plan.id)}
-                        style={{ position: 'relative', flex: 1, backgroundColor: 'transparent', borderColor: selected ? '#f9d174' : 'rgba(237,219,195,0.25)', borderWidth: '2px', borderStyle: 'solid', borderRadius: '16px', padding: '16px 8px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', textAlign: 'center' }}>
+                        style={{ width: '100%', backgroundColor: selected ? '#fffef9' : 'transparent', border: `${selected ? '4px' : '2px'} solid ${selected ? '#fee297' : '#e8e0d4'}`, borderRadius: '16px', padding: isTablet ? '20px 16px 24px' : '14px 8px 18px', cursor: 'pointer', textAlign: 'center', position: 'relative', transition: 'all 0.15s', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflow: 'hidden', zoom: 0.9 }}>
                         {plan.badge && (
-                          <span style={{ position: 'absolute', top: '-14px', left: '4px', right: '4px', textAlign: 'center', backgroundColor: '#f5c047', color: '#374151', fontSize: '1.15rem', fontWeight: 700, padding: '1px 6px', borderRadius: '12px', fontFamily: 'var(--font-amatic)', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
-                            Most Popular
-                          </span>
+                          <span style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#f5c047', color: '#1a2744', fontSize: isTablet ? '0.62rem' : '0.55rem', fontWeight: 700, padding: '2px 10px', borderRadius: '999px', fontFamily: 'var(--font-montserrat), sans-serif', whiteSpace: 'nowrap', letterSpacing: '0.04em' }}>MOST POPULAR</span>
                         )}
-                        <span style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#eddbc3', fontSize: '1.25rem', lineHeight: 1.2 }}>{plan.label}</span>
-                        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', marginTop: '20px', fontSize: '0.9rem', color: '#eddbc3', lineHeight: 1.3 }}>{plan.swapBooks} books<br />at a time</span>
-                        <div style={{ height: '100px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', marginBottom: '10px', marginTop: '8px' }}>
-                          <img src={bookImg} alt="" style={{ maxHeight: '100px', width: 'auto', objectFit: 'contain' }} />
+                        <img src={selected ? '/star_yellow.png' : '/star_cream.png'} alt="" style={{ position: 'absolute', bottom: '8px', left: '8px', width: selected ? (isTablet ? '64px' : '32px') : (isTablet ? '46px' : '24px'), height: 'auto', objectFit: 'contain', pointerEvents: 'none' }} />
+<p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2rem' : '1.5rem', fontWeight: 700, margin: '0 0 10px', lineHeight: 1 }}>{plan.label}</p>
+                        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '1rem' : '0.85rem', fontWeight: 500, margin: '8px 0 12px', lineHeight: 1 }}>{plan.swapBooks} books at a time</p>
+                        <div style={{ borderTop: '1px solid #e8e0d4', paddingTop: '12px' }}>
+                          <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2.4rem' : '1.9rem', fontWeight: 800, margin: 0, lineHeight: 1 }}>
+                            <span style={{ fontSize: isTablet ? '1.6rem' : '1.3rem', fontWeight: 600 }}>AED </span>{plan.price}
+                          </p>
+                          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '0.85rem' : '0.75rem', margin: '2px 0 0' }}>/ month</p>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%', paddingLeft: '12px' }}>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                            <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.72rem', color: '#eddbc3' }}>Up to</span>
-                            <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '1.6rem', fontWeight: 900, color: '#eddbc3', lineHeight: 1 }}>{plan.books}</span>
-                          </div>
-                          <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.72rem', color: '#eddbc3' }}>books/month*</span>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 'auto', paddingTop: '24px' }}>
-                          <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '2rem', fontWeight: 900, color: '#eddbc3', lineHeight: 1 }}><span style={{ fontSize: '0.75rem', fontWeight: 600 }}>AED </span>{plan.price}</span>
-                          <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.6rem', color: '#eddbc3', letterSpacing: '0.05em', opacity: 0.8 }}>/month</span>
+                        <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'center' }}>
+                          {['Weekly deliveries', 'No late fees', 'Cancel anytime'].map(item => (
+                            <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5L4 7.5L10 1" stroke="#1a2f51" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.85rem' : '0.72rem', color: '#1a2f51', fontWeight: 500 }}>{item}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )
                   })}
                 </div>
-                <p style={{ color: '#eddbc3', fontSize: '0.82rem', fontFamily: 'var(--font-montserrat), sans-serif', marginTop: '10px', opacity: 0.9 }}>*Based on choosing new books each week</p>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', marginTop: '50px', marginBottom: '0px' }}>
-                  <img src="/underline_divider.png" alt="" style={{ width: '100%', height: 'auto', transform: 'scaleY(2)', transformOrigin: 'center' }} />
-                  <img src="/star_button_on.png" alt="" style={{ position: 'absolute', width: '20px', height: '20px', transform: 'translateY(-4px)' }} />
-                </div>
-              </section>
 
-              {/* 4. DELIVERY ADDRESS */}
-              <section className="flex flex-col gap-4">
-                <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                  <div className="flex items-center justify-center gap-2">
-                    <img src="/whiskers_left.png" alt="" style={{ height: '28px', width: 'auto', pointerEvents: 'none' }} />
-                    <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, color: '#eddbc3', fontSize: '1.5rem', letterSpacing: '0.04em', margin: '0 0 6px', lineHeight: 1 }}>Where should the books go?</p>
-                    <img src="/whiskers_right.png" alt="" style={{ height: '28px', width: 'auto', pointerEvents: 'none' }} />
-                  </div>
-                  <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: 'clamp(2.4rem, 8vw, 3.5rem)', fontWeight: 700, lineHeight: 1.1, margin: '6px 0 0' }}>Your delivery details.</h2>
+                <div style={{ marginTop: '28px', textAlign: 'center' }}>
+                  <ContinueButton onClick={validateAndNext} label="Next" navy />
                 </div>
-                {/* Location pill */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginTop: '-4px', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(237,219,195,0.1)', border: '1px solid rgba(237,219,195,0.25)', borderRadius: '999px', padding: '6px 16px' }}>
-                    <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M7 0C3.13 0 0 3.13 0 7c0 5.25 7 11 7 11s7-5.75 7-11c0-3.87-3.13-7-7-7zm0 9.5C5.62 9.5 4.5 8.38 4.5 7S5.62 4.5 7 4.5 9.5 5.62 9.5 7 8.38 9.5 7 9.5z" fill="#e8533a"/>
-                    </svg>
-                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#eddbc3', fontWeight: 500 }}>
-                      {checkForm.communityName || 'Your community'}{checkForm.propertyType ? ` · ${checkForm.propertyType.charAt(0).toUpperCase() + checkForm.propertyType.slice(1)}` : ''}
-                    </span>
-                  </div>
-                  <button type="button" onClick={() => setStep('check')}
-                    style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#eddbc3', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textDecorationColor: '#f9d174', textDecorationThickness: '2px', textUnderlineOffset: '3px', padding: 0 }}>
-                    Change
-                  </button>
-                </div>
-                {form.houseType === 'apartment' ? (
-                  <div className="flex gap-3">
-                    <div className="flex flex-col gap-1" style={{ flex: 1 }}>
-                      <label style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#eddbc3' }}>Apartment Number</label>
-                      <input type="text" placeholder="" value={form.villaFlat} onChange={e => set('villaFlat', e.target.value)} className={inputClass} />
+
+              </div>
+            )}
+
+            {/* â"€â"€ STEP 2: ABOUT YOU â"€â"€ */}
+            {currentStep === 2 && (
+              <div>
+                <SectionHeading stepNum={2} title="Tell Us About Yourself" subtitle="" />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={labelStyle}>First Name</label>
+                      <input type="text" value={form.firstName} onChange={e => { set('firstName', e.target.value); setStepErrors(p => ({ ...p, firstName: '' })) }} className={cardInputClass} />
+                      {stepErrors.firstName && <p style={{ color: '#e05c3a', fontSize: '0.72rem', margin: '4px 0 0', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.firstName}</p>}
                     </div>
-                    <div className="flex flex-col gap-1" style={{ flex: 1 }}>
-                      <label style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#eddbc3' }}>Building Name</label>
-                      <input type="text" placeholder="" value={form.building} onChange={e => set('building', e.target.value)} className={inputClass} />
+                    <div>
+                      <label style={labelStyle}>Last Name</label>
+                      <input type="text" value={form.lastName} onChange={e => { set('lastName', e.target.value); setStepErrors(p => ({ ...p, lastName: '' })) }} className={cardInputClass} />
+                      {stepErrors.lastName && <p style={{ color: '#e05c3a', fontSize: '0.72rem', margin: '4px 0 0', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.lastName}</p>}
                     </div>
                   </div>
-                ) : (
-                  <div className="flex flex-col gap-1">
-                    <label style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#eddbc3' }}>Villa Name or Number</label>
-                    <input type="text" placeholder="" value={form.villaFlat} onChange={e => set('villaFlat', e.target.value)} className={inputClass} />
+                  <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '3fr 2fr' : '1fr', gap: '12px' }}>
+                    <div>
+                      <label style={labelStyle}>Email Address</label>
+                      <input type="email" value={form.email} onChange={e => { set('email', e.target.value); setStepErrors(p => ({ ...p, email: '' })) }} className={cardInputClass} />
+                      {stepErrors.email && <p style={{ color: '#e05c3a', fontSize: '0.72rem', margin: '4px 0 0', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.email}</p>}
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Password</label>
+                      <div style={{ position: 'relative' }}>
+                        <input type={showPassword ? 'text' : 'password'} value={form.password} onChange={e => { set('password', e.target.value); setStepErrors(p => ({ ...p, password: '' })) }} className={cardInputClass} style={{ paddingRight: '64px' }} />
+                        <button type="button" onClick={() => setShowPassword(v => !v)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#1a2f51', display: 'flex', alignItems: 'center' }}>
+                          {showPassword ? (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                          ) : (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                          )}
+                        </button>
+                      </div>
+                      {stepErrors.password && <p style={{ color: '#e05c3a', fontSize: '0.72rem', margin: '4px 0 0', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.password}</p>}
+                    </div>
                   </div>
-                )}
-                <div className="flex flex-col gap-1">
-                  <label style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#eddbc3' }}>Street</label>
-                  <input type="text" placeholder="" value={form.street} onChange={e => set('street', e.target.value)} className={inputClass} />
-                </div>
-                <div className="flex gap-3 items-end">
-                  <div className="flex flex-col gap-1 flex-1">
-                    <label style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#eddbc3' }}>Sub-community<br /><span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.7 }}>(optional)</span></label>
-                    <input type="text" placeholder="" value={form.subCommunity} onChange={e => set('subCommunity', e.target.value)} className={inputClass} />
+                  <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr 1fr' : '1fr', gap: '12px' }}>
+                  <div>
+                    <label style={labelStyle}>Mobile Number</label>
+                    <input type="tel" placeholder="05XXXXXXXX" value={form.phone} onChange={e => { set('phone', e.target.value); set('whatsapp', e.target.value); setStepErrors(p => ({ ...p, phone: '' })) }} className={cardInputClass} />
+                    {stepErrors.phone && <p style={{ color: '#e05c3a', fontSize: '0.72rem', margin: '4px 0 0', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.phone}</p>}
                   </div>
-                  <div className="flex flex-col gap-1 flex-1">
-                    <label style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#eddbc3' }}>Area<br /><span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.7 }}>(optional)</span></label>
-                    <input type="text" placeholder="" value={form.area} onChange={e => set('area', e.target.value)} className={inputClass} />
+                  <div>
+                    <label style={labelStyle}>WhatsApp Number <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.6 }}>(if different)</span></label>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+                      <div ref={countryDropdownRef} style={{ position: 'relative', width: '120px', flexShrink: 0 }}>
+                        <button type="button" onClick={() => { setCountryDropdownOpen(o => !o); setCountrySearch('') }} className={cardInputClass}
+                          style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '0 8px' }}>
+                          <span style={{ fontSize: '0.82rem' }}>{COUNTRY_CODES.find(c => c.code === form.whatsappCountryCode)?.label ?? form.whatsappCountryCode}</span>
+                          <svg width="10" height="6" viewBox="0 0 12 8" fill="none" style={{ flexShrink: 0, transform: countryDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M1 1L6 7L11 1" stroke="#888" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        </button>
+                        {countryDropdownOpen && (
+                          <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, backgroundColor: 'white', border: '1px solid #ddd6cc', borderRadius: '12px', zIndex: 50, overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+                            <input type="text" placeholder="Search..." value={countrySearch} onChange={e => setCountrySearch(e.target.value)} autoFocus
+                              style={{ width: '100%', padding: '10px 12px', border: 'none', borderBottom: '1px solid #e5e7eb', outline: 'none', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', color: '#1a1a1a', boxSizing: 'border-box' }} />
+                            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                              {COUNTRY_CODES.filter(c => c.label.toLowerCase().includes(countrySearch.toLowerCase()) || c.code.includes(countrySearch)).map(c => (
+                                <button key={c.label} type="button" onClick={() => { set('whatsappCountryCode', c.code); setCountryDropdownOpen(false); setCountrySearch('') }}
+                                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 12px', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.82rem', color: '#1a1a1a', background: form.whatsappCountryCode === c.code ? '#fdf3e8' : 'transparent', border: 'none', cursor: 'pointer' }}>
+                                  {c.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <input type="tel" placeholder="e.g. 501234567" value={form.whatsapp} onChange={e => set('whatsapp', e.target.value)} className={cardInputClass} style={{ flex: 1 }} />
+                    </div>
+                  </div>
                   </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#eddbc3' }}>Delivery Notes <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.7 }}>(optional)</span></label>
-                  <input type="text" placeholder="e.g. gate code, beware tiny ferocious dog..." value={form.deliveryNotes} onChange={e => set('deliveryNotes', e.target.value)} className={inputClass} />
+
+                <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <ContinueButton onClick={validateAndNext} label="Next" navy />
+                  <BackButton onClick={goBack} />
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#eddbc3' }}>Mobile Number</label>
-                  <input type="tel" placeholder="05XXXXXXXX" value={form.phone} onChange={e => { set('phone', e.target.value); set('whatsapp', e.target.value) }} className={inputClass} />
-                  {fieldErrors.phone && <p style={{ color: '#f87171', fontSize: '0.75rem', marginTop: '2px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{fieldErrors.phone}</p>}
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#eddbc3' }}>WhatsApp Number <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.7 }}>(if different)</span></label>
-                  <div className="flex gap-2">
-                    <div ref={countryDropdownRef} style={{ position: 'relative', width: '130px', flexShrink: 0 }}>
-                      <button type="button" onClick={() => { setCountryDropdownOpen(o => !o); setCountrySearch('') }}
-                        className={inputClass}
-                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '12px 10px', border: '1px solid #d1d5db' }}>
-                        <span>{COUNTRY_CODES.find(c => c.code === form.whatsappCountryCode)?.label ?? form.whatsappCountryCode}</span>
-                        <svg width="10" height="6" viewBox="0 0 12 8" fill="none" style={{ flexShrink: 0, marginLeft: '4px', transform: countryDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M1 1L6 7L11 1" stroke="#888" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+            )}
+
+            {/* â"€â"€ STEP 3: DELIVERY DETAILS â"€â"€ */}
+            {currentStep === 3 && (
+              <div>
+                {/* Above image on mobile */}
+                <div style={{ position: isTablet ? undefined : 'relative', zIndex: isTablet ? undefined : 4 }}>
+                  <SectionHeading stepNum={3} title="Your Delivery Details" subtitle="" />
+
+                  {/* Map pin */}
+                  {/* Phase 1: map + confirm */}
+                  <div style={{ marginBottom: pinConfirmed ? '24px' : '0' }}>
+                    <label style={labelStyle}>Pin your home on the map</label>
+                    <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', color: '#1a2f51', opacity: 0.65, margin: '0 0 10px' }}>
+                      Your location is set automatically — drag the pin to your exact door, or search to move it.
+                    </p>
+                    <SignupMap zones={zones} onProceed={handleMapProceed} onOutOfArea={handleMapOutOfArea} />
+
+                    {!pinConfirmed && (
+                      <div style={{ marginTop: '12px' }}>
+                        {stepErrors.mapPin && (
+                          <p style={{ color: '#e05c3a', fontSize: '0.82rem', marginBottom: '10px', fontFamily: 'var(--font-montserrat), sans-serif', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            {stepErrors.mapPin}
+                          </p>
+                        )}
+                        <button
+                          type="button"
+                          disabled={!mapResult}
+                          onClick={() => { setPinConfirmed(true); setStepErrors(p => ({ ...p, mapPin: '' })); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                          style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', backgroundColor: mapResult ? '#1a2744' : '#ddd6cc', color: mapResult ? '#fefaf2' : '#aaa', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.88rem', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: mapResult ? 'pointer' : 'not-allowed', transition: 'background-color 0.2s' }}
+                        >
+                          {mapResult ? 'Confirm location →' : 'Waiting for pin…'}
+                        </button>
+                      </div>
+                    )}
+
+                    {pinConfirmed && (
+                      <button
+                        type="button"
+                        onClick={() => setPinConfirmed(false)}
+                        style={{ marginTop: '8px', background: 'none', border: 'none', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#54bdc0', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                      >
+                        ← Move pin
                       </button>
-                      {countryDropdownOpen && (
-                        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, backgroundColor: '#fcf7eb', border: '1px solid #d1d5db', borderRadius: '10px', zIndex: 50, overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}>
-                          <input
-                            type="text"
-                            placeholder="Search..."
-                            value={countrySearch}
-                            onChange={e => setCountrySearch(e.target.value)}
-                            autoFocus
-                            style={{ width: '100%', padding: '10px 12px', border: 'none', borderBottom: '1px solid #e5e7eb', outline: 'none', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', backgroundColor: '#fcf7eb', color: '#1a1a1a', boxSizing: 'border-box' }}
-                          />
-                          <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                            {COUNTRY_CODES.filter(c =>
-                              c.label.toLowerCase().includes(countrySearch.toLowerCase()) ||
-                              c.code.includes(countrySearch)
-                            ).map(c => (
-                              <button key={c.label} type="button"
-                                onClick={() => { set('whatsappCountryCode', c.code); setCountryDropdownOpen(false); setCountrySearch('') }}
-                                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 12px', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.82rem', color: '#1a1a1a', background: form.whatsappCountryCode === c.code ? '#f0e8d8' : 'transparent', border: 'none', cursor: 'pointer' }}>
-                                {c.label}
-                              </button>
-                            ))}
+                    )}
+                  </div>
+
+                  {/* Phase 2: address fields — shown only after pin confirmed */}
+                  {pinConfirmed && (
+                    <>
+                      {/* Villa / Flat toggle */}
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+                        {[{ value: 'villa', label: 'Villa' }, { value: 'apartment', label: 'Flat' }].map(opt => (
+                          <button key={opt.value} type="button"
+                            onClick={() => { set('houseType', opt.value); setStepErrors(p => ({ ...p, houseType: '' })) }}
+                            style={{ flex: 1, padding: '10px 0', borderRadius: '10px', border: `2px solid ${form.houseType === opt.value ? '#1a2744' : '#ddd6cc'}`, backgroundColor: form.houseType === opt.value ? '#1a2744' : '#fefaf2', color: form.houseType === opt.value ? '#fefaf2' : '#1a2744', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}>
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                      {stepErrors.houseType && <p style={{ color: '#e05c3a', fontSize: '0.78rem', marginTop: '-12px', marginBottom: '12px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.houseType}</p>}
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
+                          <div>
+                            <label style={labelStyle}>Villa / Flat Number</label>
+                            <input type="text" value={form.villaFlat} onChange={e => set('villaFlat', e.target.value)} className={cardInputClass} />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Building Name <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.6 }}>(flats only)</span></label>
+                            <input type="text" value={form.building} onChange={e => { set('building', e.target.value); setStepErrors(p => ({ ...p, building: '' })) }} className={cardInputClass} disabled={form.houseType !== 'apartment'} style={{ opacity: form.houseType !== 'apartment' ? 0.4 : 1 }} />
+                            {stepErrors.building && <p style={{ color: '#e05c3a', fontSize: '0.75rem', marginTop: '4px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.building}</p>}
                           </div>
                         </div>
-                      )}
-                    </div>
-                    <input type="tel" placeholder="e.g. 501234567" value={form.whatsapp} onChange={e => set('whatsapp', e.target.value)} className={inputClass} style={{ flex: 1 }} />
-                  </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
+                          <div>
+                            <label style={labelStyle}>Street <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.55 }}>(optional)</span></label>
+                            <input type="text" value={form.street} onChange={e => set('street', e.target.value)} placeholder="e.g. Street 12" className={cardInputClass} />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Sub-community <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.55 }}>(optional)</span></label>
+                            <input type="text" value={form.subCommunity} onChange={e => set('subCommunity', e.target.value)} placeholder="e.g. Saheel" className={cardInputClass} />
+                          </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
+                          <div>
+                            <label style={labelStyle}>Community / Area <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.55 }}>(optional)</span></label>
+                            <input type="text" value={form.area} onChange={e => set('area', e.target.value)} placeholder="e.g. Arabian Ranches" className={cardInputClass} />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Emirate</label>
+                            <input type="text" value="Dubai" readOnly disabled className={cardInputClass} style={{ cursor: 'not-allowed', opacity: 0.6 }} />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
-                {/* Location pin placeholder */}
-                <div style={{ position: 'relative', marginTop: '4px' }}>
-                  <button type="button" disabled
-                    style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'none', border: 'none', padding: 0, cursor: 'not-allowed', textAlign: 'left' }}>
-                    <svg width="18" height="22" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-                      <path d="M7 0C3.13 0 0 3.13 0 7c0 5.25 7 11 7 11s7-5.75 7-11c0-3.87-3.13-7-7-7zm0 9.5C5.62 9.5 4.5 8.38 4.5 7S5.62 4.5 7 4.5 9.5 5.62 9.5 7 8.38 9.5 7 9.5z" fill="#54bdc0"/>
-                    </svg>
-                    <div>
-                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', fontWeight: 600, color: '#54bdc0', textDecoration: 'underline', textDecorationThickness: '1.5px', textUnderlineOffset: '2px', margin: 0 }}>Add location pin <span style={{ fontWeight: 400, opacity: 0.8 }}>(optional)</span></p>
-                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', color: '#eddbc3', margin: '2px 0 0' }}>Helps our delivery team<br />find you easily.</p>
-                    </div>
-                  </button>
-                  <img src="/sign.png" alt="" style={{ position: 'absolute', right: '-24px', top: '-40px', height: '160px', width: 'auto', pointerEvents: 'none' }} />
-                </div>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', marginTop: '50px', marginBottom: '50px' }}>
-                  <img src="/underline_divider.png" alt="" style={{ width: '100%', height: 'auto', transform: 'scaleY(2)', transformOrigin: 'center' }} />
-                  <img src="/star_button_on.png" alt="" style={{ position: 'absolute', width: '20px', height: '20px', transform: 'translateY(-4px)' }} />
-                </div>
-              </section>
 
-              {/* 5. DELIVERY PREFERENCE */}
-              <section className="flex flex-col gap-4">
-                <div style={{ textAlign: 'center' }}>
-                  <div className="flex items-center justify-center gap-2">
-                    <img src="/whiskers_left.png" alt="" style={{ height: '28px', width: 'auto', pointerEvents: 'none' }} />
-                    <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, color: '#f9d174', fontSize: '1.5rem', letterSpacing: '0.04em', margin: '0 0 6px', lineHeight: 1 }}>The important stuff</p>
-                    <img src="/whiskers_right.png" alt="" style={{ height: '28px', width: 'auto', pointerEvents: 'none' }} />
+                {/* Delivery notes — only after pin confirmed */}
+                {pinConfirmed && (
+                  <div style={{ marginTop: '14px' }}>
+                    <label style={labelStyle}>Delivery Notes <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.6 }}>(optional)</span></label>
+                    <input type="text" placeholder="e.g. gate code, beware tiny ferocious dog..." value={form.deliveryNotes} onChange={e => set('deliveryNotes', e.target.value)} className={cardInputClass} />
                   </div>
-                  <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: 'clamp(2.4rem, 8vw, 3.5rem)', fontWeight: 700, lineHeight: 1.1, margin: '6px 0 0' }}>How should we deliver?</h2>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
+                )}
+
+                {/* Next/Back — only after pin confirmed */}
+                {pinConfirmed && (
+                  <div style={{ position: isTablet ? undefined : 'relative', zIndex: isTablet ? undefined : 4 }}>
+                    <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <ContinueButton onClick={validateAndNext} label="Next" navy />
+                      <BackButton onClick={goBack} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Back only — before pin confirmed */}
+                {!pinConfirmed && (
+                  <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
+                    <BackButton onClick={goBack} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* â"€â"€ STEP 4: HOW TO DELIVER â"€â"€ */}
+            {currentStep === 4 && (
+              <div>
+                <SectionHeading stepNum={4} title={'How should we deliver?'} subtitle={'Tell us your preference.'} />
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   {[
                     { value: 'leave_at_door', label: 'At the door', sub: 'Contactless' },
                     { value: 'leave_safe_spot', label: 'Safe spot', sub: 'Contactless' },
                     { value: 'ring_bell', label: 'Ring the bell', sub: "Someone's home" },
-                    { value: 'call_no_bell', label: "Call me", sub: "Don't ring bell" },
+                    { value: 'call_no_bell', label: 'Call me', sub: "Don't ring bell" },
                     { value: 'leave_with_reception', label: 'Reception', sub: 'Concierge' },
                   ].map(opt => (
-                    <button key={opt.value} type="button" onClick={() => set('deliveryPreference', opt.value)}
-                      className="flex flex-row items-center text-left px-3 py-3 rounded-xl transition-all border-[3px]"
-                      style={{
-                        borderColor: form.deliveryPreference === opt.value ? '#f9d174' : 'rgba(237,219,195,0.3)',
-                        backgroundColor: 'rgba(255,255,255,0.04)',
-                        gap: '10px',
-                      }}>
-                      <img src={form.deliveryPreference === opt.value ? '/star_button_on.png' : '/star_orangeoutline.png'} alt="" style={{ width: '22px', height: '22px', flexShrink: 0 }} />
+                    <button key={opt.value} type="button" onClick={() => { set('deliveryPreference', opt.value); setStepErrors(p => ({ ...p, deliveryPreference: '' })) }}
+                      style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', textAlign: 'left', padding: '14px 16px', borderRadius: '14px', border: (form.deliveryPreference === opt.value ? '4px solid #fee297' : '2px solid #e8e0d4'), backgroundColor: form.deliveryPreference === opt.value ? '#fffef9' : 'transparent', cursor: 'pointer', transition: 'all 0.15s' }}>
+                      <img src={form.deliveryPreference === opt.value ? '/star_yellow.png' : '/star_cream.png'} alt="" style={{ width: form.deliveryPreference === opt.value ? '32px' : '28px', height: form.deliveryPreference === opt.value ? '32px' : '28px', objectFit: 'contain', flexShrink: 0 }} />
                       <div>
-                        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.9rem', fontWeight: 600, display: 'block' }}>{opt.label}</span>
-                        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.75rem', opacity: 0.6, display: 'block', marginTop: '2px' }}>{opt.sub}</span>
+                        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 600, display: 'block' }}>{opt.label}</span>
+                        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.72rem', display: 'block', marginTop: '1px' }}>{opt.sub}</span>
                       </div>
                     </button>
                   ))}
                 </div>
+
+                {stepErrors.deliveryPreference && <p style={{ color: '#e05c3a', fontSize: '0.78rem', marginTop: '8px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.deliveryPreference}</p>}
+
                 {form.deliveryPreference === 'leave_safe_spot' && (
-                  <input type="text" placeholder="Describe the safe spot" className={inputClass}
-                    value={form.safeSpotDescription} onChange={e => set('safeSpotDescription', e.target.value)} />
+                  <div style={{ marginTop: '14px' }}>
+                    <label style={labelStyle}>Describe the safe spot</label>
+                    <input type="text" placeholder="e.g. behind the gate, under the mat..." value={form.safeSpotDescription} onChange={e => set('safeSpotDescription', e.target.value)} className={cardInputClass} />
+                  </div>
                 )}
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', marginTop: '50px', marginBottom: '50px' }}>
-                  <img src="/underline_divider.png" alt="" style={{ width: '100%', height: 'auto', transform: 'scaleY(2)', transformOrigin: 'center' }} />
-                  <img src="/star_button_on.png" alt="" style={{ position: 'absolute', width: '20px', height: '20px', transform: 'translateY(-4px)' }} />
-                  <img src="/bonky_delivering.png" alt="" style={{ position: 'absolute', right: '50px', bottom: '0', height: '100px', width: 'auto', pointerEvents: 'none', transform: 'translateY(-12%)' }} />
-                </div>
-              </section>
 
-              {/* REVIEW */}
-              <section className="flex flex-col gap-5">
-                <div style={{ textAlign: 'center' }}>
-                  <div className="flex items-center justify-center gap-2">
-                    <img src="/whiskers_left.png" alt="" style={{ height: '28px', width: 'auto', pointerEvents: 'none' }} />
-                    <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, color: '#eddbc3', fontSize: '1.5rem', letterSpacing: '0.04em', margin: '0 0 6px', lineHeight: 1 }}>One last look</p>
-                    <img src="/whiskers_right.png" alt="" style={{ height: '28px', width: 'auto', pointerEvents: 'none' }} />
-                  </div>
-                  <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: 'clamp(2.4rem, 8vw, 3.5rem)', fontWeight: 700, lineHeight: 1.1, margin: '6px 0 0' }}>Everything look right?</h2>
+                <div style={{ marginTop: '24px' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={form.agreedToMarketing} onChange={e => set('agreedToMarketing', e.target.checked)} style={{ marginTop: '3px', accentColor: '#e05c3a', width: '16px', height: '16px', flexShrink: 0 }} />
+                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.82rem', color: '#1a2f51', lineHeight: 1.5 }}>
+                      Send me Bonkers news, book recommendations and other brilliant nonsense. <span style={{ opacity: 0.55 }}>(optional)</span>
+                    </span>
+                  </label>
                 </div>
 
-                <div className="rounded-2xl" style={{ backgroundColor: '#fcf7eb', overflow: 'hidden', marginTop: '16px' }}>
-                  {/* Plan row */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px 20px', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
-                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.78rem', color: '#374151', width: '72px', flexShrink: 0, paddingTop: '2px' }}>Plan</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.85rem', color: '#1a1a1a', margin: 0 }}>{selectedPlan.label}</p>
-                        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.85rem', color: '#1a1a1a', margin: 0, whiteSpace: 'nowrap' }}>AED&nbsp;{selectedPlan.price}/month</p>
-                      </div>
-                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#6b7280', margin: '2px 0 0' }}>{selectedPlan.swapBooks} books at a time</p>
-                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#6b7280', margin: '1px 0 0' }}>Up to {selectedPlan.books} books/month</p>
-                      <button type="button" onClick={() => document.getElementById('plan-section')?.scrollIntoView({ behavior: 'smooth' })}
-                        style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: '4px 0 0', display: 'block', textAlign: 'right', width: '100%' }}>Edit</button>
-                    </div>
+                <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <ContinueButton onClick={validateAndNext} label="Next" navy />
+                  <BackButton onClick={goBack} />
+                </div>
+              </div>
+            )}
+
+
+            {/* â"€â"€ STEP 5: PAYMENT â"€â"€ */}
+            {currentStep === 5 && (
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <SectionHeading stepNum={5} title="Almost done!" subtitle="Complete your membership." />
+
+                {/* How did you hear */}
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={{ ...labelStyle, marginBottom: '10px', fontSize: isTablet ? '0.65rem' : '13px' }}>How did you hear about Bonkers?</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                    {HOW_OPTIONS.map(opt => {
+                      const selected = form.hearAboutUs === opt.value
+                      return (
+                        <button key={opt.value} type="button"
+                          onClick={() => { set('hearAboutUs', opt.value); set('hearDetail', '') }}
+                          style={{ display: 'inline-flex', flexDirection: 'row', alignItems: 'center', padding: isTablet ? '12px 16px' : '6px 10px', borderRadius: '14px', border: selected ? '4px solid #1a2f51' : '2px solid #e8e0d4', backgroundColor: selected ? '#1a2f51' : 'transparent', cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '20px' : '11px', fontWeight: selected ? 600 : 400, color: selected ? '#fefaf2' : '#1a2744', whiteSpace: 'nowrap' }}>
+                          {opt.label}
+                        </button>
+                      )
+                    })}
                   </div>
-                  {/* Delivery row */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px 20px', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
-                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.78rem', color: '#374151', width: '72px', flexShrink: 0, paddingTop: '2px' }}>Delivery</span>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.85rem', color: '#1a1a1a', margin: 0 }}>{checkForm.communityName}{form.villaFlat ? `, ${form.houseType === 'apartment' ? 'Apt' : 'Villa'} ${form.villaFlat}` : ''}</p>
-                      {form.street ? <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#6b7280', margin: '2px 0 0' }}>{form.street}</p> : null}
-                      <button type="button" onClick={() => document.getElementById('delivery-section')?.scrollIntoView({ behavior: 'smooth' })}
-                        style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: '4px 0 0', display: 'block', textAlign: 'right', width: '100%' }}>Edit</button>
+                  {selectedHowOption?.followUp && (
+                    <div style={{ marginTop: '10px' }}>
+                      <input type="text" placeholder={selectedHowOption.followUp} value={form.hearDetail} onChange={e => set('hearDetail', e.target.value)} className={cardInputClass} />
                     </div>
-                  </div>
-                  {/* Home type row */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px 20px', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
-                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.78rem', color: '#374151', width: '72px', flexShrink: 0, paddingTop: '2px' }}>Home type</span>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.85rem', color: '#1a1a1a', margin: 0, textTransform: 'capitalize' }}>{form.houseType || '—'}</p>
-                      <button type="button" onClick={() => setStep('check')}
-                        style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: '4px 0 0', display: 'block', textAlign: 'right', width: '100%' }}>Edit</button>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
-                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#eddbc3', textAlign: 'center', margin: '-4px 0 0' }}>Your membership renews monthly. Cancel anytime.</p>
+                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#1a2f51', margin: '0 0 16px' }}>Your membership renews monthly. Cancel anytime.</p>
 
-                <div id="field-terms" className="flex flex-col gap-3">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input type="checkbox" checked={form.agreedToTerms}
-                      onChange={e => { set('agreedToTerms', e.target.checked); setFieldErrors(prev => ({ ...prev, terms: '' })) }}
-                      className="accent-amber-500 mt-1" />
-                    <span className="text-sm" style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3' }}>
+                {/* Terms */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={form.agreedToTerms} onChange={e => { set('agreedToTerms', e.target.checked); setStepErrors(p => ({ ...p, terms: '' })) }} style={{ marginTop: '2px', accentColor: '#e05c3a', width: '16px', height: '16px', flexShrink: 0 }} />
+                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.82rem', color: '#1a2f51', lineHeight: 1.5 }}>
                       I agree to the Bonkers{' '}
-                      <span className="text-blue-400 underline cursor-pointer">Membership Rules</span>,{' '}
-                      <span className="text-blue-400 underline cursor-pointer">Terms &amp; Conditions</span>
-                      {', '}and{' '}
-                      <span className="text-blue-400 underline cursor-pointer">Privacy Policy</span>.
+                      <span style={{ color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer' }}>Membership Rules</span>,{' '}
+                      <span style={{ color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer' }}>Terms &amp; Conditions</span>{' '}and{' '}
+                      <span style={{ color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer' }}>Privacy Policy</span>.
                     </span>
                   </label>
-                  {fieldErrors.terms && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#e57451', fontSize: '0.95rem', marginTop: '-8px', paddingLeft: '28px' }}>{fieldErrors.terms}</p>}
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input type="checkbox" checked={form.agreedToMarketing}
-                      onChange={e => set('agreedToMarketing', e.target.checked)}
-                      className="accent-amber-500 mt-1" />
-                    <span className="text-sm" style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3' }}>
-                      Send me Bonkers news, book recommendations and other brilliant nonsense. <span style={{ opacity: 0.6 }}>(optional)</span>
-                    </span>
-                  </label>
+                  {stepErrors.terms && <p style={{ color: '#e05c3a', fontSize: '0.78rem', margin: '-4px 0 0 28px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.terms}</p>}
                 </div>
 
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', marginTop: '50px', marginBottom: '50px' }}>
-                  <img src="/underline_divider.png" alt="" style={{ width: '100%', height: 'auto', transform: 'scaleY(2)', transformOrigin: 'center' }} />
-                  <img src="/star_button_on.png" alt="" style={{ position: 'absolute', width: '20px', height: '20px', transform: 'translateY(-4px)' }} />
+                {/* Submit */}
+                <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <button type="button" onClick={handleFinalSubmit} disabled={loading}
+                    style={{ backgroundColor: loading ? '#ccc' : '#1a2f51', color: 'white', border: 'none', borderRadius: '999px', padding: '18px 56px', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.9rem', letterSpacing: '0.15em', textTransform: 'uppercase', cursor: loading ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '10px', minWidth: '220px', justifyContent: 'center', transition: 'background-color 0.2s' }}>
+                    {loading ? 'Setting up...' : <>Join Bonkers <img src="/magicwand.png" alt="" style={{ height: '18px', width: 'auto' }} /></>}
+                  </button>
+                  <BackButton onClick={goBack} />
                 </div>
-
-                <div style={{ textAlign: 'left' }}>
-                  <div className="flex items-center gap-2" style={{ marginLeft: 0 }}>
-                    <img src="/whiskers_left.png" alt="" style={{ height: '28px', width: 'auto', pointerEvents: 'none', flexShrink: 0 }} />
-                    <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, color: '#eddbc3', fontSize: '1.5rem', letterSpacing: '0.04em', margin: '0 0 6px', lineHeight: 1 }}>Almost Bonkers</p>
-                    <img src="/whiskers_right.png" alt="" style={{ height: '28px', width: 'auto', pointerEvents: 'none' }} />
-                  </div>
-                  <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: 'clamp(2.4rem, 8vw, 3.5rem)', fontWeight: 700, lineHeight: 1.1, margin: '6px 0 0', paddingLeft: '36px' }}>Payment</h2>
                 </div>
+            )}
 
-                <hr style={{ borderColor: '#eddbc3', opacity: 0.3 }} />
-
-                <div className="flex flex-col gap-3">
-                  <p className="font-black uppercase tracking-widest flex items-center gap-2" style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.2rem' }}>
-                    Payment Method
-                  </p>
-                  {[
-                    { value: 'card', label: 'Credit / Debit Card' },
-                    { value: 'apple', label: 'Apple Pay' },
-                    { value: 'tabby', label: 'Tabby - Buy now, pay later' },
-                  ].map(method => (
-                    <label key={method.value} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:border-amber-300 text-sm" style={{ backgroundColor: '#fcf7eb', border: '2px solid transparent' }}>
-                      <input type="radio" name="paymentMethod" value={method.value} defaultChecked={method.value === 'card'} className="accent-amber-500" />
-                      <span className="text-gray-700">{method.label}</span>
-                    </label>
-                  ))}
-                </div>
-
-
-                 <div className="flex flex-col items-center gap-3" style={{ marginTop: '8px' }}>
-                   <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', opacity: loading ? 0.7 : 1, transition: 'opacity 0.2s' }}>
-                     <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', left: '-36px', height: '48px', width: 'auto', zIndex: 1, pointerEvents: 'none', filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
-                     <button type="submit" disabled={loading}
-                       style={{ backgroundImage: 'url(/button2.png)', backgroundSize: '300% 300%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: 'transparent', border: 'none', borderRadius: '999px', cursor: loading ? 'not-allowed' : 'pointer', padding: '14px 32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                       <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.85rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#fff', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                         {loading ? 'Setting up...' : 'Join Bonkers'}
-                         {!loading && <img src="/magicwand.png" alt="" style={{ height: '18px', width: 'auto' }} />}
-                       </span>
-                     </button>
-                     <img src="/whiskers_right.png" alt="" style={{ position: 'absolute', right: '-36px', height: '48px', width: 'auto', zIndex: 1, pointerEvents: 'none', filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
-                   </div>
-                   <p className="text-center text-sm" style={{ color: '#eddbc3' }}>No commitment. Cancel anytime.</p>
-                 </div>
-
-              </section>
-
-            </form>
-
-            <div className="mt-6">
-              <p className="text-sm font-bold" style={{ color: '#eddbc3' }}>Questions? We&apos;re here to help!</p>
-              <p className="text-sm mt-1" style={{ color: '#eddbc3' }}>
-                WhatsApp us on +971 50 123 4567 or email{' '}
-                <span style={{ color: '#f9d174', textDecoration: 'underline' }}>hello@bonkers.ae</span>
-              </p>
-            </div>
           </div>
-        )}
+        </div>
+      )}
 
-      </div>
     </main>
+  </>
   )
 }
 
@@ -1061,6 +920,3 @@ export default function SignupPage() {
     </Suspense>
   )
 }
-
-
-
