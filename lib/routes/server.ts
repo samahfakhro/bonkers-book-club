@@ -154,10 +154,15 @@ export async function getRoute(routeId: string) {
 export async function reorderRoute(routeId: string, stopIds: string[]) {
   const { data: route } = await supabaseAdmin.from('routes').select('status').eq('id', routeId).single()
   if (route?.status !== 'draft') throw new Error('Only a draft route can be reordered — unlock it first')
-  for (let k = 0; k < stopIds.length; k++) {
-    const { error } = await supabaseAdmin.from('route_stops').update({ stop_order: k + 1 }).eq('id', stopIds[k]).eq('route_id', routeId)
-    if (error) throw error
-  }
+  // only re-save the stops whose number actually changed (a swap = 2), all at once
+  const { data: current } = await supabaseAdmin.from('route_stops').select('id, stop_order').eq('route_id', routeId)
+  const was = new Map((current || []).map(s => [s.id, s.stop_order]))
+  const results = await Promise.all(stopIds
+    .map((id, k) => ({ id, order: k + 1 }))
+    .filter(s => was.get(s.id) !== s.order)
+    .map(s => supabaseAdmin.from('route_stops').update({ stop_order: s.order }).eq('id', s.id).eq('route_id', routeId)))
+  const failed = results.find(r => r.error)
+  if (failed?.error) throw failed.error
   await supabaseAdmin.from('routes').update({ optimised_with: 'manual', updated_at: new Date().toISOString() }).eq('id', routeId)
 }
 

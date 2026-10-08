@@ -44,6 +44,7 @@ export default function RoutesPage() {
   const mapDiv = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
   const drawn = useRef<(google.maps.Marker | google.maps.Polyline)[]>([])
+  const saveQueue = useRef<Promise<unknown>>(Promise.resolve())
 
   const load = useCallback(async (d: string) => {
     setLoading(true)
@@ -88,13 +89,30 @@ export default function RoutesPage() {
     load(date)
   }
 
+  // Reorder instantly on screen (list, stop numbers, boxes and map), then save in the background
   const move = (index: number, dir: -1 | 1) => {
     if (!route) return
-    const ids = route.stops.map(s => s.id)
     const j = index + dir
-    if (j < 0 || j >= ids.length) return
-    ;[ids[index], ids[j]] = [ids[j], ids[index]]
-    act('reorder', ids)
+    if (j < 0 || j >= route.stops.length) return
+    const before = route
+    const stops = [...route.stops]
+    ;[stops[index], stops[j]] = [stops[j], stops[index]]
+    const code = route.zones?.code || 'Z?'
+    const renumbered = stops.map((s, k) => ({
+      ...s, stop_order: k + 1,
+      ref: `${code}-${String(k + 1).padStart(3, '0')}`,
+      box: String.fromCharCode(65 + Math.floor(k / 25)),
+    }))
+    setRoute({ ...route, stops: renumbered, optimised_with: 'manual' })
+    // saves queue one after another, so quick clicks can't arrive out of order
+    saveQueue.current = saveQueue.current.then(() => fetch(`/api/admin/routes/${route.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reorder', stopIds: renumbered.map(s => s.id) }) }))
+      .then(async res => {
+        if (res.ok) return
+        const body = await res.json().catch(() => ({}))
+        setRoute(before)
+        setMsg({ ok: false, text: `That move wasn’t saved: ${body.error || 'please try again'}` })
+      })
+      .catch(() => { setRoute(before); setMsg({ ok: false, text: 'That move wasn’t saved — check your connection and try again.' }) })
   }
 
   // ── Map of the open route ────────────────────────────────────────────────
@@ -119,6 +137,7 @@ export default function RoutesPage() {
         label: { text: String(s.stop_order), color: '#fff', fontSize: '11px', fontWeight: '700' },
         icon: { path: google.maps.SymbolPath.CIRCLE, scale: 11, fillColor: TYPE_COLOUR[s.stop_type] || '#555', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2 },
       }))
+      if (process.env.NODE_ENV === 'development') (window as any).__routeMap = { markers: () => drawn.current.filter(d => d instanceof google.maps.Marker).map(m => (m as google.maps.Marker).getTitle()) } // for automated testing only
       const b = new google.maps.LatLngBounds(start)
       pts.forEach(x => b.extend(x.p))
       if (pts.length) map.fitBounds(b, 50)
