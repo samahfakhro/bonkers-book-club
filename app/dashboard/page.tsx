@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { householdDeliveryDay } from '@/lib/delivery-day'
 
 type Book = {
   id: string
@@ -221,14 +222,15 @@ export default function DashboardPage() {
 
       const { data: hh } = await supabase
         .from('households')
-        .select('*, communities(swap_days, swap_cutoff_time)')
+        .select('*, zones(bonkers_day, cutoff_time)')
         .eq('user_id', user.id)
         .single()
 
       if (!hh) { router.push('/login'); return }
 
-      const swapDays = (hh as any).communities?.swap_days
-      const cutoffDay = Array.isArray(swapDays) ? swapDays[0] : (swapDays ?? 'tuesday')
+      // delivery day + cutoff come from the household's zone (empty until a day is set)
+      const { day: deliveryDay, cutoffTime: zoneCutoff } = householdDeliveryDay(hh)
+      const cutoffDay = deliveryDay ?? ''
 
       // Fetch plan books separately to avoid join failures
       const { data: subData } = await supabase
@@ -246,7 +248,7 @@ export default function DashboardPage() {
         plan_books: planBooks,
         swap_day: cutoffDay,
         swap_cutoff_day: cutoffDay,
-        swap_cutoff_time: (hh as any).communities?.swap_cutoff_time ?? '20:00',
+        swap_cutoff_time: zoneCutoff,
         avatar_id: (hh as any).avatar_id ?? null,
       })
 
@@ -424,7 +426,7 @@ export default function DashboardPage() {
     }
   }, [loading, searchParams])
 
-  const cutoffDay = member?.swap_cutoff_day ?? 'tuesday'
+  const cutoffDay = member?.swap_cutoff_day ?? ''
   const cutoffTime = member?.swap_cutoff_time ?? '20:00'
   const isBonkersToday = getNextBonkersDateParts(cutoffDay).isToday
   const cutoff = getNextCutoff(cutoffDay, cutoffTime)
@@ -601,8 +603,17 @@ export default function DashboardPage() {
           return (
             <div style={{ textAlign: 'center', marginBottom: '32px' }}>
               <p className="dash-heading-sm" style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#1a2f51', margin: '0 0 4px' }}>Your next Bonkers Day is</p>
+              {cutoffDay ? (
+            <>
               <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1.8rem', fontWeight: 700, lineHeight: 1, margin: '0 0 6px' }}>{isToday ? 'Today!' : `${dayName} ${dateStr}`}</p>
               {!isToday && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.72rem', color: '#1a2f51', opacity: 0.65, margin: 0 }}>Choose your books by {getChooseCutoffDay(cutoffDay)} at {formatCutoffTime(cutoffTime)}</p>}
+            </>
+          ) : (
+            <>
+              <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1.8rem', fontWeight: 700, lineHeight: 1, margin: '0 0 6px' }}>Coming soon</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.72rem', color: '#1a2f51', opacity: 0.65, margin: 0 }}>We’ll let you know your delivery day very soon.</p>
+            </>
+          )}
             </div>
           )
         })()}

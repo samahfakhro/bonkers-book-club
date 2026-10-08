@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { householdDeliveryDay } from '@/lib/delivery-day'
 import { useTapOnly } from '@/hooks/useTapOnly'
 
 function TapButton({ onTap, style, children }: { onTap: () => void; style?: React.CSSProperties; children: React.ReactNode }) {
@@ -193,7 +194,7 @@ export default function ChildProfilePage() {
   const [child, setChild] = useState<ChildProfile | null>(null)
   const [siblings, setSiblings] = useState<Sibling[]>([])
   const [planBooks, setPlanBooks] = useState(4)
-  const [swapDay, setSwapDay] = useState('tuesday')
+  const [swapDay, setSwapDay] = useState('')
   const [cutoffTime, setCutoffTime] = useState('20:00:00')
   const [currentLoans, setCurrentLoans] = useState<LoanItem[]>([])
   const [readBooks, setReadBooks] = useState<ReadBook[]>([])
@@ -248,7 +249,7 @@ export default function ChildProfilePage() {
 
       const [{ data: childData }, { data: hh }] = await Promise.all([
         supabase.from('child_profiles').select('id, name, nickname, avatar_id, date_of_birth, swap_permission, book_slot_allocation, books_read_count, reviews_count').eq('id', childId).single(),
-        supabase.from('households').select('*, communities(swap_days, swap_cutoff_time)').eq('user_id', user.id).single(),
+        supabase.from('households').select('*, zones(bonkers_day, cutoff_time)').eq('user_id', user.id).single(),
       ])
 
       if (!childData || !hh) { router.push('/dashboard'); return }
@@ -260,10 +261,10 @@ export default function ChildProfilePage() {
       if (av) setParentAvatar(av)
       setParentName((hh as any).first_name ?? null)
 
-      const swapDays = (hh as any).communities?.swap_days
-      const day = ((Array.isArray(swapDays) ? swapDays[0] : swapDays) ?? 'tuesday') as string
-      setSwapDay(day)
-      if ((hh as any).communities?.swap_cutoff_time) setCutoffTime((hh as any).communities.swap_cutoff_time)
+      // delivery day + cutoff come from the household's zone (empty until a day is set)
+      const { day, cutoffTime: zoneCutoff } = householdDeliveryDay(hh)
+      setSwapDay(day ?? '')
+      setCutoffTime(zoneCutoff)
 
       const { data: subData } = await supabase.from('subscriptions').select('subscription_plans(books_per_swap)').eq('household_id', hh.id).eq('status', 'active').maybeSingle()
       const plan = (subData as any)?.subscription_plans?.books_per_swap ?? 4
@@ -781,8 +782,17 @@ export default function ChildProfilePage() {
         <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '2.8rem', fontWeight: 700, lineHeight: 1, marginTop: '24px', marginBottom: '16px', textAlign: 'center' }}>Hello, {childName}!</h1>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#1a2f51', margin: '0 0 4px' }}>Your next Bonkers Day is</p>
-          <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1.8rem', fontWeight: 700, lineHeight: 1, margin: '0 0 6px' }}>{isToday ? 'Today!' : `${dayName} ${dateStr}`}</p>
-          {!isToday && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.72rem', color: '#1a2f51', opacity: 0.65, margin: 0 }}>Choose your books by {getChooseCutoffDay(swapDay)} at {formatCutoffTime(cutoffTime)}</p>}
+          {swapDay ? (
+            <>
+              <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1.8rem', fontWeight: 700, lineHeight: 1, margin: '0 0 6px' }}>{isToday ? 'Today!' : `${dayName} ${dateStr}`}</p>
+              {!isToday && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.72rem', color: '#1a2f51', opacity: 0.65, margin: 0 }}>Choose your books by {getChooseCutoffDay(swapDay)} at {formatCutoffTime(cutoffTime)}</p>}
+            </>
+          ) : (
+            <>
+              <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1.8rem', fontWeight: 700, lineHeight: 1, margin: '0 0 6px' }}>Coming soon</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.72rem', color: '#1a2f51', opacity: 0.65, margin: 0 }}>We’ll let you know your delivery day very soon.</p>
+            </>
+          )}
         </div>
 
         {character.slot === 'below-cutoff' && (
