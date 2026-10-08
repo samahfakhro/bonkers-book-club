@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { getRoute, weekdayOf } from '@/lib/routes/server'
-import { envelopeCode, familyCode } from '@/lib/routes/codes'
+import { weekdayOf } from '@/lib/routes/server'
+import { routeWithEnvelopes } from '@/lib/routes/envelopes'
 
 // GET ?routeId=…  → the route's stops in stop order, each with the children whose books go in this visit
 // GET (no routeId) → upcoming routes to choose from
@@ -17,59 +17,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ routes: data })
     }
 
-    const route = await getRoute(routeId)
-    const stopIds = route.stops.map(s => s.id)
-    const hhIds = route.stops.map(s => s.household_id)
-
-    const [{ data: requests }, { data: children }, { data: loans }] = await Promise.all([
-      stopIds.length ? supabaseAdmin.from('swap_requests').select('id, child_id, route_stop_id').in('route_stop_id', stopIds) : Promise.resolve({ data: [] as any[] }),
-      hhIds.length ? supabaseAdmin.from('child_profiles').select('id, household_id, name, last_name, created_at').in('household_id', hhIds).order('created_at') : Promise.resolve({ data: [] as any[] }),
-      stopIds.length ? supabaseAdmin.from('loans').select('id, collection_stop_id').in('collection_stop_id', stopIds) : Promise.resolve({ data: [] as any[] }),
-    ])
-    const requestIds = (requests || []).map(r => r.id)
-    const { data: items } = requestIds.length
-      ? await supabaseAdmin.from('swap_request_items').select('id, swap_request_id, book_id, books(id, title, author, cover_image_url)').in('swap_request_id', requestIds)
-      : { data: [] as any[] }
-
-    const bookIds = [...new Set((items || []).map(i => i.book_id).filter(Boolean))]
-    const shelf = new Map<string, string>()
-    if (bookIds.length) {
-      const { data: copies } = await supabaseAdmin.from('book_copies').select('book_id, shelf_location').in('book_id', bookIds).eq('status', 'available')
-      for (const c of copies || []) if (c.book_id && c.shelf_location && !shelf.has(c.book_id)) shelf.set(c.book_id, c.shelf_location)
-    }
-
-    // A child's number in the family is fixed by when they were added (1, 2, 3…)
-    const childNumber = new Map<string, number>()
-    for (const hhId of hhIds) (children || []).filter(c => c.household_id === hhId).forEach((c, i) => childNumber.set(c.id, i + 1))
-
-    const stops = route.stops.map(s => {
-      const reqs = (requests || []).filter(r => r.route_stop_id === s.id)
-      return {
-        ...s,
-        familyCode: familyCode(s.household_id),
-        collectCount: (loans || []).filter(l => l.collection_stop_id === s.id).length,
-        children: reqs.map(r => {
-          const child = (children || []).find(c => c.id === r.child_id)
-          const n = childNumber.get(r.child_id) ?? 1
-          return {
-            childId: r.child_id, requestId: r.id, number: n, envelopeCode: envelopeCode(s.household_id, n),
-            name: child?.name || 'Child', lastName: child?.last_name || '',
-            books: (items || []).filter(i => i.swap_request_id === r.id).map(i => ({
-              itemId: i.id, bookId: i.book_id, title: (i as any).books?.title || 'Unknown', author: (i as any).books?.author || null,
-              coverUrl: (i as any).books?.cover_image_url || null, shelfLocation: shelf.get(i.book_id) || null,
-            })),
-          }
-        }).filter(c => c.books.length > 0).sort((a, b) => a.number - b.number),
-      }
-    })
-    return NextResponse.json({ ...route, weekday: weekdayOf(route.route_date), stops })
+    const route = await routeWithEnvelopes(routeId)
+    return NextResponse.json({ ...route, weekday: weekdayOf(route.route_date) })
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Could not load packing' }, { status: 500 })
   }
 }
 
 // POST { action: 'scan', code }                       → which book copy this barcode is
-// POST { action: 'packed', stopId, copyIds }          → mark the visit packed (copies → packed)
+// POST { action: 'packed', stopId, packed: [{ itemId, copyId }] } → mark the visit packed; remember each envelope's copies
 // POST { action: 'unpack', stopId }                   → undo, back to "to pick"
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
@@ -87,8 +43,11 @@ export async function POST(req: NextRequest) {
     if ((stop.routes as any)?.status !== 'locked') return NextResponse.json({ error: 'Lock the route before packing, so stop numbers can’t change' }, { status: 400 })
 
     if (body.action === 'packed') {
-      const copyIds: string[] = Array.isArray(body.copyIds) ? body.copyIds : []
-      if (copyIds.length) await supabaseAdmin.from('book_copies').update({ status: 'packed' }).in('id', copyIds)
+      const packed: { itemId: string; copyId: string }[] = Array.isArray(body.packed) ? body.packed : []
+      if (packed.length) {
+        await supabaseAdmin.from('book_copies').update({ status: 'packed' }).in('id', packed.map(p => p.copyId))
+        await Promise.all(packed.map(p => supabaseAdmin.from('swap_request_items').update({ packed_copy_id: p.copyId }).eq('id', p.itemId)))
+      }
       await supabaseAdmin.from('route_stops').update({ status: 'packed', packed_at: new Date().toISOString() }).eq('id', body.stopId)
       return NextResponse.json({ ok: true })
     }

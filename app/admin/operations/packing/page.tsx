@@ -215,8 +215,8 @@ function Packing() {
 
   async function setPacked(stop: Stop, packed: boolean) {
     setMarking(p => ({ ...p, [stop.id]: true }))
-    const copyIds = stop.children.flatMap(c => c.books.map(b => scans[b.itemId]?.copyId)).filter(Boolean)
-    const res = await fetch('/api/admin/packing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: packed ? 'packed' : 'unpack', stopId: stop.id, copyIds }) })
+    const items = stop.children.flatMap(c => c.books).filter(b => scans[b.itemId]).map(b => ({ itemId: b.itemId, copyId: scans[b.itemId].copyId }))
+    const res = await fetch('/api/admin/packing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: packed ? 'packed' : 'unpack', stopId: stop.id, packed: items }) })
     const body = await res.json().catch(() => ({}))
     setMarking(p => ({ ...p, [stop.id]: false }))
     if (!res.ok) { setScanError(p => ({ ...p, [stop.id]: body.error || 'Could not save' })); return }
