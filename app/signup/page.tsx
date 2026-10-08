@@ -423,6 +423,7 @@ function SignupForm() {
     })
     const result = await res.json()
     if (res.status === 409 && result.waitlist) {
+      await supabase.auth.signOut() // the server removed the just-created login
       setLoading(false)
       return goToWaitlist()
     }

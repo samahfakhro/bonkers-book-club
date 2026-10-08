@@ -14,8 +14,115 @@ type Data = {
   books: { usable: number; borrowed: number; available: number }
   stages: Stage[]
   unknownAge: number
-  waitlist: { total: number; byZone: Count[]; byArea: Count[]; byReason: Count[] }
+  waitlist: { total: number; byZone: Count[]; byArea: Count[]; byReason: Count[]; invited: number; joinedAfterInvite: number; entries: WaitlistEntry[] }
   booksPerChildWarning: number
+}
+type WaitlistEntry = {
+  id: string; name: string | null; email: string; phone: string | null; address: string | null; community_name: string | null
+  zone: string | null; reason: string | null; status: string; created_at: string; invited_at: string | null; joined_at: string | null
+}
+
+const STATUS_STYLES: Record<string, [string, string]> = {
+  waiting: ['#fff8e6', '#7a5a00'], invited: ['#e8f0fe', '#1a56b0'], joined: ['#e6f6ec', '#1e7a3c'], removed: ['#f0f0f0', '#6b6b6b'],
+}
+
+const daysAgo = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000))
+
+function inviteMessage(e: WaitlistEntry) {
+  const first = (e.name ?? '').trim().split(' ')[0] || 'there'
+  const link = `${window.location.origin}/signup`
+  return `Hi ${first}! Good news — a Bonkers membership place has opened up in your area 🎉 You can join here: ${link}\n\nPlaces are limited, so we'd love to welcome you soon!`
+}
+
+// UAE mobile 05XXXXXXXX → 9715XXXXXXXX for WhatsApp links
+const whatsappNumber = (phone: string) => {
+  const d = phone.replace(/\D/g, '')
+  return d.startsWith('971') ? d : d.startsWith('0') ? '971' + d.slice(1) : d
+}
+
+function WaitlistTable({ entries, onAction }: { entries: WaitlistEntry[]; onAction: (id: string, action: string) => Promise<void> }) {
+  const [statusFilter, setStatusFilter] = useState('active')
+  const [zoneFilter, setZoneFilter] = useState('all')
+  const zones = [...new Set(entries.map(e => e.zone ?? 'No zone'))].sort()
+  const shown = entries.filter(e =>
+    (statusFilter === 'all' || (statusFilter === 'active' ? ['waiting', 'invited'].includes(e.status) : e.status === statusFilter)) &&
+    (zoneFilter === 'all' || (e.zone ?? 'No zone') === zoneFilter))
+
+  const invite = async (e: WaitlistEntry, via: 'whatsapp' | 'email') => {
+    const msg = inviteMessage(e)
+    const url = via === 'whatsapp'
+      ? `https://wa.me/${whatsappNumber(e.phone ?? '')}?text=${encodeURIComponent(msg)}`
+      : `mailto:${e.email}?subject=${encodeURIComponent('A Bonkers place is ready for you!')}&body=${encodeURIComponent(msg)}`
+    window.open(url, '_blank')
+    if (confirm(`Did you send the invite to ${e.name ?? e.email}? Press OK to mark them as Invited.`)) await onAction(e.id, 'invite')
+  }
+
+  const select: React.CSSProperties = { padding: '4px 8px', fontSize: '12px', border: '1px solid #d4d4d4', borderRadius: '6px', backgroundColor: '#fff', color: '#1a1a1a' }
+  const th: React.CSSProperties = { textAlign: 'left', padding: '6px 8px', fontSize: '11px', color: '#9b9b9b', fontWeight: 600, borderBottom: '1px solid #e5e5e5', whiteSpace: 'nowrap' }
+  const td: React.CSSProperties = { padding: '8px', fontSize: '12px', color: '#1a1a1a', borderBottom: '1px solid #f3f3f3', verticalAlign: 'top' }
+
+  return (
+    <div style={{ marginTop: '20px' }}>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
+        <p style={{ ...h2, margin: 0 }}>Families</p>
+        <select style={select} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <option value="active">Waiting + invited</option>
+          <option value="waiting">Waiting</option>
+          <option value="invited">Invited</option>
+          <option value="joined">Joined</option>
+          <option value="removed">Removed</option>
+          <option value="all">All</option>
+        </select>
+        <select style={select} value={zoneFilter} onChange={e => setZoneFilter(e.target.value)}>
+          <option value="all">All zones</option>
+          {zones.map(z => <option key={z} value={z}>{z}</option>)}
+        </select>
+        <span style={{ fontSize: '12px', color: '#9b9b9b' }}>{shown.length} shown · oldest first</span>
+      </div>
+      {shown.length === 0 ? <p style={{ margin: 0, fontSize: '12px', color: '#9b9b9b' }}>Nobody here</p> : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr>
+              <th style={th}>Family</th><th style={th}>Area / zone</th><th style={th}>Waiting</th><th style={th}>Reason</th><th style={th}>Status</th><th style={th}></th>
+            </tr></thead>
+            <tbody>
+              {shown.map(e => {
+                const [bg, color] = STATUS_STYLES[e.status] ?? STATUS_STYLES.removed
+                return (
+                  <tr key={e.id}>
+                    <td style={td}>
+                      <div style={{ fontWeight: 600 }}>{e.name || '—'}</div>
+                      <div style={{ color: '#6b6b6b' }}>{e.phone || 'no mobile'} · {e.email}</div>
+                    </td>
+                    <td style={td}>
+                      <div>{e.community_name || '—'}</div>
+                      <div style={{ color: '#6b6b6b' }}>{e.zone ?? 'No map pin'}</div>
+                    </td>
+                    <td style={{ ...td, whiteSpace: 'nowrap' }}>{daysAgo(e.created_at)} days</td>
+                    <td style={td}>{REASON_LABELS[e.reason ?? 'Unknown'] ?? e.reason}</td>
+                    <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                      <span style={badge(bg, color)}>{e.status.toUpperCase()}</span>
+                      {e.invited_at && <div style={{ color: '#6b6b6b', marginTop: '3px' }}>invited {daysAgo(e.invited_at)}d ago</div>}
+                    </td>
+                    <td style={{ ...td, whiteSpace: 'nowrap', textAlign: 'right' }}>
+                      {(e.status === 'waiting' || e.status === 'invited') && (
+                        <span style={{ display: 'inline-flex', gap: '6px' }}>
+                          {e.phone && <button style={smallBtn} onClick={() => invite(e, 'whatsapp')}>{e.status === 'invited' ? 'Re-invite' : 'Invite'} · WhatsApp</button>}
+                          <button style={smallBtn} onClick={() => invite(e, 'email')}>Email</button>
+                          <button style={{ ...smallBtn, color: '#c0392b' }} onClick={() => confirm(`Remove ${e.name ?? e.email} from the waitlist?`) && onAction(e.id, 'remove')}>Remove</button>
+                        </span>
+                      )}
+                      {e.status === 'removed' && <button style={smallBtn} onClick={() => onAction(e.id, 'restore')}>Put back</button>}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
 }
 
 const REASON_LABELS: Record<string, string> = {
@@ -223,12 +330,18 @@ export default function CapacityPage() {
           <h2 style={h2}>Waitlist</h2>
           <p style={{ margin: '0 0 14px', fontSize: '22px', fontWeight: 700, color: '#1a1a1a' }}>
             {waitlist.total} <span style={{ fontSize: '14px', color: '#9b9b9b', fontWeight: 500 }}>household{waitlist.total === 1 ? '' : 's'} waiting</span>
+            {waitlist.invited > 0 && (
+              <span style={{ fontSize: '13px', color: '#4a4a4a', fontWeight: 500, marginLeft: '14px' }}>
+                {waitlist.invited} invited · {waitlist.joinedAfterInvite} joined after invite ({Math.round(waitlist.joinedAfterInvite / waitlist.invited * 100)}%)
+              </span>
+            )}
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
             <div><p style={{ ...h2, marginBottom: '6px' }}>By area</p><CountList items={waitlist.byArea} /></div>
             <div><p style={{ ...h2, marginBottom: '6px' }}>By zone</p><CountList items={waitlist.byZone} /></div>
             <div><p style={{ ...h2, marginBottom: '6px' }}>By reason</p><CountList items={waitlist.byReason} labels={REASON_LABELS} /></div>
           </div>
+          <WaitlistTable entries={waitlist.entries} onAction={(id, action) => save({ type: 'waitlist', id, action })} />
         </div>
       </div>
     </div>

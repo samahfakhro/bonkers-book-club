@@ -36,7 +36,7 @@ export async function GET() {
     supabaseAdmin.from('book_reading_levels').select('book_id, reading_level_id'),
     supabaseAdmin.from('reading_levels').select('id, name, display_order').order('display_order'),
     supabaseAdmin.from('child_profiles').select('household_id, date_of_birth').eq('is_active', true),
-    supabaseAdmin.from('waitlist_signup').select('zone_id, community_name, reason, latitude').eq('status', 'waiting'),
+    supabaseAdmin.from('waitlist_signup').select('id, name, email, phone, address, community_name, zone_id, reason, status, latitude, created_at, invited_at, joined_at').order('created_at'),
   ])
   const failed = [settingsRes, zonesRes, householdsRes, copiesRes, booksRes, bookLevelsRes, levelsRes, childrenRes, waitlistRes].find(r => r.error)
   if (failed) return NextResponse.json({ error: failed.error!.message }, { status: 500 })
@@ -98,7 +98,9 @@ export async function GET() {
   }))
 
   // Waitlist demand
-  const waiting = waitlistRes.data!
+  const entries = waitlistRes.data!
+  // Demand = everyone not yet a member (waiting or invited)
+  const waiting = entries.filter(w => w.status === 'waiting' || w.status === 'invited')
   const zoneName = (id: string | null) => {
     const z = zones.find(z => z.id === id)
     return z ? `${z.name}${z.bonkers_day ? ` (${z.bonkers_day})` : ''}` : 'Outside all zones'
@@ -108,6 +110,9 @@ export async function GET() {
     byZone: countBy(waiting.map(w => w.latitude == null ? 'No map pin (older entry)' : zoneName(w.zone_id))),
     byArea: countBy(waiting.map(w => w.community_name)),
     byReason: countBy(waiting.map(w => w.reason)),
+    invited: entries.filter(w => w.invited_at).length,
+    joinedAfterInvite: entries.filter(w => w.invited_at && w.status === 'joined').length,
+    entries: entries.map(w => ({ ...w, zone: w.latitude == null ? null : zoneName(w.zone_id) })),
   }
 
   const booksPerChildWarning = parseCap(setting('stage_books_per_child_warning')) ?? DEFAULT_BOOKS_PER_CHILD_WARNING
@@ -152,6 +157,21 @@ export async function POST(req: NextRequest) {
     }
     if ('paused' in body) update.is_paused = !!body.paused
     const { error } = await supabaseAdmin.from('zones').update(update).eq('id', body.id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true })
+  }
+
+  // Waitlist: mark invited (after admin sends the WhatsApp/email themselves), remove, or put back
+  if (body.type === 'waitlist' && body.id) {
+    const now = new Date().toISOString()
+    const updates: Record<string, object> = {
+      invite: { status: 'invited', invited_at: now },
+      remove: { status: 'removed' },
+      restore: { status: 'waiting' },
+    }
+    const update = updates[body.action]
+    if (!update) return NextResponse.json({ error: 'Unknown waitlist action' }, { status: 400 })
+    const { error } = await supabaseAdmin.from('waitlist_signup').update(update).eq('id', body.id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ ok: true })
   }

@@ -17,7 +17,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter()
 
   return (
-    <div style={{
+    <div className="admin-root" style={{
       position: 'fixed', inset: 0, backgroundColor: '#ffffff', zIndex: 50,
       display: 'flex', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     }}>

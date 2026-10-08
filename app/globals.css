@@ -146,6 +146,11 @@ h1, h2, h3 {
   font-family: var(--font-patrick-hand), sans-serif;
 }
 
+/* Admin uses the plain system font throughout */
+.admin-root h1, .admin-root h2, .admin-root h3 {
+  font-family: inherit;
+}
+
 /* Google Places autocomplete dropdown */
 .pac-container {
   border: 1px solid #ddd6cc !important;
