@@ -59,8 +59,16 @@ export async function candidatesForZone(zoneId: string): Promise<Candidate[]> {
   if (rErr) throw rErr
   if (lErr) throw lErr
 
+  // a locked choice with no books in it is nothing to deliver
+  const reqIds = (requests || []).map(r => r.id)
+  const { data: items, error: iErr } = reqIds.length
+    ? await supabaseAdmin.from('swap_request_items').select('swap_request_id').in('swap_request_id', reqIds)
+    : { data: [] as { swap_request_id: string }[], error: null }
+  if (iErr) throw iErr
+  const withBooks = new Set((items || []).map(i => i.swap_request_id))
+
   return (households || []).map(h => {
-    const reqs = (requests || []).filter(r => r.household_id === h.id)
+    const reqs = (requests || []).filter(r => r.household_id === h.id && withBooks.has(r.id))
     const lns = (loans || []).filter(l => l.household_id === h.id)
     return {
       householdId: h.id,
