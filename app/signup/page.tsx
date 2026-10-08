@@ -241,8 +241,9 @@ function SignupForm() {
   const [zones, setZones] = useState<Zone[]>([])
   const [mapResult, setMapResult] = useState<MapResult | null>(null)
   const [pinConfirmed, setPinConfirmed] = useState(false)
-  const [waitlistForm, setWaitlistForm] = useState({ name: '', email: '' })
   const [waitlistLoading, setWaitlistLoading] = useState(false)
+  const [waitlistError, setWaitlistError] = useState('')
+  const [checkingPin, setCheckingPin] = useState(false)
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -298,31 +299,50 @@ function SignupForm() {
   // A pin in two zones means the zone setup is wrong — don't let them continue on a guessed day
   const canConfirmPin = !!mapResult && mapResult.areaStatus !== 'conflict'
 
-  const confirmPin = () => {
-    if (mapResult?.areaStatus === 'out') return goToWaitlist()
+  // Server decides (caps + pauses); any failure sends them to the waitlist
+  const canJoinAt = async (lat?: number, lng?: number) => {
+    try {
+      const res = await fetch('/api/membership/availability', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lng }),
+      })
+      return res.ok && (await res.json()).canJoin === true
+    } catch {
+      return false
+    }
+  }
+
+  const confirmPin = async () => {
+    setCheckingPin(true)
+    const ok = await canJoinAt(mapResult?.lat, mapResult?.lng)
+    setCheckingPin(false)
+    if (!ok) return goToWaitlist()
     setPinConfirmed(true)
     setStepErrors(p => ({ ...p, mapPin: '' }))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const goToWaitlist = () => {
-    setWaitlistForm({ name: '', email: '' })
+    setWaitlistError('')
     setStep('waitlist')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const handleWaitlist = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Details + pin were already collected — just save them
+  const handleWaitlist = async () => {
     setWaitlistLoading(true)
-    await supabase.from('waitlist_signup').insert({
-      email: waitlistForm.email, name: waitlistForm.name,
-      community_name: mapResult?.address.area || null,
-      property_type: null,
-      interest_level: 3, phone: null,
-      address: mapResult?.address.fullText || null,
-      children_count: null, children_ages: null,
-    })
+    setWaitlistError('')
+    const res = await fetch('/api/waitlist', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: `${form.firstName} ${form.lastName}`.trim(), email: form.email, phone: form.phone,
+        lat: mapResult?.lat, lng: mapResult?.lng,
+        address: mapResult?.address.fullText, area: mapResult?.address.area,
+        propertyType: form.houseType,
+      }),
+    }).catch(() => null)
     setWaitlistLoading(false)
+    if (!res?.ok) return setWaitlistError('Something went wrong. Please try again.')
     setStep('waitlist-done')
   }
 
@@ -363,6 +383,11 @@ function SignupForm() {
     if (Object.keys(errs).length > 0) return
 
     setLoading(true)
+    // A place may have gone since the pin was confirmed — check again before creating the account
+    if (!(await canJoinAt(mapResult?.lat, mapResult?.lng))) {
+      setLoading(false)
+      return goToWaitlist()
+    }
     const redirectTo = `${window.location.origin}/auth/callback?next=/dashboard`
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
       email: form.email, password: form.password,
@@ -397,6 +422,10 @@ function SignupForm() {
       }),
     })
     const result = await res.json()
+    if (res.status === 409 && result.waitlist) {
+      setLoading(false)
+      return goToWaitlist()
+    }
     if (!res.ok) {
       setError(result.error ?? 'Something went wrong saving your details. Please try again.')
       setLoading(false)
@@ -500,22 +529,20 @@ function SignupForm() {
       {/* â"€â"€ WAITLIST â"€â"€ */}
       {step === 'waitlist' && (
         <div style={{ maxWidth: '480px', margin: '0 auto', padding: '0 24px 60px', textAlign: 'center' }}>
-          <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '2.2rem', fontWeight: 700, lineHeight: 1.1 }}>Bonkers hasn&apos;t reached your area...<span style={{ color: '#ebb34d' }}>yet!</span></h1>
-          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.9rem', opacity: 0.85, lineHeight: 1.6, margin: '12px 0 24px' }}>Our map grows a little bigger every month. Leave your details and we&apos;ll let you know the moment Bonkers arrives in your neighbourhood.</p>
+          <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '2.2rem', fontWeight: 700, lineHeight: 1.1 }}>Memberships in your area are currently full</h1>
+          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.9rem', opacity: 0.85, lineHeight: 1.6, margin: '12px 0 24px' }}>We keep Bonkers memberships limited so every family gets a brilliant selection of books and a reliable Bonkers Day. Join the waitlist and we&apos;ll let you know as soon as we increase our capacity. We promise it won&apos;t be long!</p>
           <img src="/map_bonkers.png" alt="" style={{ width: '100%', height: 'auto', marginBottom: '24px' }} />
-          <form onSubmit={handleWaitlist} style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '360px', margin: '0 auto', textAlign: 'left' }}>
-            <div><label style={labelStyle}>Your Name</label><input type="text" value={waitlistForm.name} onChange={e => setWaitlistForm(f => ({ ...f, name: e.target.value }))} className={cardInputClass} /></div>
-            <div><label style={labelStyle}>Email Address</label><input type="email" required value={waitlistForm.email} onChange={e => setWaitlistForm(f => ({ ...f, email: e.target.value }))} className={cardInputClass} /></div>
-            <div style={{ textAlign: 'center' }}>
-              <button type="submit" disabled={waitlistLoading}
-                style={{ backgroundImage: 'url(/button2.png)', backgroundSize: '300% 300%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: 'transparent', border: 'none', borderRadius: '999px', cursor: 'pointer', padding: '14px 32px' }}>
-                <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.85rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#fff', whiteSpace: 'nowrap' }}>
-                  {waitlistLoading ? 'Joining...' : 'Join the Waitlist'}
-                </span>
-              </button>
-            </div>
-          </form>
-          <button onClick={() => { setMapResult(null); setStep('signup') }} style={{ color: '#1a2f51', opacity: 0.6, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', marginTop: '20px', background: 'none', border: 'none', cursor: 'pointer' }}>← Go back</button>
+          {waitlistError && (
+            <p style={{ color: '#e05c3a', fontSize: '0.82rem', marginBottom: '12px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{waitlistError}</p>
+          )}
+          <button type="button" onClick={handleWaitlist} disabled={waitlistLoading}
+            style={{ backgroundImage: 'url(/button2.png)', backgroundSize: '300% 300%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: 'transparent', border: 'none', borderRadius: '999px', cursor: 'pointer', padding: '14px 32px' }}>
+            <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.85rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#fff', whiteSpace: 'nowrap' }}>
+              {waitlistLoading ? 'Joining...' : 'Yes, let me know'}
+            </span>
+          </button>
+          <br />
+          <button onClick={() => { setMapResult(null); setPinConfirmed(false); setCurrentStep(3); setStep('signup') }} style={{ color: '#1a2f51', opacity: 0.6, fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', marginTop: '20px', background: 'none', border: 'none', cursor: 'pointer' }}>← Go back</button>
         </div>
       )}
 
@@ -524,7 +551,7 @@ function SignupForm() {
         <div style={{ maxWidth: '480px', margin: '0 auto', padding: '0 24px 60px', textAlign: 'center' }}>
           <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '2.4rem', fontWeight: 700, lineHeight: 1.1 }}>You&apos;re on the list!</h1>
           <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.95rem', opacity: 0.85, lineHeight: 1.6, marginTop: '12px' }}>
-            We&apos;ll let you know the moment Bonkers lands in your area. Please wait patiently.<br /><br />Or impatiently. Dramatic sighing is permitted.
+            We&apos;ll let you know as soon as we increase our capacity. It shouldn&apos;t be too long!<br /><br />Dramatic sighing is permitted.
           </p>
           <img src="/bonky_waiting.png" alt="" style={{ width: '100%', maxWidth: '260px', height: 'auto', marginTop: '24px' }} />
         </div>
@@ -706,11 +733,11 @@ function SignupForm() {
                         )}
                         <button
                           type="button"
-                          disabled={!canConfirmPin}
+                          disabled={!canConfirmPin || checkingPin}
                           onClick={confirmPin}
                           style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', backgroundColor: canConfirmPin ? '#1a2744' : '#ddd6cc', color: canConfirmPin ? '#fefaf2' : '#aaa', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.88rem', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: canConfirmPin ? 'pointer' : 'not-allowed', transition: 'background-color 0.2s' }}
                         >
-                          {mapResult ? 'Confirm location' : 'Waiting for pin…'}
+                          {checkingPin ? 'Checking…' : mapResult ? 'Confirm location' : 'Waiting for pin…'}
                         </button>
                       </div>
                     )}

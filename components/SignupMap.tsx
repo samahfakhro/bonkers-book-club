@@ -304,12 +304,6 @@ export default function SignupMap({ zones, onProceed }: Props) {
         </p>
       )}
 
-      {status === 'done' && areaStatus === 'out' && (
-        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', color: '#1a2f51', margin: 0, lineHeight: 1.5 }}>
-          This spot is outside our delivery area. Move the pin if that&apos;s not quite right, or confirm to join the waitlist.
-        </p>
-      )}
-
       {status === 'done' && areaStatus === 'conflict' && (
         <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', color: '#e05c3a', margin: 0, lineHeight: 1.5 }}>
           We couldn&apos;t work out your delivery day for this spot. Please try moving the pin slightly, or contact us.

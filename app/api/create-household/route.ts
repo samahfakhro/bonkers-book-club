@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { checkAvailability } from '@/lib/membership/availability'
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,10 +28,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ householdId: existing.id })
     }
 
-    // Create household
+    // Final capacity check — caps/pauses may have changed since the pin was confirmed
+    const availability = await checkAvailability(householdFields.latitude, householdFields.longitude)
+    if (!availability.canJoin) {
+      return NextResponse.json({ error: 'full', waitlist: true }, { status: 409 })
+    }
+
+    // Create household — zone + Bonkers Day come from the server's check, not the browser
     const { data: household, error: hhError } = await supabaseAdmin
       .from('households')
-      .insert({ user_id: userId, ...householdFields })
+      .insert({ user_id: userId, ...householdFields, signup_zone_id: availability.zoneId, bonkers_day: availability.bonkersDay })
       .select('id')
       .single()
 
