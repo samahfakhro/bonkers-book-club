@@ -229,6 +229,17 @@ export default function MembersPage() {
     setLoadingHistory(false)
   }
 
+  // Opens this family's dashboard in a new window (admins only; every use is logged)
+  const logInAsFamily = async () => {
+    if (!selected) return
+    if (!confirm(`Open ${selected.first_name || 'this family'}’s account?\n\nThis signs this browser in as them — you’ll need to sign back in as yourself afterwards.`)) return
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/admin/impersonate', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` }, body: JSON.stringify({ householdId: selected.id }) })
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) { setSaveMsg(`✕ ${body.error || 'Couldn’t open this account'}`); return }
+    window.open(body.link, '_blank')
+  }
+
   const save = async () => {
     if (!selected) return
     setSaving(true)
@@ -366,7 +377,8 @@ export default function MembersPage() {
               </p>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              {saveMsg && <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 600 }}>{saveMsg}</span>}
+              {saveMsg && <span style={{ fontSize: '12px', color: saveMsg.startsWith('✕') ? '#dc2626' : '#16a34a', fontWeight: 600 }}>{saveMsg}</span>}
+              <Btn variant="secondary" disabled={!selected.user_id} onClick={logInAsFamily}>Log in as this family</Btn>
               <Btn onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</Btn>
               <Btn variant="secondary" onClick={() => setSelected(null)}>✕</Btn>
             </div>
