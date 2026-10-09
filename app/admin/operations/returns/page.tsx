@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 // Returns: scan returned books in (checked in as Good on scan — change the condition after if needed),
-// and unpack undelivered envelopes onto the RESERVED shelf for their family.
+// and unpack undelivered envelopes back onto the shelves (still held for the family in their Coming Next list).
 
 type Condition = 'good' | 'worn' | 'damaged_ok' | 'withdrawn'
 const CONDITIONS: { value: Condition; label: string }[] = [
@@ -13,9 +13,8 @@ const CONDITIONS: { value: Condition; label: string }[] = [
 ]
 type Due = { loanId: string; family: string; child: string; title: string; internalId: string; collectedOn: string | null }
 type Undelivered = { itemId: string; family: string; child: string; title: string; internalId: string }
-type Reserved = { copyId: string; internalId: string; title: string; family: string; since: string }
 type CheckedIn = { inspectionId: string; title: string; internalId: string; family: string; condition: Condition; at: string }
-type Data = { due: Due[]; undelivered: Undelivered[]; reserved: Reserved[]; checkedIn: CheckedIn[] }
+type Data = { due: Due[]; undelivered: Undelivered[]; checkedIn: CheckedIn[] }
 
 const font: React.CSSProperties = { fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }
 const inp: React.CSSProperties = { ...font, padding: '8px 10px', borderRadius: '6px', backgroundColor: '#fff', border: '1px solid #d4d4d4', color: '#1a1a1a', fontSize: '14px', outline: 'none' }
@@ -63,7 +62,7 @@ export default function ReturnsPage() {
     setBusy(false)
     if (!ok) setFeedback({ ok: false, text: body.error || 'Scan failed' })
     else if (tab === 'returned') setFeedback({ ok: true, text: `✓ ${body.title} (${body.internalId}) checked in as Good${body.warning ? ` — ${body.warning}` : ''}` })
-    else setFeedback({ ok: true, text: `✓ ${body.title} → RESERVED shelf for ${body.family}` })
+    else setFeedback({ ok: true, text: `✓ ${body.title} → back on the shelf (held for ${body.family})` })
     await load()
     inputRef.current?.focus()
   }
@@ -82,7 +81,7 @@ export default function ReturnsPage() {
       <p style={{ ...font, fontSize: '13px', color: '#4a4a4a', margin: '0 0 8px' }}>
         {tab === 'returned'
           ? 'Scan each book. It’s checked in as Good straight away — change the condition below if it isn’t.'
-          : 'Scan each book from an undelivered envelope. It goes on the RESERVED shelf — not back into general stock.'}
+          : 'Scan each book from an undelivered envelope, then put it back on the normal shelf. It stays held for the family in their Coming Next list.'}
       </p>
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
         <input ref={inputRef} autoFocus value={code} onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') scan() }}
@@ -128,15 +127,6 @@ export default function ReturnsPage() {
             </div>
           ))}
 
-          <p style={secHead}>On the reserved shelf</p>
-          <p style={{ ...font, fontSize: '12px', color: '#9b9b9b', margin: '0 0 8px' }}>Held for the family until they get it on a Bonkers Day. Freed automatically if they take it off their list.</p>
-          {data.reserved.length === 0 && <p style={{ ...font, fontSize: '13px', color: '#9b9b9b' }}>Nothing reserved.</p>}
-          {data.reserved.map(r => (
-            <div key={r.copyId} style={{ ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-              <span style={{ ...font, fontSize: '13px' }}><strong style={{ color: '#1a1a1a' }}>{r.title}</strong> <span style={{ color: '#9b9b9b' }}>{r.internalId} · {r.family}</span></span>
-              <Btn variant="secondary" onClick={async () => { if (!confirm(`Release ${r.title} so any family can borrow it?`)) return; await post({ action: 'release', copyId: r.copyId }); await load() }}>Release</Btn>
-            </div>
-          ))}
         </>
       )}
     </div>

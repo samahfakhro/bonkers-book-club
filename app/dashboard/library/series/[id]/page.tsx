@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useParams, useSearchParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { fetchAvailableBookIds } from '@/lib/availability'
 
 type SeriesInfo = {
   id: string
@@ -211,11 +212,7 @@ function SeriesPage() {
       setBooks(allBooks)
 
       if (allBooks.length > 0) {
-        const { data: availData } = await supabase
-          .from('book_copies').select('book_id')
-          .in('book_id', allBooks.map(b => b.id))
-          .eq('status', 'available')
-        setAvailableBookIds(new Set((availData || []).map((r: any) => r.book_id)))
+        setAvailableBookIds(await fetchAvailableBookIds(allBooks.map(b => b.id)))
       }
 
       setLoading(false)

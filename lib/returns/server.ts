@@ -2,8 +2,8 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 
 // Returns at the warehouse.
 //  • Returned books: scanned in → checked in as Good straight away (one scan), condition can be changed after.
-//  • Undelivered envelopes: books go to the RESERVED shelf for that family (status 'reserved', current_household_id),
-//    never back into general circulation until the family drops the book or admin releases it.
+//  • Undelivered envelopes: books go back on the normal shelves. The family's choices stay in their Coming Next
+//    list, which holds a copy for them (see available_books in the database).
 
 export type Condition = 'good' | 'worn' | 'damaged_ok' | 'withdrawn'
 export const CONDITION_LABEL: Record<Condition, string> = {
@@ -27,16 +27,13 @@ async function findCopy(code: string) {
 
 // Everything the returns screen lists
 export async function returnsOverview() {
-  const [{ data: due }, { data: undelivered }, { data: reserved }, { data: recent }] = await Promise.all([
+  const [{ data: due }, { data: undelivered }, { data: recent }] = await Promise.all([
     supabaseAdmin.from('loans')
       .select('id, household_id, book_copies(internal_id, books(title)), child_profiles(name), households(first_name, last_name, name), route_stops:collection_stop_id(routes(route_date))')
       .eq('status', 'in_return_transit'),
     supabaseAdmin.from('swap_request_items')
       .select('id, packed_copy_id, book_copies:packed_copy_id(internal_id, status, books(title)), swap_requests!inner(household_id, status, route_stop_id, child_profiles(name), households(first_name, last_name, name))')
       .not('packed_copy_id', 'is', null).is('swap_requests.route_stop_id', null).neq('swap_requests.status', 'delivered'),
-    supabaseAdmin.from('book_copies')
-      .select('id, internal_id, updated_at, books(title), households:current_household_id(first_name, last_name, name)')
-      .eq('status', 'reserved').order('updated_at', { ascending: false }),
     supabaseAdmin.from('return_inspections')
       .select('id, final_status, notes, inspected_at, book_copies(internal_id, condition_grade, books(title)), households(first_name, last_name, name)')
       .gte('inspected_at', new Date(Date.now() - 36 * 3600_000).toISOString()).order('inspected_at', { ascending: false }).limit(200),
@@ -50,7 +47,6 @@ export async function returnsOverview() {
       itemId: i.id, family: familyName(i.swap_requests?.households), child: i.swap_requests?.child_profiles?.name || '',
       title: i.book_copies?.books?.title || '', internalId: i.book_copies?.internal_id || '',
     })),
-    reserved: (reserved || []).map((c: any) => ({ copyId: c.id, internalId: c.internal_id, title: c.books?.title || '', family: familyName(c.households), since: c.updated_at })),
     checkedIn: (recent || []).map((r: any) => ({
       inspectionId: r.id, title: r.book_copies?.books?.title || '', internalId: r.book_copies?.internal_id || '',
       family: familyName(r.households), condition: (r.notes?.split(/[:\s]/)[0] || 'good') as Condition, at: r.inspected_at,
@@ -100,7 +96,7 @@ export async function setCondition(inspectionId: string, condition: Condition, n
   return { ok: true }
 }
 
-// One scan in the "Undelivered" tab: the book goes to the reserved shelf for its family
+// One scan in the "Undelivered" tab: the book goes back on the shelf (still held for the family via Coming Next)
 export async function shelveUndelivered(code: string) {
   const copy: any = await findCopy(code)
   if (!copy) return { error: `No book found for “${code.trim()}”` }
@@ -109,13 +105,8 @@ export async function shelveUndelivered(code: string) {
     .eq('packed_copy_id', copy.id).is('swap_requests.route_stop_id', null).neq('swap_requests.status', 'delivered').limit(1)
   const item: any = items?.[0]
   if (!item || copy.status !== 'packed') return { error: `${copy.books?.title} (${copy.internal_id}) isn’t from an undelivered envelope` }
-  await supabaseAdmin.from('book_copies').update({ status: 'reserved', current_household_id: item.swap_requests.household_id, updated_at: new Date().toISOString() }).eq('id', copy.id)
+  await supabaseAdmin.from('book_copies').update({ status: 'available', current_household_id: null, updated_at: new Date().toISOString() }).eq('id', copy.id)
   await supabaseAdmin.from('swap_request_items').update({ packed_copy_id: null }).eq('id', item.id)
   return { ok: true, title: copy.books?.title, internalId: copy.internal_id, family: familyName(item.swap_requests.households) }
 }
 
-// Admin frees a reserved book for anyone to borrow
-export async function releaseReserved(copyId: string) {
-  await supabaseAdmin.from('book_copies').update({ status: 'available', current_household_id: null, updated_at: new Date().toISOString() }).eq('id', copyId).eq('status', 'reserved')
-  return { ok: true }
-}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { fetchAvailableBookIds } from '@/lib/availability'
 import { householdDeliveryDay } from '@/lib/delivery-day'
 import { useTapOnly } from '@/hooks/useTapOnly'
 
@@ -316,8 +317,7 @@ export default function ChildProfilePage() {
         setWishlist(wl)
         const wishBookIds = wl.map((w: any) => w.book.id)
         if (wishBookIds.length > 0) {
-          const { data: availCopies } = await supabase.from('book_copies').select('book_id').in('book_id', wishBookIds).eq('status', 'available')
-          setAvailableWishlistIds(new Set((availCopies || []).map((c: any) => c.book_id)))
+          setAvailableWishlistIds(await fetchAvailableBookIds(wishBookIds))
         }
         const { data: notifData } = await supabase.from('book_availability_notifications').select('book_id').eq('user_id', user.id)
         if (notifData) setNotifyingBookIds(new Set(notifData.map((n: any) => n.book_id)))

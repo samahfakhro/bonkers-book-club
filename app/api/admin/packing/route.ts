@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     if (body.action === 'scan') {
       const code = String(body.code || '').trim()
       if (!code) return NextResponse.json({ error: 'Nothing scanned' }, { status: 400 })
-      const { data } = await supabaseAdmin.from('book_copies').select('id, book_id, internal_id, shelf_location, status, current_household_id').or(`internal_id.eq.${code.replace(/[,()]/g, '')},barcode.eq.${code.replace(/[,()]/g, '')}`).limit(1)
+      const { data } = await supabaseAdmin.from('book_copies').select('id, book_id, internal_id, shelf_location, status').or(`internal_id.eq.${code.replace(/[,()]/g, '')},barcode.eq.${code.replace(/[,()]/g, '')}`).limit(1)
       if (!data?.length) return NextResponse.json({ error: `No book copy found for “${code}”` }, { status: 404 })
       return NextResponse.json({ copy: data[0] })
     }

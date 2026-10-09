@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { fetchAvailableBookIds } from '@/lib/availability'
 import NotificationBell from '@/components/NotificationBell'
 import { householdDeliveryDay } from '@/lib/delivery-day'
 
@@ -391,8 +392,7 @@ export default function DashboardPage() {
           // Load availability for saved books
           const allSavedIds = [...new Set([...wlMap.values()].flatMap(books => books.map(b => b.id)))]
           if (allSavedIds.length > 0) {
-            const { data: availCopies } = await supabase.from('book_copies').select('book_id').in('book_id', allSavedIds).eq('status', 'available')
-            setAvailableSavedBookIds(new Set((availCopies || []).map((c: any) => c.book_id)))
+            setAvailableSavedBookIds(await fetchAvailableBookIds(allSavedIds))
           }
         }
       }

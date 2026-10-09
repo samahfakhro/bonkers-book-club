@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Fragment } from 'react'
 import { useRouter, useParams, useSearchParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { fetchAvailableBookIds } from '@/lib/availability'
 
 type Child = {
   id: string
@@ -204,7 +205,7 @@ export default function BookDetailPage() {
         setParentLoaded(true)
       }
 
-      const [{ data: bookData }, { data: kids }, { count: availableCount }, { data: bookCatIds }, { data: draftReq }] = await Promise.all([
+      const [{ data: bookData }, { data: kids }, availableIds, { data: bookCatIds }, { data: draftReq }] = await Promise.all([
         supabase.from('books').select(`
           id, title, author, description, cover_image_url,
           average_rating, total_ratings_count,
@@ -216,7 +217,7 @@ export default function BookDetailPage() {
         household
           ? supabase.from('child_profiles').select('id, name, nickname, avatar_url, avatar_id, book_slot_allocation').eq('household_id', household.id).order('created_at')
           : Promise.resolve({ data: [] }),
-        supabase.from('book_copies').select('id', { count: 'exact', head: true }).eq('book_id', bookId).eq('status', 'available'),
+        fetchAvailableBookIds([bookId]), // on the shelf and not held in another family's Coming Next
         supabase.from('book_categories').select('category_id').eq('book_id', bookId),
         household ? supabase.from('swap_requests').select('id, child_id').eq('household_id', household.id).in('status', ['draft', 'child_confirmed']) : Promise.resolve({ data: null }),
       ])
@@ -248,7 +249,7 @@ export default function BookDetailPage() {
         })
       }
 
-      setIsAvailable((availableCount ?? 0) > 0)
+      setIsAvailable(availableIds.has(bookId))
 
       const childList = (kids || []) as Child[]
       setChildren(childList)

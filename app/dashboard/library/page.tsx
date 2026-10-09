@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { fetchAvailableBookIds } from '@/lib/availability'
 
 type Book = { id: string; title: string; author: string; cover_image_url: string | null; series_number?: number | null; series_label?: string | null }
 type Category = { id: string; name: string; image_url: string | null }
@@ -121,16 +122,16 @@ function LibraryPageInner() {
 
   useEffect(() => {
     async function load() {
-      const [{ data: cats }, { data: levels }, copiesRes] = await Promise.all([
+      const [{ data: cats }, { data: levels }, copiesRes, availableIds] = await Promise.all([
         supabase.from('categories').select('id, name, image_url').order('display_order'),
         supabase.from('reading_levels').select('id, name').order('display_order'),
         fetch('/api/book-copies').then(r => r.json()),
+        fetchAvailableBookIds(), // on the shelf and not held in another family's Coming Next
       ])
       const allCopies = copiesRes.data || []
       const catList = cats || []; const levelList = levels || []
       setCategories(catList); setReadingLevels(levelList)
       const copiesList = allCopies || []
-      const availableIds = new Set(copiesList.filter((c: any) => c.status === 'available').map((c: any) => c.book_id))
       const inCirculationIds = new Set(copiesList.map((c: any) => c.book_id))
       // Books not yet in circulation show as available; books with copies but none available show bell
       setAvailableBookIds(availableIds)

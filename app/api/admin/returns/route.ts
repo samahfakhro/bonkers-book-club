@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { returnsOverview, checkInByScan, setCondition, shelveUndelivered, releaseReserved } from '@/lib/returns/server'
+import { returnsOverview, checkInByScan, setCondition, shelveUndelivered } from '@/lib/returns/server'
 
 export async function GET() {
   try { return NextResponse.json(await returnsOverview()) }
@@ -8,7 +8,7 @@ export async function GET() {
 }
 
 // POST JSON  { action: 'checkin', code } | { action: 'condition', inspectionId, condition, note, photoPath }
-//            { action: 'undelivered', code } | { action: 'release', copyId }
+//            { action: 'undelivered', code }
 // POST multipart { inspectionId, photo } → damage photo, returns { path }
 export async function POST(req: NextRequest) {
   try {
@@ -27,7 +27,6 @@ export async function POST(req: NextRequest) {
       b.action === 'checkin' ? await checkInByScan(String(b.code || '')) :
       b.action === 'condition' ? await setCondition(String(b.inspectionId), b.condition, String(b.note || '').trim(), b.photoPath || null) :
       b.action === 'undelivered' ? await shelveUndelivered(String(b.code || '')) :
-      b.action === 'release' ? await releaseReserved(String(b.copyId)) :
       { error: 'Unknown action' }
     return NextResponse.json(result, { status: 'error' in result ? 400 : 200 })
   } catch (err: any) {
