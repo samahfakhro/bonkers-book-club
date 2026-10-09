@@ -14,8 +14,9 @@ const CONDITIONS: { value: Condition; label: string }[] = [
 type Due = { loanId: string; family: string; child: string; title: string; internalId: string; collectedOn: string | null }
 type Undelivered = { itemId: string; family: string; child: string; title: string; internalId: string }
 type CheckedIn = { inspectionId: string; title: string; internalId: string; family: string; condition: Condition; at: string }
-type Over = { householdId: string; family: string; phone: string | null; atHome: number; plan: number; graceUntil: string | null; onHold: boolean; response: string | null; books: { loanId: string; title: string; internalId: string; child: string }[] }
-type Data = { due: Due[]; undelivered: Undelivered[]; checkedIn: CheckedIn[]; overAllowance: Over[] }
+type Over = { householdId: string; family: string; phone: string | null; atHome: number; plan: number; graceUntil: string | null; onHold: boolean; needsAction: boolean; lostAwaitingPayment: number; response: string | null; books: { loanId: string; title: string; internalId: string; child: string }[] }
+type Charge = { id: string; householdId: string; kind: 'lost' | 'damaged'; amount: number; status: string; notes: string | null; title: string; internalId: string; family: string; phone: string | null; damageCount: number }
+type Data = { due: Due[]; undelivered: Undelivered[]; checkedIn: CheckedIn[]; overAllowance: Over[]; payments: { warnAt: number; charges: Charge[] } }
 const REPLY: Record<string, string> = { returning: 'Forgot — returning next time', lost: 'Can’t find one' }
 const prettyDate = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 const waLink = (p: string) => { const d = p.replace(/D/g, ''); return `https://wa.me/${d.startsWith('0') ? '971' + d.slice(1) : d}` }
@@ -73,6 +74,34 @@ export default function ReturnsPage() {
     inputRef.current?.focus()
   }
 
+  const askAmount = (label: string) => {
+    const v = prompt(`${label}
+
+Amount in AED — leave blank for the suggested amount:`, '')
+    if (v === null) return undefined
+    const n = Number(v.trim())
+    return v.trim() === '' ? null : Number.isFinite(n) && n >= 0 ? n : undefined
+  }
+  const requestDamage = async (r: CheckedIn) => {
+    const amount = askAmount(`Request payment for damaged “${r.title}” from ${r.family}?`)
+    if (amount === undefined) return
+    const { ok, body } = await post({ action: 'request_damage', inspectionId: r.inspectionId, amount })
+    setFeedback(ok ? { ok: true, text: `✓ Payment of AED ${body.amount} requested from ${r.family}` } : { ok: false, text: body.error || 'Not sent' })
+    await load()
+  }
+  const setCharge = async (c: Charge, status: string) => {
+    const reason = status === 'waived' ? prompt('Reason for waiving (optional):', '') : null
+    if (status === 'waived' && reason === null) return
+    await post({ action: 'charge', chargeId: c.id, status, reason })
+    await load()
+  }
+  const editAmount = async (c: Charge) => {
+    const v = prompt(`New amount (AED) for ${c.title}:`, String(c.amount))
+    if (v === null || !Number.isFinite(Number(v))) return
+    await post({ action: 'charge', chargeId: c.id, amount: Number(v) })
+    await load()
+  }
+
   const finish = async () => {
     if (!confirm('Finished inspecting? This sends “back on the shelf” alerts and checks which families have too many books at home.')) return
     setFinishing(true)
@@ -124,6 +153,7 @@ export default function ReturnsPage() {
                 <span style={{ ...font, fontSize: '13px' }}><strong style={{ color: '#1a1a1a' }}>{r.title}</strong> <span style={{ color: '#9b9b9b' }}>{r.internalId} · {r.family}</span></span>
                 <span style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
                   <span style={{ ...font, fontSize: '12px', fontWeight: 600, color: r.condition === 'good' ? '#16a34a' : r.condition === 'withdrawn' ? '#dc2626' : '#b45309' }}>{CONDITIONS.find(c => c.value === r.condition)?.label}</span>
+                  {(r.condition === 'damaged_ok' || r.condition === 'withdrawn') && <Btn variant="secondary" onClick={() => requestDamage(r)}>Request payment</Btn>}
                   <Btn variant="secondary" onClick={() => setEditing(editing === r.inspectionId ? null : r.inspectionId)}>Change</Btn>
                 </span>
               </div>
@@ -143,12 +173,14 @@ export default function ReturnsPage() {
           <p style={{ ...secHead, color: data.overAllowance.length ? '#dc2626' : '#9b9b9b' }}>Families with too many books at home ({data.overAllowance.length})</p>
           {data.overAllowance.length === 0 && <p style={{ ...font, fontSize: '13px', color: '#9b9b9b' }}>None.</p>}
           {data.overAllowance.map(o => (
-            <div key={o.householdId} style={{ ...card, borderColor: o.onHold ? '#dc2626' : '#e5e5e5' }}>
+            <div key={o.householdId} style={{ ...card, borderColor: o.onHold ? '#dc2626' : '#e5e5e5', borderWidth: o.needsAction ? '2px' : '1px' }}>
+              {o.needsAction && <p style={{ ...font, fontSize: '11px', fontWeight: 800, color: '#fff', backgroundColor: '#dc2626', display: 'inline-block', padding: '2px 8px', borderRadius: '4px', margin: '0 0 6px' }}>NEEDS ACTION — on hold 4+ weeks</p>}
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <span style={{ ...font, fontSize: '13px' }}>
                   <strong style={{ color: '#1a1a1a' }}>{o.family}</strong> <span style={{ color: '#dc2626', fontWeight: 700 }}>{o.atHome}/{o.plan} at home</span>
                   <span style={{ color: o.onHold ? '#dc2626' : '#9b9b9b', fontWeight: o.onHold ? 700 : 400 }}> · {o.onHold ? 'NEW BOOKS ON HOLD' : o.graceUntil ? `grace until ${prettyDate(o.graceUntil)}` : ''}</span>
                   {o.response && <span style={{ color: '#4a4a4a' }}> · Family: {REPLY[o.response] || o.response}</span>}
+                  {o.lostAwaitingPayment > 0 && <span style={{ color: '#b45309' }}> · {o.lostAwaitingPayment} lost, awaiting payment</span>}
                 </span>
                 <span style={{ display: 'flex', gap: '6px' }}>
                   <Btn variant="secondary" onClick={async () => { await post({ action: 'more_time', householdId: o.householdId }); await load() }}>+1 week</Btn>
@@ -161,11 +193,32 @@ export default function ReturnsPage() {
                   {o.books.map(b => (
                     <div key={b.loanId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '3px 0' }}>
                       <span style={{ ...font, fontSize: '13px', color: '#4a4a4a' }}>{b.title} <span style={{ color: '#9b9b9b' }}>{b.internalId} · {b.child}</span></span>
-                      <Btn variant="secondary" onClick={async () => { if (!confirm(`Mark ${b.title} as lost?`)) return; await post({ action: 'mark_lost', loanId: b.loanId }); setLostFor(null); await load() }}>Lost</Btn>
+                      <Btn variant="secondary" onClick={async () => { const amount = askAmount(`Mark “${b.title}” as lost? A payment request for the replacement is sent to ${o.family}. They stay on hold until it’s paid or waived.`); if (amount === undefined) return; await post({ action: 'mark_lost', loanId: b.loanId, amount }); setLostFor(null); await load() }}>Lost</Btn>
                     </div>
                   ))}
                 </div>
               )}
+            </div>
+          ))}
+
+          <p style={secHead}>Payment requests — open ({data.payments.charges.length})</p>
+          {data.payments.charges.length === 0 && <p style={{ ...font, fontSize: '13px', color: '#9b9b9b' }}>None.</p>}
+          {data.payments.charges.map(c => (
+            <div key={c.id} style={{ ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <span style={{ ...font, fontSize: '13px' }}>
+                <strong style={{ color: '#1a1a1a' }}>{c.family}</strong>
+                {c.damageCount >= data.payments.warnAt && <span title={`${c.damageCount} damaged books so far`} style={{ color: '#dc2626', fontWeight: 700 }}> ⚠ {c.damageCount} damaged</span>}
+                <span style={{ color: '#4a4a4a' }}> · {c.kind === 'lost' ? 'Lost' : 'Damaged'}: {c.title}</span> <span style={{ color: '#9b9b9b' }}>{c.internalId}</span>
+                <span style={{ fontWeight: 700 }}> · AED {c.amount}</span>
+                {c.status === 'disputed' && <span style={{ color: '#b45309', fontWeight: 700 }}> · DISPUTED</span>}
+              </span>
+              <span style={{ display: 'flex', gap: '6px' }}>
+                <Btn onClick={() => setCharge(c, 'paid')}>Paid</Btn>
+                <Btn variant="secondary" onClick={() => editAmount(c)}>Edit amount</Btn>
+                <Btn variant="secondary" onClick={() => setCharge(c, 'waived')}>Waive</Btn>
+                {c.status !== 'disputed' && <Btn variant="secondary" onClick={() => setCharge(c, 'disputed')}>Disputed</Btn>}
+                {c.phone && <a href={waLink(c.phone)} target="_blank" rel="noreferrer" style={{ ...font, padding: '8px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, backgroundColor: '#f0f0f0', color: '#1a1a1a', textDecoration: 'none' }}>WhatsApp</a>}
+              </span>
             </div>
           ))}
         </>

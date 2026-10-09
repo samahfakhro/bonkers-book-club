@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { notifyHousehold } from '@/lib/notify'
 import { sendBackOnShelfAlerts } from '@/lib/notify-me'
 import { dubaiToday } from '@/lib/routes/server'
+import { requestPayment } from '@/lib/returns/charges'
 
 // "Finished inspecting" on the Returns screen:
 //  1. "Back on the shelf" alerts for every book checked in as lendable in this batch
@@ -19,10 +20,11 @@ async function graceDays() {
   return Number.isFinite(n) && n >= 0 ? n : 2
 }
 
-// books at home vs plan, for every family that has books out
+// books at home vs plan, for every family that has books out.
+// A lost book still counts until its payment request is paid or waived (then the loan becomes 'lost_settled').
 export async function allowanceByHousehold() {
   const [{ data: loans }, { data: subs }] = await Promise.all([
-    supabaseAdmin.from('loans').select('household_id').is('returned_at', null).in('status', ['checked_out', 'active']),
+    supabaseAdmin.from('loans').select('household_id').is('returned_at', null).in('status', ['checked_out', 'active', 'lost']),
     supabaseAdmin.from('subscriptions').select('household_id, subscription_plans(book_count)').eq('status', 'active'),
   ])
   const atHome = new Map<string, number>()
@@ -111,14 +113,28 @@ export async function overAllowanceList() {
     .select('id, household_id, child_profiles(name), book_copies(internal_id, books(title))')
     .in('household_id', hhs.map(h => h.id)).is('returned_at', null).in('status', ['checked_out', 'active'])
   const today = dubaiToday()
-  return hhs.map(h => ({
+  const { data: w } = await supabaseAdmin.from('system_settings').select('value').eq('key', 'on_hold_needs_action_weeks').maybeSingle()
+  const weeks = Number(w?.value) || 4
+  const { data: lost } = await supabaseAdmin.from('loans').select('household_id').in('household_id', hhs.map(h => h.id)).eq('status', 'lost')
+  const rows = hhs.map(h => ({
     householdId: h.id, family: [h.first_name, h.last_name].filter(Boolean).join(' ') || h.name || 'Family',
     phone: h.whatsapp_number || h.mobile_phone || null, atHome: atHome.get(h.id) || 0, plan: planFor(h.id),
     since: h.over_allowance_since, graceUntil: h.over_allowance_grace_until,
     onHold: !!h.over_allowance_grace_until && h.over_allowance_grace_until < today,
     response: h.over_allowance_response, respondedAt: h.over_allowance_responded_at,
+    needsAction: !!h.over_allowance_grace_until && addDays(h.over_allowance_grace_until, 7 * weeks) < today,
+    lostAwaitingPayment: (lost || []).filter(l => l.household_id === h.id).length,
     books: (loans || []).filter(l => l.household_id === h.id).map((l: any) => ({ loanId: l.id, title: l.book_copies?.books?.title || '', internalId: l.book_copies?.internal_id || '', child: l.child_profiles?.name || '' })),
   }))
+  return rows.sort((a, b) => Number(b.needsAction) - Number(a.needsAction) || Number(b.onHold) - Number(a.onHold))
+}
+
+// Re-check one family now (after a payment is settled, or a plan upgrade) — clears them if within their plan
+export async function recheckAllowance(householdId: string) {
+  const { data: h } = await supabaseAdmin.from('households').select('over_allowance_since').eq('id', householdId).single()
+  if (!h?.over_allowance_since) return
+  const { atHome, planFor } = await allowanceByHousehold()
+  if ((atHome.get(householdId) || 0) <= planFor(householdId)) await clearOverAllowance(householdId)
 }
 
 // "More time": one more Bonkers Day (a week)
@@ -129,13 +145,12 @@ export async function giveMoreTime(householdId: string) {
   return { ok: true }
 }
 
-// "Mark lost": the book won't come back (charging for it comes with payment requests)
-export async function markLost(loanId: string) {
+// "Mark lost": the book won't come back → payment request for the replacement.
+// It keeps counting as "at home" (so the family stays on hold) until the request is paid or waived.
+export async function markLost(loanId: string, amount: number | null = null) {
   const { data: loan } = await supabaseAdmin.from('loans').select('id, household_id, book_copy_id').eq('id', loanId).single()
   if (!loan) return { error: 'Loan not found' }
   await supabaseAdmin.from('loans').update({ status: 'lost', return_requested: false }).eq('id', loanId)
   await supabaseAdmin.from('book_copies').update({ status: 'lost', current_household_id: null, updated_at: new Date().toISOString() }).eq('id', loan.book_copy_id)
-  const { atHome, planFor } = await allowanceByHousehold()
-  if ((atHome.get(loan.household_id) || 0) <= planFor(loan.household_id)) await clearOverAllowance(loan.household_id)
-  return { ok: true }
+  return requestPayment({ householdId: loan.household_id, copyId: loan.book_copy_id, kind: 'lost', loanId, amount })
 }

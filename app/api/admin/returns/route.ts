@@ -2,18 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { returnsOverview, checkInByScan, setCondition, shelveUndelivered } from '@/lib/returns/server'
 import { finishInspecting, overAllowanceList, giveMoreTime, markLost } from '@/lib/returns/finish'
+import { chargesOverview, requestDamagePayment, updateCharge } from '@/lib/returns/charges'
 
 export async function GET() {
   try {
-    const [overview, overAllowance] = await Promise.all([returnsOverview(), overAllowanceList()])
-    return NextResponse.json({ ...overview, overAllowance })
+    const [overview, overAllowance, payments] = await Promise.all([returnsOverview(), overAllowanceList(), chargesOverview()])
+    return NextResponse.json({ ...overview, overAllowance, payments })
   }
   catch (err: any) { return NextResponse.json({ error: err.message || 'Could not load returns' }, { status: 500 }) }
 }
 
 // POST JSON  { action: 'checkin', code } | { action: 'condition', inspectionId, condition, note, photoPath }
 //            { action: 'undelivered', code } | { action: 'finish' }
-//            { action: 'more_time', householdId } | { action: 'mark_lost', loanId }
+//            { action: 'more_time', householdId } | { action: 'mark_lost', loanId, amount? }
+//            { action: 'request_damage', inspectionId, amount? } | { action: 'charge', chargeId, status?, amount?, reason? }
 // POST multipart { inspectionId, photo } → damage photo, returns { path }
 export async function POST(req: NextRequest) {
   try {
@@ -34,7 +36,9 @@ export async function POST(req: NextRequest) {
       b.action === 'undelivered' ? await shelveUndelivered(String(b.code || '')) :
       b.action === 'finish' ? await finishInspecting() :
       b.action === 'more_time' ? await giveMoreTime(String(b.householdId)) :
-      b.action === 'mark_lost' ? await markLost(String(b.loanId)) :
+      b.action === 'mark_lost' ? await markLost(String(b.loanId), b.amount != null ? Number(b.amount) : null) :
+      b.action === 'request_damage' ? await requestDamagePayment(String(b.inspectionId), b.amount != null ? Number(b.amount) : null) :
+      b.action === 'charge' ? await updateCharge(String(b.chargeId), { status: b.status, amount: b.amount != null ? Number(b.amount) : undefined, reason: b.reason }) :
       { error: 'Unknown action' }
     return NextResponse.json(result, { status: 'error' in result ? 400 : 200 })
   } catch (err: any) {

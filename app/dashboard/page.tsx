@@ -195,6 +195,7 @@ export default function DashboardPage() {
   const [member, setMember] = useState<Member | null>(null)
   // set at the warehouse when there are more books at home than the plan allows
   const [overAllowance, setOverAllowance] = useState<{ graceUntil: string | null; response: string | null } | null>(null)
+  const [lostUnpaid, setLostUnpaid] = useState(0) // lost books still count as at home until their payment is settled
   const [children, setChildren] = useState<Child[]>([])
   const [loans, setLoans] = useState<Loan[]>([])
   const [nextStack, setNextStack] = useState<NextStackBook[]>([])
@@ -256,6 +257,7 @@ export default function DashboardPage() {
         swap_cutoff_time: zoneCutoff,
         avatar_id: (hh as any).avatar_id ?? null,
       })
+      supabase.from('loans').select('id', { count: 'exact', head: true }).eq('household_id', hh.id).eq('status', 'lost').then(({ count }) => setLostUnpaid(count || 0))
       setOverAllowance((hh as any).over_allowance_since ? { graceUntil: (hh as any).over_allowance_grace_until ?? null, response: (hh as any).over_allowance_response ?? null } : null)
 
       const { data: childrenData } = await supabase
@@ -634,7 +636,7 @@ export default function DashboardPage() {
 
         {/* ── OVER ALLOWANCE (more books at home than the plan allows) ── */}
         {(() => {
-          const atHome = loans.filter(l => !l.collected).length
+          const atHome = loans.filter(l => !l.collected).length + lostUnpaid
           const extra = atHome - planTotal
           if (extra <= 0) return null
           const todayDubai = new Date(Date.now() + 4 * 3600_000).toISOString().slice(0, 10)
@@ -647,6 +649,7 @@ export default function DashboardPage() {
           return (
             <div style={{ border: '2px solid #e8533a', backgroundColor: '#fff6f3', borderRadius: '16px', padding: '16px 18px', marginBottom: '28px' }}>
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#e8533a', margin: '0 0 6px' }}>{atHome}/{planTotal} books at home</p>
+              {lostUnpaid > 0 && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', color: '#1a2f51', margin: '0 0 6px' }}>Includes {lostUnpaid} lost book{lostUnpaid === 1 ? '' : 's'} — once the replacement is paid, {lostUnpaid === 1 ? 'it' : 'they'} no longer count.</p>}
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.88rem', color: '#1a2f51', lineHeight: 1.55, margin: 0 }}>
                 You have {extra} more book{extra === 1 ? '' : 's'} at home than your plan allows. Please mark {extra === 1 ? 'it' : 'them'} as <strong>Returning</strong> and pop {extra === 1 ? 'it' : 'them'} in your tote for your next Bonkers Day.
                 {planTotal < 6 && atHome <= 6 && <> Want to keep more? <a href="/dashboard/settings" style={{ color: '#1a2f51', fontWeight: 700 }}>Upgrade to 6 books</a>.</>}
