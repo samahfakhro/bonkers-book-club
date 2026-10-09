@@ -3,6 +3,8 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { routeWithEnvelopes } from '@/lib/routes/envelopes'
 import { parseScannedCode } from '@/lib/routes/codes'
+import { notifyHousehold } from '@/lib/notify'
+import { dubaiToday } from '@/lib/routes/server'
 
 export type DeliveryResult = 'handed_over' | 'concierge' | 'neighbour' | 'safe_drop' | 'failed'
 export type FailReason = 'no_answer' | 'no_access' | 'other'
@@ -28,14 +30,22 @@ export const OUTCOME_LABEL: Record<string, string> = {
   safe_drop_completed: 'Safe drop completed',
 }
 
-// What the driver may do at this door — never leave books unattended without the family's permission
-export function allowedDeliveryResults(h: any): DeliveryResult[] {
+// What the driver may do at this door — never leave books unattended without the family's permission.
+// Permission comes from their delivery preference, the backups they ticked, or their reply to a missed visit.
+export function allowedDeliveryResults(h: any, familyResponse?: string | null): DeliveryResult[] {
   const options: DeliveryResult[] = ['handed_over']
-  if (h?.property_type === 'apartment' || h?.delivery_preference === 'leave_with_reception') options.push('concierge')
-  if (h?.neighbour_permission_enabled) options.push('neighbour')
-  if (h?.delivery_preference === 'leave_safe_spot') options.push('safe_drop')
+  if (h?.property_type === 'apartment' || h?.delivery_preference === 'leave_with_reception' || h?.backup_concierge || familyResponse === 'concierge') options.push('concierge')
+  if (h?.neighbour_permission_enabled || familyResponse === 'neighbour') options.push('neighbour')
+  if (h?.delivery_preference === 'leave_safe_spot' || h?.backup_safe_drop || familyResponse === 'safe_drop') options.push('safe_drop')
   options.push('failed')
   return options
+}
+
+export const FAILED_DELIVERY = new Set(['no_answer', 'no_access', 'delivery_failed'])
+
+// The Manage Delivery link works until the route is closed (completed) or its day is over
+export function manageLinkOpen(route: { status: string; route_date: string }) {
+  return route.status !== 'completed' && route.route_date >= dubaiToday()
 }
 
 function outcomeFor(r: StopReport): string {
@@ -69,7 +79,7 @@ export async function completeStop(stopId: string, report: StopReport) {
   if (hasCollection && !report.collection) throw new Error('Record what happened with the collection')
   const d = report.delivery
   if (d) {
-    if (!allowedDeliveryResults(stop.households).includes(d.result)) throw new Error('That option isn’t allowed for this family')
+    if (!allowedDeliveryResults(stop.households, (stop as any).family_response).includes(d.result)) throw new Error('That option isn’t allowed for this family')
     if (d.result === 'neighbour' && !d.neighbour?.trim()) throw new Error('Add the neighbour’s name and villa/flat number')
     if (d.result === 'safe_drop' && !d.photoPath) throw new Error('Take a photo of where the books were left')
     if (d.result !== 'failed') {
@@ -126,12 +136,64 @@ export async function completeStop(stopId: string, report: StopReport) {
   }
 
   // ── record the outcome + a log entry ──
-  await supabaseAdmin.from('route_stops').update({ status: 'done', outcome, outcome_notes: noteParts.join(' · ') || null, completed_at: now }).eq('id', stopId)
+  await supabaseAdmin.from('route_stops').update({ status: 'done', outcome, outcome_notes: noteParts.join(' · ') || null, completed_at: now, attempts: ((stop as any).attempts ?? 0) + 1 }).eq('id', stopId)
   await supabaseAdmin.from('delivery_events').insert({ route_stop_id: stopId, event_type: outcome, notes: [...noteParts, ...warnings].join(' · ') || null, photo_url: d?.photoPath ?? null })
+
+  // ── something was missed → tell the family, with a link to say what we should do ──
+  const missedDelivery = d?.result === 'failed'
+  const missedCollection = !!report.collection && report.collection.result !== 'collected'
+  if (missedDelivery || missedCollection) {
+    const names = stop.children.map(c => c.name).join(' and ')
+    await notifyHousehold({
+      householdId: stop.household_id,
+      type: 'missed_visit',
+      title: missedDelivery ? 'We missed you today! 📚' : 'We couldn’t collect your books today',
+      message: missedDelivery
+        ? `Our driver couldn’t deliver ${names ? names + '’s' : 'your'} books today. Tap to tell us what to do — we’ll try again today if we can.`
+        : 'Some of your returning books weren’t there when our driver called. Tap to let us know what to do.',
+      link: `/dashboard/manage-delivery/${stopId}`,
+    })
+  }
 
   // ── last stop done → route completed ──
   const { data: remaining } = await supabaseAdmin.from('route_stops').select('id').eq('route_id', stopRow.route_id).not('status', 'in', '(done,cancelled)')
-  if (!remaining?.length) await supabaseAdmin.from('routes').update({ status: 'completed', completed_at: now }).eq('id', stopRow.route_id)
+  if (!remaining?.length) await closeRoute(stopRow.route_id)
 
   return { outcome, label: OUTCOME_LABEL[outcome], warnings }
+}
+
+// The family asked us to try again (or gave a new permission): reopen a missed stop for another attempt today
+export async function reopenStop(stopId: string) {
+  const { data: stop } = await supabaseAdmin.from('route_stops').select('id, route_id, status, outcome, household_id, expected_deliveries_count, routes(status)').eq('id', stopId).single()
+  if (!stop) throw new Error('Stop not found')
+  if ((stop.routes as any)?.status !== 'locked') throw new Error('This route is closed')
+  if (stop.status !== 'done') throw new Error('This stop is still open')
+  const failedDelivery = FAILED_DELIVERY.has(stop.outcome || '')
+  const failedCollection = stop.outcome === 'collection_failed' || stop.outcome === 'partial_issue'
+  if (!failedDelivery && !failedCollection) throw new Error('Only a missed visit can be tried again')
+  if (failedDelivery) {
+    // the envelope is still in the van — choices back to locked
+    await supabaseAdmin.from('swap_requests').update({ status: 'locked' }).eq('route_stop_id', stopId).eq('status', 'delivery_failed')
+  }
+  if (failedCollection) {
+    // re-claim the books that are still due back
+    await supabaseAdmin.from('loans').update({ collection_stop_id: stopId })
+      .eq('household_id', stop.household_id).eq('return_requested', true).is('collection_stop_id', null).is('returned_at', null).in('status', ['checked_out', 'active'])
+  }
+  await supabaseAdmin.from('route_stops').update({ status: stop.expected_deliveries_count ? 'packed' : 'to_pick', outcome: null, completed_at: null }).eq('id', stopId)
+  await supabaseAdmin.from('delivery_events').insert({ route_stop_id: stopId, event_type: 'reopened_for_retry' })
+}
+
+// Route closed: anything not delivered rolls over to the family's next Bonkers Day.
+// Their choices go back to a draft (books still reserved) so they just need to confirm before the cutoff;
+// the envelope is unpacked at the warehouse (Returns → Undelivered envelopes).
+export async function closeRoute(routeId: string) {
+  const now = new Date().toISOString()
+  const { data: stops } = await supabaseAdmin.from('route_stops').select('id, outcome').eq('route_id', routeId)
+  const missed = (stops || []).filter(s => FAILED_DELIVERY.has(s.outcome || '')).map(s => s.id)
+  if (missed.length) {
+    // created_at moves to now so the cutoff job treats it as this cycle's draft instead of clearing it straight away
+    await supabaseAdmin.from('swap_requests').update({ status: 'draft', route_stop_id: null, created_at: now }).in('route_stop_id', missed).eq('status', 'delivery_failed')
+  }
+  await supabaseAdmin.from('routes').update({ status: 'completed', completed_at: now }).eq('id', routeId)
 }

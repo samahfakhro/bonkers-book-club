@@ -16,7 +16,7 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
         ...s,
         // shelf locations and covers aren't needed at the door
         children: s.children.map(c => ({ childId: c.childId, number: c.number, envelopeCode: c.envelopeCode, name: c.name, lastName: c.lastName, bookCount: c.books.length })),
-        allowed: allowedDeliveryResults(s.households),
+        allowed: allowedDeliveryResults(s.households, (s as any).family_response),
         outcomeLabel: s.outcome ? OUTCOME_LABEL[s.outcome] ?? s.outcome : null,
       })),
     })

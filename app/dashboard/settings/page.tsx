@@ -93,7 +93,8 @@ export default function SettingsPage() {
   const [savedSection, setSavedSection] = useState<string | null>(null)
 
   const [account, setAccount] = useState({ firstName: '', lastName: '', email: '', mobile: '', whatsapp: '', whatsappCountryCode: '+971', samePhone: false, avatarId: '' })
-  const [delivery, setDelivery] = useState({ deliveryPreference: '', safeSpot: '', deliveryNotes: '' })
+  const [delivery, setDelivery] = useState({ deliveryPreference: '', safeSpot: '', deliveryNotes: '', backupSafeDrop: false, backupNeighbour: false, neighbourDetails: '', backupConcierge: false })
+  const [deliveryError, setDeliveryError] = useState('')
   // Address change uses the same pin → confirm → written-address flow as signup
   type AddrMode = 'view' | 'pin' | 'fields' | 'outside' | 'waitlisted'
   const [addrMode, setAddrMode] = useState<AddrMode>('view')
@@ -132,7 +133,7 @@ export default function SettingsPage() {
       const whatsappCountryCode = whatsappRaw.startsWith('+') ? whatsappRaw.slice(0, 4) : '+971'
       const whatsappNum = whatsappRaw.startsWith('+') ? whatsappRaw.slice(4) : whatsappRaw
       setAccount({ firstName: hh.first_name || '', lastName: hh.last_name || '', email: user.email || '', mobile: hh.mobile_phone || '', whatsapp: whatsappNum, whatsappCountryCode, samePhone: false, avatarId: hh.avatar_id || '' })
-      setDelivery({ deliveryPreference: hh.delivery_preference || '', safeSpot: hh.safe_spot_description || '', deliveryNotes: hh.delivery_notes || '' })
+      setDelivery({ deliveryPreference: hh.delivery_preference || '', safeSpot: hh.safe_spot_description || '', deliveryNotes: hh.delivery_notes || '', backupSafeDrop: !!hh.backup_safe_drop, backupNeighbour: !!hh.neighbour_permission_enabled, neighbourDetails: hh.neighbour_details || '', backupConcierge: !!hh.backup_concierge })
       setNotifications({ whatsapp: hh.notify_whatsapp ?? true, email: hh.notify_email ?? true, marketing: hh.agreed_to_marketing ?? false })
       setChildNotifyEnabled((hh as any).child_notify_enabled ?? true)
       const { data: sub } = await supabase.from('subscriptions').select('subscription_plans(name, book_count, price_monthly)').eq('household_id', hh.id).eq('status', 'active').maybeSingle()
@@ -247,7 +248,15 @@ export default function SettingsPage() {
   ].filter(Boolean).join(', ')
 
   async function saveDelivery() {
-    await saveSection('delivery', { delivery_preference: delivery.deliveryPreference, safe_spot_description: delivery.safeSpot || null, delivery_notes: delivery.deliveryNotes || null })
+    const needsSpot = delivery.deliveryPreference === 'leave_safe_spot' || delivery.backupSafeDrop
+    if (needsSpot && !delivery.safeSpot.trim()) { setDeliveryError('Please describe your safe spot so our driver can find it.'); return }
+    if (delivery.backupNeighbour && !delivery.neighbourDetails.trim()) { setDeliveryError('Please add your neighbour’s name and villa/flat number.'); return }
+    setDeliveryError('')
+    await saveSection('delivery', {
+      delivery_preference: delivery.deliveryPreference, safe_spot_description: delivery.safeSpot || null, delivery_notes: delivery.deliveryNotes || null,
+      backup_safe_drop: delivery.backupSafeDrop, neighbour_permission_enabled: delivery.backupNeighbour,
+      neighbour_details: delivery.backupNeighbour ? delivery.neighbourDetails.trim() : null, backup_concierge: delivery.backupConcierge,
+    })
   }
 
   async function saveNotifications() {
@@ -502,12 +511,38 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              {delivery.deliveryPreference === 'leave_safe_spot' && (
+              {(delivery.deliveryPreference === 'leave_safe_spot' || delivery.backupSafeDrop) && (
                 <div style={{ marginTop: '14px' }}>
                   <label style={labelStyle}>Describe the safe spot</label>
                   <input type="text" placeholder="e.g. behind the gate, under the mat…" value={delivery.safeSpot} onChange={e => setDelivery(d => ({ ...d, safeSpot: e.target.value }))} className={inputClass} />
                 </div>
               )}
+
+              {/* Backups if nobody answers — so we (almost) never miss you */}
+              <div style={{ marginTop: '24px' }}>
+                <label style={{ ...labelStyle, display: 'block', marginBottom: '4px' }}>If we can’t reach you, we’re happy for you to…</label>
+                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#1a2f51', opacity: 0.8, margin: '0 0 10px', lineHeight: 1.5 }}>
+                  Tick any that suit you. It means our driver can leave your books safely without needing to call — fewer missed deliveries and no waiting for your next Bonkers Day.
+                </p>
+                {[
+                  { key: 'backupSafeDrop' as const, label: 'Leave them in my safe spot', show: delivery.deliveryPreference !== 'leave_safe_spot' },
+                  { key: 'backupNeighbour' as const, label: 'Leave them with a neighbour', show: true },
+                  { key: 'backupConcierge' as const, label: 'Leave them with reception / concierge', show: delivery.deliveryPreference !== 'leave_with_reception' },
+                ].filter(o => o.show).map(o => (
+                  <button key={o.key} type="button" onClick={() => { setDelivery(d => ({ ...d, [o.key]: !d[o.key] })); setDeliveryError('') }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', padding: '12px 14px', marginBottom: '8px', borderRadius: '14px', cursor: 'pointer', border: delivery[o.key] ? '4px solid #fee297' : '2px solid #e8e0d4', backgroundColor: delivery[o.key] ? '#fffef9' : 'transparent' }}>
+                    <img src={delivery[o.key] ? '/star_yellow.png' : '/star_cream.png'} alt="" style={{ width: '24px', height: '24px', objectFit: 'contain', flexShrink: 0 }} />
+                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 600 }}>{o.label}</span>
+                  </button>
+                ))}
+                {delivery.backupNeighbour && (
+                  <div style={{ marginTop: '6px' }}>
+                    <label style={labelStyle}>Neighbour’s name and villa / flat</label>
+                    <input type="text" placeholder="e.g. Sarah, Villa 31" value={delivery.neighbourDetails} onChange={e => { setDelivery(d => ({ ...d, neighbourDetails: e.target.value })); setDeliveryError('') }} className={inputClass} />
+                  </div>
+                )}
+              </div>
+              {deliveryError && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#e05c3a', fontSize: '0.85rem', marginTop: '10px' }}>{deliveryError}</p>}
 
               <SaveButton onClick={saveDelivery} loading={savingSection === 'delivery'} saved={savedSection === 'delivery'} />
             </div>}

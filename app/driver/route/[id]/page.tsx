@@ -19,6 +19,7 @@ type Stop = {
   id: string; ref: string; box: string; visit_ref: string; stop_order: number; status: string; outcome: string | null; outcomeLabel: string | null; outcome_notes: string | null
   latitude: number | null; longitude: number | null; delivery_notes: string | null; familyCode: string; collectCount: number
   households: Household | null; children: Child[]; allowed: string[]
+  family_response: string | null; family_response_details: string | null; attempts: number
 }
 type DriverRoute = { id: string; route_date: string; status: string; zones: { code: string; name: string } | null; stops: Stop[] }
 
@@ -27,6 +28,10 @@ const PREFERENCE: Record<string, string> = {
   call_no_bell: 'Call them — don’t ring the bell', leave_with_reception: 'Leave with reception / concierge',
 }
 const FAILED = new Set(['delivery_failed', 'collection_failed', 'no_access', 'no_answer', 'partial_issue'])
+const REPLY: Record<string, string> = {
+  retry_today: 'Please try again today', neighbour: 'Leave with a neighbour', concierge: 'Leave with reception / concierge',
+  safe_drop: 'Leave in a safe spot', next_bonkers_day: 'Wait for next Bonkers Day',
+}
 const familyName = (h: Household | null) => [h?.first_name, h?.last_name].filter(Boolean).join(' ') || 'Family'
 const address = (h: Household | null) => !h ? '' : [
   h.villa_flat && `${h.property_type === 'apartment' ? 'Flat' : 'Villa'} ${h.villa_flat}`,
@@ -57,6 +62,8 @@ function DriverRoute() {
     } catch { setError('No connection — check your signal and try again.') }
   }, [id])
   useEffect(() => { load() }, [load])
+  // check for families' replies to missed visits while the route is running
+  useEffect(() => { const t = setInterval(() => { if (!document.hidden) load() }, 30_000); return () => clearInterval(t) }, [load])
 
   const openStop = (sid: string | null) => router.push(sid ? `/driver/route/${id}?stop=${sid}` : `/driver/route/${id}`)
 
@@ -108,7 +115,7 @@ function DriverRoute() {
                   <span style={{ display: 'block', fontSize: '13px', color: navy, opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{address(s.households)}</span>
                 </span>
                 <span style={{ fontSize: '12px', fontWeight: 800, padding: '5px 9px', borderRadius: '999px', flexShrink: 0, background: !isDone ? '#f1ece2' : bad ? '#fdecea' : '#eef8f1', color: !isDone ? navy : bad ? '#b3261e' : '#2e7d32' }}>
-                  {isDone ? (bad ? '⚠ ' : '✓ ') + (s.outcomeLabel || 'Done') : s.children.length && s.collectCount ? 'Deliver + collect' : s.children.length ? 'Deliver' : 'Collect'}
+                  {isDone && bad && s.family_response && s.family_response !== 'next_bonkers_day' ? '💬 Family replied' : isDone ? (bad ? '⚠ ' : '✓ ') + (s.outcomeLabel || 'Done') : s.children.length && s.collectCount ? (s.attempts ? 'Retry: deliver + collect' : 'Deliver + collect') : s.children.length ? (s.attempts ? 'Retry: deliver' : 'Deliver') : (s.attempts ? 'Retry: collect' : 'Collect')}
                 </span>
               </button>
             )
@@ -142,6 +149,18 @@ function StopDetail({ route, stop, onBack, onDone }: { route: DriverRoute; stop:
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const failed = isDone && !!stop.outcome && FAILED.has(stop.outcome)
+  const [retrying, setRetrying] = useState(false)
+  const retry = async () => {
+    setRetrying(true); setError(null)
+    try {
+      const res = await fetch(`/api/driver/stops/${stop.id}/reopen`, { method: 'POST' })
+      const b = await res.json()
+      if (!res.ok) throw new Error(b.error)
+      await onDone(stop.id)
+    } catch (e: any) { setError(e.message || 'Couldn’t reopen this stop') }
+    setRetrying(false)
+  }
   const allScanned = stop.children.every(c => scanned.has(c.envelopeCode))
   const deliveredOk = delivery && delivery !== 'failed'
 
@@ -222,6 +241,12 @@ function StopDetail({ route, stop, onBack, onDone }: { route: DriverRoute; stop:
         <Big tone="light" onClick={() => window.open(`https://wa.me/${waNumber(h?.whatsapp_number || h?.mobile_phone || null)}`, '_blank')} disabled={!h?.whatsapp_number && !h?.mobile_phone}>💬</Big>
       </div>
 
+      {!isDone && stop.family_response && stop.family_response !== 'retry_today' && stop.family_response !== 'next_bonkers_day' && (
+        <Card style={{ background: '#eef1f8', border: `2px solid ${navy}` }}>
+          <p style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: navy }}>💬 Family says: {REPLY[stop.family_response]}</p>
+          {stop.family_response_details && <p style={{ margin: '4px 0 0', fontSize: '16px', color: navy }}>{stop.family_response_details}</p>}
+        </Card>
+      )}
       {/* instructions */}
       <Card style={{ background: '#fffbea', border: `1px solid ${yellow}` }}>
         <p style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: navy }}>{PREFERENCE[h?.delivery_preference || ''] || 'No delivery preference given'}</p>
@@ -232,10 +257,32 @@ function StopDetail({ route, stop, onBack, onDone }: { route: DriverRoute; stop:
       </Card>
 
       {isDone ? (
-        <Card style={{ background: '#eef8f1', border: '2px solid #2e7d32' }}>
-          <p style={{ margin: 0, fontSize: '19px', fontWeight: 800, color: '#2e7d32' }}>✓ {stop.outcomeLabel}</p>
-          {stop.outcome_notes && <p style={{ margin: '6px 0 0', color: navy }}>{stop.outcome_notes}</p>}
-        </Card>
+        <>
+          <Card style={{ background: failed ? '#fdecea' : '#eef8f1', border: `2px solid ${failed ? '#b3261e' : '#2e7d32'}` }}>
+            <p style={{ margin: 0, fontSize: '19px', fontWeight: 800, color: failed ? '#b3261e' : '#2e7d32' }}>{failed ? '⚠' : '✓'} {stop.outcomeLabel}</p>
+            {stop.outcome_notes && <p style={{ margin: '6px 0 0', color: navy }}>{stop.outcome_notes}</p>}
+          </Card>
+          {failed && (
+            <Card style={{ border: `3px solid ${stop.family_response ? navy : '#ece4d6'}` }}>
+              {stop.family_response ? (
+                <>
+                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, letterSpacing: '0.1em', color: navy, opacity: 0.7 }}>💬 THE FAMILY REPLIED</p>
+                  <p style={{ margin: '6px 0 0', fontSize: '19px', fontWeight: 800, color: navy }}>{REPLY[stop.family_response] || stop.family_response}</p>
+                  {stop.family_response_details && <p style={{ margin: '4px 0 0', fontSize: '17px', color: navy }}>{stop.family_response_details}</p>}
+                </>
+              ) : (
+                <p style={{ margin: 0, fontSize: '15px', color: navy }}>The family has been sent a message. If they reply, it’ll show here.</p>
+              )}
+              {stop.family_response !== 'next_bonkers_day' && route.status === 'locked' && (
+                <div style={{ marginTop: '12px' }}>
+                  <Big onClick={retry} disabled={retrying}>{retrying ? 'Reopening…' : '↻ Try again now'}</Big>
+                  <p style={{ margin: '6px 0 0', fontSize: '13px', color: navy, opacity: 0.7 }}>Only if you can fit it in — otherwise it rolls over to their next Bonkers Day automatically.</p>
+                </div>
+              )}
+            </Card>
+          )}
+          {error && <Card style={{ background: '#fdecea', color: '#b3261e', fontWeight: 700 }}>{error}</Card>}
+        </>
       ) : (
         <>
           {/* 1. delivery */}

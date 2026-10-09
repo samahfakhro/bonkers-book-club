@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import NotificationBell from '@/components/NotificationBell'
 import { householdDeliveryDay } from '@/lib/delivery-day'
 
 type Book = {
@@ -18,6 +19,7 @@ type Loan = {
   childId: string
   childName: string
   returnRequested: boolean
+  collected?: boolean   // driver has collected it; waiting to be scanned back in at the warehouse
 }
 
 type NextStackBook = {
@@ -265,9 +267,9 @@ export default function DashboardPage() {
         for (const child of childrenData) {
           const { data: loanRows } = await supabase
             .from('loans')
-            .select('id, return_requested, book_copies(books(id, title, cover_image_url, author))')
+            .select('id, status, return_requested, book_copies(books(id, title, cover_image_url, author))')
             .eq('child_id', child.id)
-            .eq('status', 'checked_out')
+            .in('status', ['checked_out', 'in_return_transit'])
 
           for (const l of loanRows ?? []) {
             const raw = (l as any).book_copies?.books
@@ -279,6 +281,7 @@ export default function DashboardPage() {
                 childId: child.id,
                 childName: child.name,
                 returnRequested: l.return_requested ?? false,
+                collected: (l as any).status === 'in_return_transit',
               })
             }
           }
@@ -581,6 +584,8 @@ export default function DashboardPage() {
             <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#1a2f51', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
             <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.5rem', color: '#1a2f51', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0' }}>THE CHILDREN'S LIBRARY</p>
           </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+          <NotificationBell />
           {(() => {
             const av = AVATARS.find(a => a.id === member?.avatar_id)
             return (
@@ -593,6 +598,7 @@ export default function DashboardPage() {
               </button>
             )
           })()}
+          </div>
         </div>
 
         <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '2.8rem', fontWeight: 700, lineHeight: 1, marginTop: '24px', marginBottom: '34px', textAlign: 'center' }}>Hello, {member?.first_name || 'there'}!</h1>
@@ -614,6 +620,22 @@ export default function DashboardPage() {
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.72rem', color: '#1a2f51', opacity: 0.65, margin: 0 }}>We’ll let you know your delivery day very soon.</p>
             </>
           )}
+            </div>
+          )
+        })()}
+
+        {/* ── OVER ALLOWANCE (more books at home than the plan allows) ── */}
+        {(() => {
+          const atHome = loans.filter(l => !l.collected).length
+          const extra = atHome - planTotal
+          if (extra <= 0) return null
+          return (
+            <div style={{ border: '2px solid #e8533a', backgroundColor: '#fff6f3', borderRadius: '16px', padding: '16px 18px', marginBottom: '28px' }}>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#e8533a', margin: '0 0 6px' }}>{atHome}/{planTotal} books at home</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.88rem', color: '#1a2f51', lineHeight: 1.55, margin: 0 }}>
+                You have {extra} more book{extra === 1 ? '' : 's'} at home than your plan allows. Please mark {extra === 1 ? 'it' : 'them'} as <strong>Returning</strong> and pop {extra === 1 ? 'it' : 'them'} in your tote for your next Bonkers Day.
+                {planTotal < 6 && atHome <= 6 && <> Want to keep more? <a href="/dashboard/settings" style={{ color: '#1a2f51', fontWeight: 700 }}>Upgrade to 6 books</a>.</>}
+              </p>
             </div>
           )
         })()}
@@ -694,15 +716,17 @@ export default function DashboardPage() {
                           const isReturn = returnMarked.has(loan.loanId)
                           return (
                             <div key={loan.loanId} style={{ textAlign: 'center' }}>
-                              <div style={{ aspectRatio: '3/4', borderRadius: '10px', overflow: 'hidden', backgroundColor: 'rgba(26,47,81,0.07)', border: `1.5px solid ${isReturn ? 'rgba(232,83,58,0.35)' : 'rgba(26,47,81,0.1)'}`, opacity: isReturn ? 0.5 : 1, transition: 'all 0.2s' }}>
+                              <div style={{ aspectRatio: '3/4', borderRadius: '10px', overflow: 'hidden', backgroundColor: 'rgba(26,47,81,0.07)', border: `1.5px solid ${isReturn ? 'rgba(232,83,58,0.35)' : 'rgba(26,47,81,0.1)'}`, opacity: loan.collected ? 0.35 : isReturn ? 0.5 : 1, transition: 'all 0.2s' }}>
                                 {loan.book.cover_url
                                   ? <img src={loan.book.cover_url} alt={loan.book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                   : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="#1a2f51"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/></svg></div>
                                 }
                               </div>
+                              {loan.collected ? <span style={{ display: 'inline-block', marginTop: '5px', padding: '3px 8px', borderRadius: '20px', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.52rem', letterSpacing: '0.04em', backgroundColor: '#eef1f8', color: '#1a2f51' }}>On its way back 🚐</span> : (
                               <button onClick={() => toggleReturn(loan.loanId)} style={{ marginTop: '5px', padding: '3px 8px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.52rem', letterSpacing: '0.06em', backgroundColor: isReturn ? '#e8533a' : 'rgba(26,47,81,0.08)', color: isReturn ? '#fff' : 'rgba(26,47,81,0.45)', transition: 'all 0.2s' }}>
                                 {isReturn ? 'Returning' : 'Keeping'}
                               </button>
+                              )}
                             </div>
                           )
                         })}

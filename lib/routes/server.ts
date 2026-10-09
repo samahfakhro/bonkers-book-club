@@ -140,7 +140,7 @@ export async function getRoute(routeId: string) {
   if (error || !route) throw error || new Error('Route not found')
   const { data: stops, error: sErr } = await supabaseAdmin
     .from('route_stops')
-    .select('id, visit_ref, stop_order, stop_type, status, outcome, outcome_notes, latitude, longitude, delivery_notes, expected_deliveries_count, expected_collections_count, packed_at, completed_at, household_id, households(first_name, last_name, villa_flat, building, street, sub_community, area, property_type, mobile_phone, whatsapp_number, delivery_preference, safe_spot_description, delivery_container_type, delivery_container_location_notes, neighbour_permission_enabled, neighbour_details)')
+    .select('id, visit_ref, stop_order, stop_type, status, outcome, outcome_notes, latitude, longitude, delivery_notes, expected_deliveries_count, expected_collections_count, packed_at, completed_at, family_response, family_response_details, family_responded_at, attempts, household_id, households(first_name, last_name, villa_flat, building, street, sub_community, area, property_type, mobile_phone, whatsapp_number, delivery_preference, safe_spot_description, delivery_container_type, delivery_container_location_notes, neighbour_permission_enabled, neighbour_details, backup_safe_drop, backup_concierge)')
     .eq('route_id', routeId)
     .order('stop_order')
   if (sErr) throw sErr

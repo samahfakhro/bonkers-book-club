@@ -142,7 +142,7 @@ type ChildProfile = {
 }
 
 type BookItem = { id: string; title: string; cover_url: string | null; author: string | null }
-type LoanItem = { loanId: string; book: BookItem; returnRequested: boolean }
+type LoanItem = { loanId: string; book: BookItem; returnRequested: boolean; collected?: boolean } // collected = driver has it, awaiting warehouse scan-in
 type ReadBook = { loanId: string; book: BookItem; returnedAt: string | null; rating: number | null }
 type WishlistItem = { id: string; book: BookItem }
 type Sibling = { id: string; name: string; nickname: string | null; avatar_id: string | null }
@@ -274,14 +274,15 @@ export default function ChildProfilePage() {
       setSiblings(siblingsData || [])
 
       // Current loans (books at home)
-      const { data: loansData } = await supabase.from('loans').select('id, book_copies(books(id, title, cover_image_url, author))').eq('child_id', childId).eq('status', 'checked_out')
+      const { data: loansData } = await supabase.from('loans').select('id, status, return_requested, book_copies(books(id, title, cover_image_url, author))').eq('child_id', childId).in('status', ['checked_out', 'in_return_transit'])
       const loans: LoanItem[] = []
       for (const l of loansData || []) {
         const raw = (l as any).book_copies?.books
-        if (raw) loans.push({ loanId: l.id, book: { ...raw, cover_url: raw.cover_image_url ?? null }, returnRequested: false })
+        if (raw) loans.push({ loanId: l.id, book: { ...raw, cover_url: raw.cover_image_url ?? null }, returnRequested: !!(l as any).return_requested, collected: (l as any).status === 'in_return_transit' })
       }
       setCurrentLoans(loans)
-      setReturnMarked(new Set())
+      // the parent may already have marked books as returning — show them that way here too
+      setReturnMarked(new Set(loans.filter(l => l.returnRequested).map(l => l.loanId)))
 
       // Read books (returned loans)
       const { data: returnedData } = await supabase.from('loans').select('id, returned_at, book_copies(books(id, title, cover_image_url, author))').eq('child_id', childId).eq('status', 'returned').order('returned_at', { ascending: false })
@@ -871,7 +872,7 @@ export default function ChildProfilePage() {
                         : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="#1a2f51"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/></svg></div>
                       }
                     </div>
-                    {canIndependentSwap && (
+                    {loan.collected ? <span style={{ display: 'inline-block', marginTop: '5px', padding: '3px 8px', borderRadius: '20px', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.52rem', letterSpacing: '0.04em', backgroundColor: '#eef1f8', color: '#1a2f51' }}>On its way back 🚐</span> : canIndependentSwap && (
                       <button onClick={() => toggleReturn(loan.loanId)} style={{ marginTop: '5px', padding: '3px 8px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.52rem', letterSpacing: '0.06em', backgroundColor: isReturn ? '#e8533a' : 'rgba(26,47,81,0.08)', color: isReturn ? '#fff' : 'rgba(26,47,81,0.45)', transition: 'all 0.2s' }}>
                         {isReturn ? 'Returning' : 'Keeping'}
                       </button>
