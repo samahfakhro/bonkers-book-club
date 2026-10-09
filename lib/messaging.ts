@@ -72,7 +72,7 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 // Goes to the parent only (never the children's envelopes), with a no-login link to Manage Delivery.
 export async function sendMissedVisitMessage(stopId: string, kind: 'delivery' | 'collection', childNames: string[]) {
   const { data: stop } = await supabaseAdmin
-    .from('route_stops').select('id, manage_token, household_id, households(first_name, whatsapp_number, mobile_phone, user_id)')
+    .from('route_stops').select('id, manage_token, household_id, households(first_name, whatsapp_number, mobile_phone, user_id, notify_whatsapp, notify_email)')
     .eq('id', stopId).single()
   if (!stop) return []
   const h: any = stop.households
@@ -98,9 +98,14 @@ export async function sendMissedVisitMessage(stopId: string, kind: 'delivery' | 
     <p><a href="${link}" style="display:inline-block;background:#1a2f51;color:#fff;text-decoration:none;padding:14px 26px;border-radius:999px;font-weight:bold">Tell us what to do</a></p>
     <p style="color:#888;font-size:13px">The Bonkers team</p></div>`
 
+  // Follow the family's Settings choice (they must keep at least one on; if both somehow off, send both)
+  let useWhatsApp = h?.notify_whatsapp !== false, useEmail = h?.notify_email !== false
+  if (!useWhatsApp && !useEmail) { useWhatsApp = true; useEmail = true }
+  const off = (channel: 'email' | 'whatsapp'): Promise<SendResult> => Promise.resolve({ channel, status: 'skipped', detail: 'switched off in Settings' })
+
   const results = await Promise.all([
-    sendWhatsAppTemplate(h?.whatsapp_number || h?.mobile_phone, kind === 'delivery' ? 'missed_delivery' : 'missed_collection', kind === 'delivery' ? [parent, kids, link] : [parent, link]),
-    email ? sendEmail(email, subject, text, html) : Promise.resolve<SendResult>({ channel: 'email', status: 'skipped', detail: 'no email address' }),
+    !useWhatsApp ? off('whatsapp') : sendWhatsAppTemplate(h?.whatsapp_number || h?.mobile_phone, kind === 'delivery' ? 'missed_delivery' : 'missed_collection', kind === 'delivery' ? [parent, kids, link] : [parent, link]),
+    !useEmail ? off('email') : email ? sendEmail(email, subject, text, html) : Promise.resolve<SendResult>({ channel: 'email', status: 'skipped', detail: 'no email address' }),
   ])
   // log each attempt on the visit (not in the children's message envelopes)
   await supabaseAdmin.from('delivery_events').insert(results.map(r => ({ route_stop_id: stopId, event_type: `message_${r.channel}_${r.status}`, notes: r.detail || null })))

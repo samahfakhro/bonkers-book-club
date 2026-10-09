@@ -611,8 +611,8 @@ export default function MembersPage() {
           <CollapsibleSection title="Notifications">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {([
-                { key: 'notify_whatsapp' as const, label: 'WhatsApp', sub: 'Swap confirmations, book availability alerts' },
-                { key: 'notify_email' as const, label: 'Email', sub: 'Swap confirmations, book availability alerts' },
+                { key: 'notify_whatsapp' as const, label: 'WhatsApp', sub: 'Delivery updates, order confirmations, book back-in-stock alerts' },
+                { key: 'notify_email' as const, label: 'Email', sub: 'Delivery updates, order confirmations, book back-in-stock alerts' },
                 { key: 'agreed_to_marketing' as const, label: 'Marketing', sub: 'News, book recommendations, promotions' },
               ]).map(({ key, label, sub }) => (
                 <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
@@ -621,7 +621,10 @@ export default function MembersPage() {
                     <p style={{ margin: '1px 0 0', fontSize: '11px', color: '#9b9b9b' }}>{sub}</p>
                   </div>
                   <button
-                    onClick={() => setEditHH(p => ({ ...p, [key]: !p[key] }))}
+                    onClick={() => setEditHH(p => {
+                      const next = { ...p, [key]: !p[key] }
+                      return key !== 'agreed_to_marketing' && !next.notify_whatsapp && !next.notify_email ? p : next // keep at least one of WhatsApp / Email on
+                    })}
                     style={{
                       width: '52px', height: '28px', borderRadius: '999px', flexShrink: 0,
                       backgroundColor: editHH[key] ? '#16a34a' : '#e5e5e5',

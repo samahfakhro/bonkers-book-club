@@ -746,7 +746,10 @@ export default function SettingsPage() {
                 <div className="flex flex-col gap-3">
                   {[{ key: 'whatsapp' as const, label: 'WhatsApp' }, { key: 'email' as const, label: 'Email' }].map(({ key, label }) => (
                     <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.85rem', fontWeight: 600 }}>{label}</span>
+                      <div>
+                        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.85rem', fontWeight: 600 }}>{label}</span>
+                        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.75rem', opacity: 0.7, display: 'block', marginTop: '2px' }}>Delivery updates, order confirmations, book back-in-stock alerts</span>
+                      </div>
                       <button type="button" onClick={() => toggleNotif(key)}
                         style={{ width: isTablet ? '80px' : '52px', height: isTablet ? '34px' : '28px', borderRadius: '999px', backgroundColor: notifications[key] ? '#1a2f51' : 'rgba(26,47,81,0.15)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background-color 0.2s', flexShrink: 0 }}>
                         <span style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: notifications[key] ? '5px' : 'auto', right: notifications[key] ? 'auto' : '5px', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.55rem' : '0.42rem', fontWeight: 700, letterSpacing: '0.04em', color: notifications[key] ? '#fefaf2' : 'rgba(26,47,81,0.5)', lineHeight: 1 }}>
