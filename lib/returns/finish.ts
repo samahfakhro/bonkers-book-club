@@ -110,7 +110,7 @@ export async function overAllowanceList() {
   if (!hhs?.length) return []
   const { atHome, planFor } = await allowanceByHousehold()
   const { data: loans } = await supabaseAdmin.from('loans')
-    .select('id, household_id, child_profiles(name), book_copies(internal_id, books(title))')
+    .select('id, household_id, child_profiles(name), book_copies(internal_id, books(title, cover_image_url))')
     .in('household_id', hhs.map(h => h.id)).is('returned_at', null).in('status', ['checked_out', 'active'])
   const today = dubaiToday()
   const { data: w } = await supabaseAdmin.from('system_settings').select('value').eq('key', 'on_hold_needs_action_weeks').maybeSingle()
@@ -124,7 +124,7 @@ export async function overAllowanceList() {
     response: h.over_allowance_response, respondedAt: h.over_allowance_responded_at,
     needsAction: !!h.over_allowance_grace_until && addDays(h.over_allowance_grace_until, 7 * weeks) < today,
     lostAwaitingPayment: (lost || []).filter(l => l.household_id === h.id).length,
-    books: (loans || []).filter(l => l.household_id === h.id).map((l: any) => ({ loanId: l.id, title: l.book_copies?.books?.title || '', internalId: l.book_copies?.internal_id || '', child: l.child_profiles?.name || '' })),
+    books: (loans || []).filter(l => l.household_id === h.id).map((l: any) => ({ loanId: l.id, title: l.book_copies?.books?.title || '', cover: l.book_copies?.books?.cover_image_url || null, internalId: l.book_copies?.internal_id || '', child: l.child_profiles?.name || '' })),
   }))
   return rows.sort((a, b) => Number(b.needsAction) - Number(a.needsAction) || Number(b.onHold) - Number(a.onHold))
 }

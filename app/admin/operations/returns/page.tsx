@@ -11,11 +11,11 @@ const CONDITIONS: { value: Condition; label: string }[] = [
   { value: 'good', label: 'Good' }, { value: 'worn', label: 'Worn but fine' },
   { value: 'damaged_ok', label: 'Damaged – still lendable' }, { value: 'withdrawn', label: 'Damaged – withdrawn' },
 ]
-type Due = { loanId: string; family: string; child: string; title: string; internalId: string; collectedOn: string | null }
-type Undelivered = { itemId: string; family: string; child: string; title: string; internalId: string }
-type CheckedIn = { inspectionId: string; title: string; internalId: string; family: string; condition: Condition; at: string }
-type Over = { householdId: string; family: string; phone: string | null; atHome: number; plan: number; graceUntil: string | null; onHold: boolean; needsAction: boolean; lostAwaitingPayment: number; response: string | null; books: { loanId: string; title: string; internalId: string; child: string }[] }
-type Charge = { id: string; householdId: string; kind: 'lost' | 'damaged'; amount: number; status: string; notes: string | null; title: string; internalId: string; family: string; phone: string | null; damageCount: number }
+type Due = { cover: string | null; loanId: string; family: string; child: string; title: string; internalId: string; collectedOn: string | null }
+type Undelivered = { cover: string | null; itemId: string; family: string; child: string; title: string; internalId: string }
+type CheckedIn = { cover: string | null; inspectionId: string; title: string; internalId: string; family: string; condition: Condition; at: string }
+type Over = { householdId: string; family: string; phone: string | null; atHome: number; plan: number; graceUntil: string | null; onHold: boolean; needsAction: boolean; lostAwaitingPayment: number; response: string | null; books: { cover: string | null; loanId: string; title: string; internalId: string; child: string }[] }
+type Charge = { cover: string | null; id: string; householdId: string; kind: 'lost' | 'damaged'; amount: number; status: string; notes: string | null; title: string; internalId: string; family: string; phone: string | null; damageCount: number }
 type Data = { due: Due[]; undelivered: Undelivered[]; checkedIn: CheckedIn[]; overAllowance: Over[]; payments: { warnAt: number; charges: Charge[] } }
 const REPLY: Record<string, string> = { returning: 'Forgot — returning next time', lost: 'Can’t find one' }
 const prettyDate = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
@@ -29,6 +29,14 @@ const card: React.CSSProperties = { border: '1px solid #e5e5e5', borderRadius: '
 function Btn({ variant = 'primary', disabled, onClick, children }: { variant?: 'primary' | 'secondary'; disabled?: boolean; onClick?: () => void; children: React.ReactNode }) {
   return <button onClick={onClick} disabled={disabled} style={{ ...font, padding: '8px 14px', borderRadius: '6px', border: 'none', cursor: disabled ? 'default' : 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: variant === 'primary' ? '#1a1a1a' : '#f0f0f0', color: variant === 'primary' ? '#fff' : '#1a1a1a', opacity: disabled ? 0.5 : 1 }}>{children}</button>
 }
+
+// small book cover so rows can be recognised at a glance
+function Cover({ src }: { src: string | null }) {
+  return src
+    ? <img src={src} alt="" style={{ width: '30px', height: '42px', objectFit: 'cover', borderRadius: '3px', flexShrink: 0, boxShadow: '0 1px 2px rgba(0,0,0,0.15)' }} />
+    : <span style={{ width: '30px', height: '42px', borderRadius: '3px', flexShrink: 0, backgroundColor: '#eee', display: 'inline-block' }} />
+}
+const bookRow: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '10px' }
 
 function groupBy<T extends { family: string }>(rows: T[]) {
   const m = new Map<string, T[]>()
@@ -150,7 +158,7 @@ Amount in AED — leave blank for the suggested amount:`, '')
           {data.checkedIn.map(r => (
             <div key={r.inspectionId} style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
-                <span style={{ ...font, fontSize: '13px' }}><strong style={{ color: '#1a1a1a' }}>{r.title}</strong> <span style={{ color: '#9b9b9b' }}>{r.internalId} · {r.family}</span></span>
+                <span style={{ ...font, ...bookRow, fontSize: '13px' }}><Cover src={r.cover} /><span><strong style={{ color: '#1a1a1a' }}>{r.title}</strong> <span style={{ color: '#9b9b9b' }}>{r.internalId} · {r.family}</span></span></span>
                 <span style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
                   <span style={{ ...font, fontSize: '12px', fontWeight: 600, color: r.condition === 'good' ? '#16a34a' : r.condition === 'withdrawn' ? '#dc2626' : '#b45309' }}>{CONDITIONS.find(c => c.value === r.condition)?.label}</span>
                   {(r.condition === 'damaged_ok' || r.condition === 'withdrawn') && <Btn variant="secondary" onClick={() => requestDamage(r)}>Request payment</Btn>}
@@ -166,7 +174,7 @@ Amount in AED — leave blank for the suggested amount:`, '')
           {groupBy(data.due).map(([family, rows]) => (
             <div key={family} style={card}>
               <p style={{ ...font, fontSize: '13px', fontWeight: 700, margin: '0 0 4px', color: '#1a1a1a' }}>{family}</p>
-              {rows.map(r => <p key={r.loanId} style={{ ...font, fontSize: '13px', margin: '2px 0', color: '#4a4a4a' }}>{r.title} <span style={{ color: '#9b9b9b' }}>{r.internalId} · {r.child}{r.collectedOn ? ` · collected ${r.collectedOn}` : ''}</span></p>)}
+              {rows.map(r => <p key={r.loanId} style={{ ...font, ...bookRow, fontSize: '13px', margin: '4px 0', color: '#4a4a4a' }}><Cover src={r.cover} /><span>{r.title} <span style={{ color: '#9b9b9b' }}>{r.internalId} · {r.child}{r.collectedOn ? ` · collected ${r.collectedOn}` : ''}</span></span></p>)}
             </div>
           ))}
 
@@ -192,7 +200,7 @@ Amount in AED — leave blank for the suggested amount:`, '')
                 <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #f0f0f0' }}>
                   {o.books.map(b => (
                     <div key={b.loanId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '3px 0' }}>
-                      <span style={{ ...font, fontSize: '13px', color: '#4a4a4a' }}>{b.title} <span style={{ color: '#9b9b9b' }}>{b.internalId} · {b.child}</span></span>
+                      <span style={{ ...font, ...bookRow, fontSize: '13px', color: '#4a4a4a' }}><Cover src={b.cover} /><span>{b.title} <span style={{ color: '#9b9b9b' }}>{b.internalId} · {b.child}</span></span></span>
                       <Btn variant="secondary" onClick={async () => { const amount = askAmount(`Mark “${b.title}” as lost? A payment request for the replacement is sent to ${o.family}. They stay on hold until it’s paid or waived.`); if (amount === undefined) return; await post({ action: 'mark_lost', loanId: b.loanId, amount }); setLostFor(null); await load() }}>Lost</Btn>
                     </div>
                   ))}
@@ -205,13 +213,13 @@ Amount in AED — leave blank for the suggested amount:`, '')
           {data.payments.charges.length === 0 && <p style={{ ...font, fontSize: '13px', color: '#9b9b9b' }}>None.</p>}
           {data.payments.charges.map(c => (
             <div key={c.id} style={{ ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <span style={{ ...font, fontSize: '13px' }}>
+              <span style={{ ...font, ...bookRow, fontSize: '13px' }}><Cover src={c.cover} /><span>
                 <strong style={{ color: '#1a1a1a' }}>{c.family}</strong>
                 {c.damageCount >= data.payments.warnAt && <span title={`${c.damageCount} damaged books so far`} style={{ color: '#dc2626', fontWeight: 700 }}> ⚠ {c.damageCount} damaged</span>}
                 <span style={{ color: '#4a4a4a' }}> · {c.kind === 'lost' ? 'Lost' : 'Damaged'}: {c.title}</span> <span style={{ color: '#9b9b9b' }}>{c.internalId}</span>
                 <span style={{ fontWeight: 700 }}> · AED {c.amount}</span>
                 {c.status === 'disputed' && <span style={{ color: '#b45309', fontWeight: 700 }}> · DISPUTED</span>}
-              </span>
+              </span></span>
               <span style={{ display: 'flex', gap: '6px' }}>
                 <Btn onClick={() => setCharge(c, 'paid')}>Paid</Btn>
                 <Btn variant="secondary" onClick={() => editAmount(c)}>Edit amount</Btn>
@@ -229,7 +237,7 @@ Amount in AED — leave blank for the suggested amount:`, '')
           {groupBy(data.undelivered).map(([family, rows]) => (
             <div key={family} style={card}>
               <p style={{ ...font, fontSize: '13px', fontWeight: 700, margin: '0 0 4px', color: '#1a1a1a' }}>{family}</p>
-              {rows.map(r => <p key={r.itemId} style={{ ...font, fontSize: '13px', margin: '2px 0', color: '#4a4a4a' }}>{r.title} <span style={{ color: '#9b9b9b' }}>{r.internalId} · {r.child}</span></p>)}
+              {rows.map(r => <p key={r.itemId} style={{ ...font, ...bookRow, fontSize: '13px', margin: '4px 0', color: '#4a4a4a' }}><Cover src={r.cover} /><span>{r.title} <span style={{ color: '#9b9b9b' }}>{r.internalId} · {r.child}</span></span></p>)}
             </div>
           ))}
 

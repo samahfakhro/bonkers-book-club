@@ -79,7 +79,7 @@ export async function updateCharge(chargeId: string, change: { status?: ChargeSt
 export async function chargesOverview() {
   const s = await settings()
   const { data: charges } = await supabaseAdmin.from('damage_charges')
-    .select('id, household_id, kind, charge_amount_aed, status, notes, created_at, book_copies(internal_id, books(title)), households(first_name, last_name, name, whatsapp_number, mobile_phone)')
+    .select('id, household_id, kind, charge_amount_aed, status, notes, created_at, book_copies(internal_id, books(title, cover_image_url)), households(first_name, last_name, name, whatsapp_number, mobile_phone)')
     .in('status', ['requested', 'disputed']).order('created_at', { ascending: false })
   const { data: damaged } = await supabaseAdmin.from('return_inspections').select('household_id').or('notes.like.damaged_ok%,notes.like.withdrawn%')
   const damageCount = new Map<string, number>()
@@ -88,7 +88,7 @@ export async function chargesOverview() {
     warnAt: s.warnAt,
     charges: (charges || []).map((c: any) => ({
       id: c.id, householdId: c.household_id, kind: c.kind, amount: Number(c.charge_amount_aed), status: c.status, notes: c.notes, createdAt: c.created_at,
-      title: c.book_copies?.books?.title || '', internalId: c.book_copies?.internal_id || '',
+      title: c.book_copies?.books?.title || '', cover: c.book_copies?.books?.cover_image_url || null, internalId: c.book_copies?.internal_id || '',
       family: [c.households?.first_name, c.households?.last_name].filter(Boolean).join(' ') || c.households?.name || 'Family',
       phone: c.households?.whatsapp_number || c.households?.mobile_phone || null,
       damageCount: damageCount.get(c.household_id) || 0,

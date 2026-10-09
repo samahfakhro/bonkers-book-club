@@ -29,26 +29,26 @@ async function findCopy(code: string) {
 export async function returnsOverview() {
   const [{ data: due }, { data: undelivered }, { data: recent }] = await Promise.all([
     supabaseAdmin.from('loans')
-      .select('id, household_id, book_copies(internal_id, books(title)), child_profiles(name), households(first_name, last_name, name), route_stops:collection_stop_id(routes(route_date))')
+      .select('id, household_id, book_copies(internal_id, books(title, cover_image_url)), child_profiles(name), households(first_name, last_name, name), route_stops:collection_stop_id(routes(route_date))')
       .eq('status', 'in_return_transit'),
     supabaseAdmin.from('swap_request_items')
-      .select('id, packed_copy_id, book_copies:packed_copy_id(internal_id, status, books(title)), swap_requests!inner(household_id, status, route_stop_id, child_profiles(name), households(first_name, last_name, name))')
+      .select('id, packed_copy_id, book_copies:packed_copy_id(internal_id, status, books(title, cover_image_url)), swap_requests!inner(household_id, status, route_stop_id, child_profiles(name), households(first_name, last_name, name))')
       .not('packed_copy_id', 'is', null).is('swap_requests.route_stop_id', null).neq('swap_requests.status', 'delivered'),
     supabaseAdmin.from('return_inspections')
-      .select('id, final_status, notes, inspected_at, book_copies(internal_id, condition_grade, books(title)), households(first_name, last_name, name)')
+      .select('id, final_status, notes, inspected_at, book_copies(internal_id, condition_grade, books(title, cover_image_url)), households(first_name, last_name, name)')
       .gte('inspected_at', new Date(Date.now() - 36 * 3600_000).toISOString()).order('inspected_at', { ascending: false }).limit(200),
   ])
   return {
     due: (due || []).map((l: any) => ({
-      loanId: l.id, family: familyName(l.households), child: l.child_profiles?.name || '', title: l.book_copies?.books?.title || '',
+      loanId: l.id, family: familyName(l.households), child: l.child_profiles?.name || '', title: l.book_copies?.books?.title || '', cover: l.book_copies?.books?.cover_image_url || null,
       internalId: l.book_copies?.internal_id || '', collectedOn: l.route_stops?.routes?.route_date || null,
     })),
     undelivered: (undelivered || []).filter((i: any) => i.book_copies?.status === 'packed').map((i: any) => ({
       itemId: i.id, family: familyName(i.swap_requests?.households), child: i.swap_requests?.child_profiles?.name || '',
-      title: i.book_copies?.books?.title || '', internalId: i.book_copies?.internal_id || '',
+      title: i.book_copies?.books?.title || '', cover: i.book_copies?.books?.cover_image_url || null, internalId: i.book_copies?.internal_id || '',
     })),
     checkedIn: (recent || []).map((r: any) => ({
-      inspectionId: r.id, title: r.book_copies?.books?.title || '', internalId: r.book_copies?.internal_id || '',
+      inspectionId: r.id, title: r.book_copies?.books?.title || '', cover: r.book_copies?.books?.cover_image_url || null, internalId: r.book_copies?.internal_id || '',
       family: familyName(r.households), condition: (r.notes?.split(/[:\s]/)[0] || 'good') as Condition, at: r.inspected_at,
     })),
   }
