@@ -59,7 +59,7 @@ export default function ReturnsPage() {
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/returns', { cache: 'no-store' })
     const b = await res.json()
-    if (res.ok) setData(b); else setFeedback({ ok: false, text: b.error || 'Could not load' })
+    if (res.ok) setData({ ...b, overAllowance: b.overAllowance ?? [], payments: b.payments ?? { warnAt: 3, charges: [] } }); else setFeedback({ ok: false, text: b.error || 'Could not load' })
   }, [])
   useEffect(() => { load() }, [load])
   useEffect(() => { setFeedback(null); setTimeout(() => inputRef.current?.focus(), 50) }, [tab])

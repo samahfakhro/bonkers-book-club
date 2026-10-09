@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { getPublicSettings, cutoffWeekday } from '@/lib/public-settings'
 import { fetchAvailableBookIds } from '@/lib/availability'
 import NotificationBell from '@/components/NotificationBell'
 import { householdDeliveryDay } from '@/lib/delivery-day'
@@ -77,7 +78,7 @@ function getNextCutoff(swapDay: string, cutoffTime: string): Date {
   const now = new Date()
   const swapIdx = days.indexOf(swapDay.toLowerCase())
   if (swapIdx === -1) return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-  const cutoffDayIdx = (swapIdx - 2 + 7) % 7  // 2 days before Bonkers Day
+  const cutoffDayIdx = cutoffWeekday(swapIdx)
   const [hours, minutes] = cutoffTime.split(':').map(Number)
   const result = new Date(now)
   result.setHours(hours, minutes, 0, 0)
@@ -105,7 +106,7 @@ function getChooseCutoffDay(swapDay: string): string {
   const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
   const idx = days.indexOf(swapDay.toLowerCase())
   if (idx === -1) return swapDay
-  return dayNames[(idx - 2 + 7) % 7]
+  return dayNames[cutoffWeekday(idx)]
 }
 
 function formatCutoffTime(time: string): string {
@@ -179,6 +180,8 @@ const CHARACTERS = [
 
 export default function DashboardPage() {
   const router = useRouter()
+  const [, setSettingsLoaded] = useState(false)
+  useEffect(() => { getPublicSettings().then(() => setSettingsLoaded(true)).catch(() => {}) }, [])
   const searchParams = useSearchParams()
   const pathname = usePathname()
   const [characterIndex] = useState(() => {

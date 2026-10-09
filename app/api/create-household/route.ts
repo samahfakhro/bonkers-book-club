@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { checkAvailability } from '@/lib/membership/availability'
+import { getSettingValues } from '@/lib/settings'
 
 const digits = (s: unknown) => String(s ?? '').replace(/\D/g, '').replace(/^(971|0)/, '')
 
@@ -58,10 +59,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'full', waitlist: true }, { status: 409 })
     }
 
+    // new families start with the notification defaults from admin → Settings
+    const defaults = await getSettingValues(['default_notify_whatsapp', 'default_notify_email'])
+
     // Create household — zone + Bonkers Day come from the server's check, not the browser
     const { data: household, error: hhError } = await supabaseAdmin
       .from('households')
-      .insert({ user_id: userId, ...householdFields, signup_zone_id: availability.zoneId, bonkers_day: availability.bonkersDay })
+      .insert({ user_id: userId, notify_whatsapp: defaults.default_notify_whatsapp !== 'false', notify_email: defaults.default_notify_email !== 'false', ...householdFields, signup_zone_id: availability.zoneId, bonkers_day: availability.bonkersDay })
       .select('id')
       .single()
 

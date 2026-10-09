@@ -1,7 +1,7 @@
 // A household's delivery ("Bonkers") day and order cutoff come from its delivery zone.
 // The day is copied onto the household when its address is pinned (households.bonkers_day);
 // the zone's own day/cutoff are used as a fallback. Books must be chosen by the cutoff time,
-// 2 days before the delivery day.
+// a number of days before the delivery day (admin → Settings, default 2).
 //
 // Query households with `zones(bonkers_day, cutoff_time)` so the zone comes along.
 

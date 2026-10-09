@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { getPublicSettings, cutoffWeekday } from '@/lib/public-settings'
 import { fetchAvailableBookIds } from '@/lib/availability'
 import { householdDeliveryDay } from '@/lib/delivery-day'
 import { useTapOnly } from '@/hooks/useTapOnly'
@@ -104,7 +105,7 @@ function getChooseCutoffDay(swapDay: string): string {
   const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
   const idx = days.indexOf(swapDay.toLowerCase())
   if (idx === -1) return swapDay
-  return dayNames[(idx - 2 + 7) % 7]
+  return dayNames[cutoffWeekday(idx)]
 }
 
 function formatCutoffTime(time: string): string {
@@ -178,6 +179,8 @@ const CHILD_CHARACTERS: { src: string; slot: 'default' | 'below-cutoff' | 'on-bo
 
 export default function ChildProfilePage() {
   const router = useRouter()
+  const [, setSettingsLoaded] = useState(false)
+  useEffect(() => { getPublicSettings().then(() => setSettingsLoaded(true)).catch(() => {}) }, [])
   const params = useParams()
   const pathname = usePathname()
   const childId = params.id as string
@@ -552,7 +555,7 @@ export default function ChildProfilePage() {
     const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
     const swapIdx = days.indexOf(swapDay.toLowerCase())
     if (swapIdx === -1) return false
-    const cutoffDayIdx = (swapIdx - 2 + 7) % 7
+    const cutoffDayIdx = cutoffWeekday(swapIdx)
     const [h, m] = cutoffTime.split(':').map(Number)
     const now = new Date()
     const cutoff = new Date(now)

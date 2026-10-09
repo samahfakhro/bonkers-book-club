@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-// Runs hourly (pg_cron). At each zone's cutoff — 2 days before its delivery day, at the zone's cutoff time,
+// Runs hourly (pg_cron). At each zone's cutoff — a set number of days (admin → Settings) before its delivery day, at the zone's cutoff time,
 // in DUBAI time — book choices that were SUBMITTED before the cutoff are locked for packing.
 // Choices submitted after the cutoff wait for the next cutoff (next week's delivery).
 
@@ -13,10 +13,10 @@ const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 
 const DUBAI_OFFSET_MS = 4 * 3600_000 // UTC+4 all year (no daylight saving)
 
 // The most recent cutoff moment (as a real UTC instant) for a zone delivering on `deliveryDay`
-function getMostRecentCutoff(deliveryDay: string, cutoffTime: string): Date | null {
+function getMostRecentCutoff(deliveryDay: string, cutoffTime: string, daysBefore: number): Date | null {
   const dayIdx = DAYS.indexOf(deliveryDay.toLowerCase())
   if (dayIdx === -1) return null
-  const cutoffDayIdx = (dayIdx - 2 + 7) % 7
+  const cutoffDayIdx = ((dayIdx - (daysBefore % 7)) % 7 + 7) % 7
   const [h, m] = cutoffTime.split(':').map(Number)
   const nowDubai = new Date(Date.now() + DUBAI_OFFSET_MS) // read with getUTC* = Dubai wall-clock
   const cutoff = new Date(Date.UTC(nowDubai.getUTCFullYear(), nowDubai.getUTCMonth(), nowDubai.getUTCDate(), h, m || 0))
@@ -27,13 +27,17 @@ function getMostRecentCutoff(deliveryDay: string, cutoffTime: string): Date | nu
 }
 
 Deno.serve(async () => {
+  // choose-by deadline: this many days before the Bonkers Day (admin → Settings)
+  const { data: setting } = await supabase.from('system_settings').select('value').eq('key', 'cutoff_days_before').maybeSingle()
+  const daysBefore = Number(setting?.value) || 2
+
   const { data: zones, error: zErr } = await supabase.from('zones').select('id, bonkers_day, cutoff_time')
   if (zErr || !zones) return new Response(JSON.stringify({ error: zErr?.message }), { status: 500 })
 
   let totalLocked = 0
   for (const zone of zones) {
     if (!zone.bonkers_day) continue
-    const cutoffMoment = getMostRecentCutoff(zone.bonkers_day, zone.cutoff_time ?? '20:00')
+    const cutoffMoment = getMostRecentCutoff(zone.bonkers_day, zone.cutoff_time ?? '20:00', daysBefore)
     if (!cutoffMoment) continue
 
     const { data: households } = await supabase.from('households').select('id').eq('signup_zone_id', zone.id)

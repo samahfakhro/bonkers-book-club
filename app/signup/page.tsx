@@ -4,10 +4,12 @@ import { useState, useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { getPublicSettings } from '@/lib/public-settings'
 import { Suspense } from 'react'
 import SignupMap, { type Zone, type MapResult } from '@/components/SignupMap'
 import AddressFields, { validateAddress } from '@/components/AddressFields'
 
+// Fallbacks until the admin Settings load (plans and options are edited in admin → Settings)
 const PLANS = [
   { id: 'mid', label: 'A Little Bonkers', price: 149, badge: null, books: 16, swapBooks: 4 },
   { id: 'full', label: 'Quite Bonkers', price: 199, badge: null, books: 24, swapBooks: 6 },
@@ -267,8 +269,20 @@ function SignupForm() {
   })
 
   const set = (field: string, value: unknown) => setForm(f => ({ ...f, [field]: value }))
-  const selectedPlan = PLANS.find(p => p.id === form.planId)!
-  const selectedHowOption = HOW_OPTIONS.find(o => o.value === form.hearAboutUs)
+  const [plans, setPlans] = useState(PLANS)
+  const [howOptions, setHowOptions] = useState(HOW_OPTIONS)
+  useEffect(() => {
+    getPublicSettings().then(st => {
+      if (st.plans?.length) {
+        const ps = st.plans.map(p => ({ id: p.id, label: p.name, price: p.price, badge: null, books: p.books * 4, swapBooks: p.books }))
+        setPlans(ps)
+        setForm(f => ps.some(p => p.id === f.planId) ? f : { ...f, planId: ps[0].id })
+      }
+      if (st.howHeard?.length) setHowOptions(st.howHeard)
+    }).catch(() => {})
+  }, [])
+  const selectedPlan = plans.find(p => p.id === form.planId)
+  const selectedHowOption = howOptions.find(o => o.value === form.hearAboutUs)
 
   useEffect(() => {
     const check = () => setIsTablet(window.innerWidth >= 768)
@@ -400,7 +414,7 @@ function SignupForm() {
     }
 
     const whatsappFull = `${form.whatsappCountryCode}${form.whatsapp.replace(/^0/, '')}`
-    const selectedPlanData = PLANS.find(p => p.id === form.planId)
+    const selectedPlanData = plans.find(p => p.id === form.planId)
     const res = await fetch('/api/create-household', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -589,7 +603,7 @@ function SignupForm() {
                 <SectionHeading title="Choose your Bonkers membership" subtitle="" />
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: isTablet ? '16px' : '10px' }}>
-                  {PLANS.map((plan) => {
+                  {plans.map((plan) => {
                     const selected = form.planId === plan.id
                     return (
                       <div key={plan.id} onClick={() => set('planId', plan.id)}
@@ -852,7 +866,7 @@ function SignupForm() {
                 <div style={{ marginBottom: '24px' }}>
                   <label style={{ ...labelStyle, marginBottom: '10px', fontSize: isTablet ? '0.65rem' : '13px' }}>How did you hear about Bonkers?</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                    {HOW_OPTIONS.map(opt => {
+                    {howOptions.map(opt => {
                       const selected = form.hearAboutUs === opt.value
                       return (
                         <button key={opt.value} type="button"
