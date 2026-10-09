@@ -659,7 +659,7 @@ export default function DashboardPage() {
                 : <div style={{ marginTop: '12px' }}>
                     <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', fontWeight: 700, color: '#1a2f51', margin: '0 0 6px' }}>What happened?</p>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      {[['returning', 'I’ll put them out next time'], ['lost', 'A book is lost'], ['damaged', 'A book is damaged']].map(([v, l]) => (
+                      {[['returning', 'I forgot! Returning them next time'], ['lost', 'Oops, we can’t find one!']].map(([v, l]) => (
                         <button key={v} onClick={() => reply(v)} style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', fontWeight: 600, color: '#1a2f51', background: '#fff', border: '2px solid #e8e0d4', borderRadius: '999px', padding: '8px 14px', cursor: 'pointer' }}>{l}</button>
                       ))}
                     </div>

@@ -16,7 +16,7 @@ type Undelivered = { itemId: string; family: string; child: string; title: strin
 type CheckedIn = { inspectionId: string; title: string; internalId: string; family: string; condition: Condition; at: string }
 type Over = { householdId: string; family: string; phone: string | null; atHome: number; plan: number; graceUntil: string | null; onHold: boolean; response: string | null; books: { loanId: string; title: string; internalId: string; child: string }[] }
 type Data = { due: Due[]; undelivered: Undelivered[]; checkedIn: CheckedIn[]; overAllowance: Over[] }
-const REPLY: Record<string, string> = { returning: 'Will put them out next time', lost: 'Says a book is lost', damaged: 'Says a book is damaged' }
+const REPLY: Record<string, string> = { returning: 'Forgot — returning next time', lost: 'Can’t find one' }
 const prettyDate = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 const waLink = (p: string) => { const d = p.replace(/D/g, ''); return `https://wa.me/${d.startsWith('0') ? '971' + d.slice(1) : d}` }
 

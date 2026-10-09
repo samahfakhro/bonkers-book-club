@@ -69,7 +69,7 @@ export async function finishInspecting() {
       const until = addDays(today, 7 * grace)
       await supabaseAdmin.from('households').update({ over_allowance_since: today, over_allowance_grace_until: until, over_allowance_response: null, over_allowance_responded_at: null }).eq('id', householdId)
       await notifyHousehold({ householdId, type: 'general', title: 'A few too many books at home',
-        message: `You have ${n} books at home, but your plan is for ${plan}. Please pop ${books(extra)} in your tote for your next Bonkers Day — or let us know what happened on your dashboard. If they’re not back by ${pretty(until)}, new books will pause until they are.`,
+        message: `You have ${n} books at home, but your plan is for ${plan}. Please pop ${books(extra)} in your tote for your next Bonkers Day — or let us know what happened on your dashboard. If ${extra === 1 ? 'it’s' : 'they’re'} not back by ${pretty(until)}, new books will pause until ${extra === 1 ? 'it is' : 'they are'}.`,
         link: '/dashboard' })
       result.newlyOver++
     } else if (visited.has(householdId)) {

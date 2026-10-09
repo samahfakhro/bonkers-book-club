@@ -11,7 +11,7 @@ create unique index if not exists book_availability_notifications_stop_token_key
 alter table households
   add column if not exists over_allowance_since date,            -- set when found at "Finished inspecting"
   add column if not exists over_allowance_grace_until date,      -- after this date, new books are on hold
-  add column if not exists over_allowance_response text,         -- the family's answer: returning | lost | damaged
+  add column if not exists over_allowance_response text,         -- the family's answer: returning | lost
   add column if not exists over_allowance_responded_at timestamptz;
 
 insert into system_settings (key, value, description)
