@@ -1,6 +1,7 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
+import AdminGate from '@/components/AdminGate'
 
 const NAV = [
   { label: 'Books', path: '/admin/books' },
@@ -17,6 +18,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter()
 
   return (
+    <AdminGate>
     <div className="admin-root" style={{
       position: 'fixed', inset: 0, backgroundColor: '#ffffff', zIndex: 50,
       display: 'flex', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
@@ -56,5 +58,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {children}
       </div>
     </div>
+    </AdminGate>
   )
 }

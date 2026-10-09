@@ -38,7 +38,9 @@ export default function LoginPage() {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
     if (error) { setAuthError(error.message); return }
-    router.push('/dashboard')
+    // back to the page that sent them here (e.g. admin), only ever within this site
+    const next = new URLSearchParams(window.location.search).get('next')
+    router.push(next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard')
   }
 
   const inputClass = "w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-[#fcf7eb]"
