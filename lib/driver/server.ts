@@ -3,7 +3,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { routeWithEnvelopes } from '@/lib/routes/envelopes'
 import { parseScannedCode } from '@/lib/routes/codes'
-import { notifyHousehold } from '@/lib/notify'
+import { sendMissedVisitMessage } from '@/lib/messaging'
 import { dubaiToday } from '@/lib/routes/server'
 
 export type DeliveryResult = 'handed_over' | 'concierge' | 'neighbour' | 'safe_drop' | 'failed'
@@ -139,20 +139,11 @@ export async function completeStop(stopId: string, report: StopReport) {
   await supabaseAdmin.from('route_stops').update({ status: 'done', outcome, outcome_notes: noteParts.join(' · ') || null, completed_at: now, attempts: ((stop as any).attempts ?? 0) + 1 }).eq('id', stopId)
   await supabaseAdmin.from('delivery_events').insert({ route_stop_id: stopId, event_type: outcome, notes: [...noteParts, ...warnings].join(' · ') || null, photo_url: d?.photoPath ?? null })
 
-  // ── something was missed → tell the family, with a link to say what we should do ──
+  // ── something was missed → message the PARENT straight away (WhatsApp + email), with a no-login link ──
   const missedDelivery = d?.result === 'failed'
   const missedCollection = !!report.collection && report.collection.result !== 'collected'
   if (missedDelivery || missedCollection) {
-    const names = stop.children.map(c => c.name).join(' and ')
-    await notifyHousehold({
-      householdId: stop.household_id,
-      type: 'missed_visit',
-      title: missedDelivery ? 'We missed you today! 📚' : 'We couldn’t collect your books today',
-      message: missedDelivery
-        ? `Our driver couldn’t deliver ${names ? names + '’s' : 'your'} books today. Tap to tell us what to do — we’ll try again today if we can.`
-        : 'Some of your returning books weren’t there when our driver called. Tap to let us know what to do.',
-      link: `/dashboard/manage-delivery/${stopId}`,
-    })
+    await sendMissedVisitMessage(stopId, missedDelivery ? 'delivery' : 'collection', stop.children.map(c => c.name))
   }
 
   // ── last stop done → route completed ──
