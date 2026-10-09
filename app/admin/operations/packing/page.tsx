@@ -207,6 +207,7 @@ function Packing() {
     setTimeout(() => scanRef.current[stop.id]?.focus(), 50)
     if (!res.ok) { setScanError(p => ({ ...p, [stop.id]: body.error || 'Scan failed' })); return }
     const copy = body.copy
+    if (copy.status === 'reserved' && copy.current_household_id !== stop.household_id) { setScanError(p => ({ ...p, [stop.id]: `${copy.internal_id} is on the reserved shelf for another family — use a different copy` })); return }
     if (Object.values(scans).some(s => s.copyId === copy.id)) { setScanError(p => ({ ...p, [stop.id]: `${copy.internal_id} has already been scanned` })); return }
     const target = stop.children.flatMap(c => c.books).find(b => b.bookId === copy.book_id && !scans[b.itemId])
     if (!target) { setScanError(p => ({ ...p, [stop.id]: copy.book_id ? `This book isn’t one of ${familyName(stop.households)}’s choices` : 'Copy found but has no book linked' })); return }
