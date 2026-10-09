@@ -14,7 +14,11 @@ const CONDITIONS: { value: Condition; label: string }[] = [
 type Due = { loanId: string; family: string; child: string; title: string; internalId: string; collectedOn: string | null }
 type Undelivered = { itemId: string; family: string; child: string; title: string; internalId: string }
 type CheckedIn = { inspectionId: string; title: string; internalId: string; family: string; condition: Condition; at: string }
-type Data = { due: Due[]; undelivered: Undelivered[]; checkedIn: CheckedIn[] }
+type Over = { householdId: string; family: string; phone: string | null; atHome: number; plan: number; graceUntil: string | null; onHold: boolean; response: string | null; books: { loanId: string; title: string; internalId: string; child: string }[] }
+type Data = { due: Due[]; undelivered: Undelivered[]; checkedIn: CheckedIn[]; overAllowance: Over[] }
+const REPLY: Record<string, string> = { returning: 'Will put them out next time', lost: 'Says a book is lost', damaged: 'Says a book is damaged' }
+const prettyDate = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
+const waLink = (p: string) => { const d = p.replace(/D/g, ''); return `https://wa.me/${d.startsWith('0') ? '971' + d.slice(1) : d}` }
 
 const font: React.CSSProperties = { fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }
 const inp: React.CSSProperties = { ...font, padding: '8px 10px', borderRadius: '6px', backgroundColor: '#fff', border: '1px solid #d4d4d4', color: '#1a1a1a', fontSize: '14px', outline: 'none' }
@@ -40,6 +44,8 @@ export default function ReturnsPage() {
   const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [finishing, setFinishing] = useState(false)
+  const [lostFor, setLostFor] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/returns', { cache: 'no-store' })
@@ -67,6 +73,22 @@ export default function ReturnsPage() {
     inputRef.current?.focus()
   }
 
+  const finish = async () => {
+    if (!confirm('Finished inspecting? This sends “back on the shelf” alerts and checks which families have too many books at home.')) return
+    setFinishing(true)
+    const { ok, body } = await post({ action: 'finish' })
+    setFinishing(false)
+    if (!ok) { setFeedback({ ok: false, text: body.error || 'Something went wrong' }); return }
+    const parts = [`${body.checkedIn} book${body.checkedIn === 1 ? '' : 's'} in this batch`, `${body.alertsSent} “back on the shelf” alert${body.alertsSent === 1 ? '' : 's'} sent`]
+    if (body.newlyOver) parts.push(`${body.newlyOver} famil${body.newlyOver === 1 ? 'y' : 'ies'} newly over their allowance`)
+    if (body.reminded) parts.push(`${body.reminded} reminded`)
+    if (body.onHold) parts.push(`${body.onHold} on hold`)
+    if (body.cleared) parts.push(`${body.cleared} back within their plan`)
+    if (body.notScanned) parts.push(`⚠ ${body.notScanned} collected book${body.notScanned === 1 ? '' : 's'} not scanned in yet`)
+    setFeedback({ ok: true, text: `✓ Finished — ${parts.join(' · ')}` })
+    await load()
+  }
+
   return (
     <div style={{ padding: '24px 32px', overflowY: 'auto', height: '100%', maxWidth: '900px' }}>
       <button onClick={() => router.push('/admin/operations')} style={{ ...font, background: 'none', border: 'none', padding: 0, color: '#9b9b9b', fontSize: '12px', cursor: 'pointer' }}>← Operations</button>
@@ -92,6 +114,8 @@ export default function ReturnsPage() {
 
       {!data ? <p style={{ ...font, color: '#9b9b9b', marginTop: '20px' }}>Loading…</p> : tab === 'returned' ? (
         <>
+          <div style={{ marginTop: '16px' }}><Btn onClick={finish} disabled={finishing}>{finishing ? 'Finishing…' : '✓ Finished inspecting'}</Btn></div>
+
           <p style={secHead}>Checked in (last 36 hours)</p>
           {data.checkedIn.length === 0 && <p style={{ ...font, fontSize: '13px', color: '#9b9b9b' }}>Nothing yet.</p>}
           {data.checkedIn.map(r => (
@@ -113,6 +137,35 @@ export default function ReturnsPage() {
             <div key={family} style={card}>
               <p style={{ ...font, fontSize: '13px', fontWeight: 700, margin: '0 0 4px', color: '#1a1a1a' }}>{family}</p>
               {rows.map(r => <p key={r.loanId} style={{ ...font, fontSize: '13px', margin: '2px 0', color: '#4a4a4a' }}>{r.title} <span style={{ color: '#9b9b9b' }}>{r.internalId} · {r.child}{r.collectedOn ? ` · collected ${r.collectedOn}` : ''}</span></p>)}
+            </div>
+          ))}
+
+          <p style={{ ...secHead, color: data.overAllowance.length ? '#dc2626' : '#9b9b9b' }}>Families with too many books at home ({data.overAllowance.length})</p>
+          {data.overAllowance.length === 0 && <p style={{ ...font, fontSize: '13px', color: '#9b9b9b' }}>None.</p>}
+          {data.overAllowance.map(o => (
+            <div key={o.householdId} style={{ ...card, borderColor: o.onHold ? '#dc2626' : '#e5e5e5' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ ...font, fontSize: '13px' }}>
+                  <strong style={{ color: '#1a1a1a' }}>{o.family}</strong> <span style={{ color: '#dc2626', fontWeight: 700 }}>{o.atHome}/{o.plan} at home</span>
+                  <span style={{ color: o.onHold ? '#dc2626' : '#9b9b9b', fontWeight: o.onHold ? 700 : 400 }}> · {o.onHold ? 'NEW BOOKS ON HOLD' : o.graceUntil ? `grace until ${prettyDate(o.graceUntil)}` : ''}</span>
+                  {o.response && <span style={{ color: '#4a4a4a' }}> · Family: {REPLY[o.response] || o.response}</span>}
+                </span>
+                <span style={{ display: 'flex', gap: '6px' }}>
+                  <Btn variant="secondary" onClick={async () => { await post({ action: 'more_time', householdId: o.householdId }); await load() }}>+1 week</Btn>
+                  <Btn variant="secondary" onClick={() => setLostFor(lostFor === o.householdId ? null : o.householdId)}>Mark a book lost</Btn>
+                  {o.phone && <a href={waLink(o.phone)} target="_blank" rel="noreferrer" style={{ ...font, padding: '8px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, backgroundColor: '#f0f0f0', color: '#1a1a1a', textDecoration: 'none' }}>WhatsApp</a>}
+                </span>
+              </div>
+              {lostFor === o.householdId && (
+                <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #f0f0f0' }}>
+                  {o.books.map(b => (
+                    <div key={b.loanId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '3px 0' }}>
+                      <span style={{ ...font, fontSize: '13px', color: '#4a4a4a' }}>{b.title} <span style={{ color: '#9b9b9b' }}>{b.internalId} · {b.child}</span></span>
+                      <Btn variant="secondary" onClick={async () => { if (!confirm(`Mark ${b.title} as lost?`)) return; await post({ action: 'mark_lost', loanId: b.loanId }); setLostFor(null); await load() }}>Lost</Btn>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </>

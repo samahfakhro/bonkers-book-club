@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { weekdayOf } from '@/lib/routes/server'
 import { routeWithEnvelopes } from '@/lib/routes/envelopes'
+import { removeAlertsForHousehold } from '@/lib/notify-me'
 
 // GET ?routeId=…  → the route's stops in stop order, each with the children whose books go in this visit
 // GET (no routeId) → upcoming routes to choose from
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ copy: data[0] })
     }
 
-    const { data: stop } = await supabaseAdmin.from('route_stops').select('id, route_id, routes(status)').eq('id', body.stopId).single()
+    const { data: stop } = await supabaseAdmin.from('route_stops').select('id, route_id, household_id, routes(status)').eq('id', body.stopId).single()
     if (!stop) return NextResponse.json({ error: 'Stop not found' }, { status: 404 })
     if ((stop.routes as any)?.status !== 'locked') return NextResponse.json({ error: 'Lock the route before packing, so stop numbers can’t change' }, { status: 400 })
 
@@ -47,6 +48,8 @@ export async function POST(req: NextRequest) {
       if (packed.length) {
         await supabaseAdmin.from('book_copies').update({ status: 'packed' }).in('id', packed.map(p => p.copyId))
         await Promise.all(packed.map(p => supabaseAdmin.from('swap_request_items').update({ packed_copy_id: p.copyId }).eq('id', p.itemId)))
+        const { data: packedCopies } = await supabaseAdmin.from('book_copies').select('book_id').in('id', packed.map(p => p.copyId))
+        await removeAlertsForHousehold(stop.household_id, (packedCopies || []).map(c => c.book_id))
       }
       await supabaseAdmin.from('route_stops').update({ status: 'packed', packed_at: new Date().toISOString() }).eq('id', body.stopId)
       return NextResponse.json({ ok: true })

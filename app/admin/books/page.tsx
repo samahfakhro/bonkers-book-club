@@ -690,6 +690,8 @@ export default function AdminBooksPage() {
     if (e) { setError(`Add copy failed: ${e.message}`); setAddingCopy(false); return }
     setCopies(prev => ({ ...prev, [bookId]: [...(prev[bookId] || []), data] }))
     setAddingCopy(false)
+    // anyone waiting on this book (Notify Me) hears it's back
+    fetch('/api/admin/notify-me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookIds: [bookId] }) }).catch(() => {})
   }
 
   async function archiveCopy(copyId: string, bookId: string) {

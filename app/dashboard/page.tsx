@@ -193,6 +193,8 @@ export default function DashboardPage() {
   })
   const activeCharacter = CHARACTERS[characterIndex]
   const [member, setMember] = useState<Member | null>(null)
+  // set at the warehouse when there are more books at home than the plan allows
+  const [overAllowance, setOverAllowance] = useState<{ graceUntil: string | null; response: string | null } | null>(null)
   const [children, setChildren] = useState<Child[]>([])
   const [loans, setLoans] = useState<Loan[]>([])
   const [nextStack, setNextStack] = useState<NextStackBook[]>([])
@@ -238,11 +240,11 @@ export default function DashboardPage() {
       // Fetch plan books separately to avoid join failures
       const { data: subData } = await supabase
         .from('subscriptions')
-        .select('plan_id, subscription_plans(books_per_swap)')
+        .select('plan_id, subscription_plans(book_count)')
         .eq('household_id', hh.id)
         .eq('status', 'active')
         .maybeSingle()
-      const planBooks = (subData as any)?.subscription_plans?.books_per_swap ?? 4
+      const planBooks = (subData as any)?.subscription_plans?.book_count ?? 4
 
       setMember({
         id: hh.id,
@@ -254,6 +256,7 @@ export default function DashboardPage() {
         swap_cutoff_time: zoneCutoff,
         avatar_id: (hh as any).avatar_id ?? null,
       })
+      setOverAllowance((hh as any).over_allowance_since ? { graceUntil: (hh as any).over_allowance_grace_until ?? null, response: (hh as any).over_allowance_response ?? null } : null)
 
       const { data: childrenData } = await supabase
         .from('child_profiles')
@@ -498,7 +501,12 @@ export default function DashboardPage() {
 
   const approveSwap = async (requestId: string, childId: string) => {
     setApprovingChildIds(prev => new Set(prev).add(childId))
-    await supabase.from('swap_requests').update({ status: 'submitted' }).eq('id', requestId)
+    const { error } = await supabase.from('swap_requests').update({ status: 'submitted' }).eq('id', requestId)
+    if (error) {
+      alert(error.message.includes('NEW_BOOKS_ON_HOLD') ? 'New books are on hold until your extra books come back. Pop them in your tote for your next Bonkers Day.' : 'Something went wrong — please try again.')
+      setApprovingChildIds(prev => { const n = new Set(prev); n.delete(childId); return n })
+      return
+    }
     setChildren(prev => prev.map(c => c.id === childId ? { ...c, swap_status: 'submitted' } : c))
     setApprovingChildIds(prev => { const n = new Set(prev); n.delete(childId); return n })
   }
@@ -629,6 +637,13 @@ export default function DashboardPage() {
           const atHome = loans.filter(l => !l.collected).length
           const extra = atHome - planTotal
           if (extra <= 0) return null
+          const todayDubai = new Date(Date.now() + 4 * 3600_000).toISOString().slice(0, 10)
+          const onHold = !!overAllowance?.graceUntil && overAllowance.graceUntil < todayDubai
+          const until = overAllowance?.graceUntil ? new Date(`${overAllowance.graceUntil}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }) : null
+          const reply = async (response: string) => {
+            setOverAllowance(o => o ? { ...o, response } : o)
+            await supabase.from('households').update({ over_allowance_response: response, over_allowance_responded_at: new Date().toISOString() }).eq('id', member!.id)
+          }
           return (
             <div style={{ border: '2px solid #e8533a', backgroundColor: '#fff6f3', borderRadius: '16px', padding: '16px 18px', marginBottom: '28px' }}>
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#e8533a', margin: '0 0 6px' }}>{atHome}/{planTotal} books at home</p>
@@ -636,6 +651,19 @@ export default function DashboardPage() {
                 You have {extra} more book{extra === 1 ? '' : 's'} at home than your plan allows. Please mark {extra === 1 ? 'it' : 'them'} as <strong>Returning</strong> and pop {extra === 1 ? 'it' : 'them'} in your tote for your next Bonkers Day.
                 {planTotal < 6 && atHome <= 6 && <> Want to keep more? <a href="/dashboard/settings" style={{ color: '#1a2f51', fontWeight: 700 }}>Upgrade to 6 books</a>.</>}
               </p>
+              {onHold
+                ? <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.88rem', color: '#e8533a', fontWeight: 700, margin: '10px 0 0' }}>New books are on hold until {extra === 1 ? 'it comes' : 'they come'} back.</p>
+                : until && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.88rem', color: '#1a2f51', margin: '10px 0 0' }}>If {extra === 1 ? 'it isn’t' : 'they aren’t'} back by <strong>{until}</strong>, new books will pause until {extra === 1 ? 'it is' : 'they are'}.</p>}
+              {overAllowance && (overAllowance.response
+                ? <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', color: '#1a2f51', opacity: 0.75, margin: '10px 0 0' }}>✓ Thanks for letting us know{overAllowance.response === 'returning' ? '' : ' — we’ll be in touch about it'}.</p>
+                : <div style={{ marginTop: '12px' }}>
+                    <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', fontWeight: 700, color: '#1a2f51', margin: '0 0 6px' }}>What happened?</p>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {[['returning', 'I’ll put them out next time'], ['lost', 'A book is lost'], ['damaged', 'A book is damaged']].map(([v, l]) => (
+                        <button key={v} onClick={() => reply(v)} style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', fontWeight: 600, color: '#1a2f51', background: '#fff', border: '2px solid #e8e0d4', borderRadius: '999px', padding: '8px 14px', cursor: 'pointer' }}>{l}</button>
+                      ))}
+                    </div>
+                  </div>)}
             </div>
           )
         })()}

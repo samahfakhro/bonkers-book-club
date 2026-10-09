@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { returnsOverview, checkInByScan, setCondition, shelveUndelivered } from '@/lib/returns/server'
+import { finishInspecting, overAllowanceList, giveMoreTime, markLost } from '@/lib/returns/finish'
 
 export async function GET() {
-  try { return NextResponse.json(await returnsOverview()) }
+  try {
+    const [overview, overAllowance] = await Promise.all([returnsOverview(), overAllowanceList()])
+    return NextResponse.json({ ...overview, overAllowance })
+  }
   catch (err: any) { return NextResponse.json({ error: err.message || 'Could not load returns' }, { status: 500 }) }
 }
 
 // POST JSON  { action: 'checkin', code } | { action: 'condition', inspectionId, condition, note, photoPath }
-//            { action: 'undelivered', code }
+//            { action: 'undelivered', code } | { action: 'finish' }
+//            { action: 'more_time', householdId } | { action: 'mark_lost', loanId }
 // POST multipart { inspectionId, photo } → damage photo, returns { path }
 export async function POST(req: NextRequest) {
   try {
@@ -27,6 +32,9 @@ export async function POST(req: NextRequest) {
       b.action === 'checkin' ? await checkInByScan(String(b.code || '')) :
       b.action === 'condition' ? await setCondition(String(b.inspectionId), b.condition, String(b.note || '').trim(), b.photoPath || null) :
       b.action === 'undelivered' ? await shelveUndelivered(String(b.code || '')) :
+      b.action === 'finish' ? await finishInspecting() :
+      b.action === 'more_time' ? await giveMoreTime(String(b.householdId)) :
+      b.action === 'mark_lost' ? await markLost(String(b.loanId)) :
       { error: 'Unknown action' }
     return NextResponse.json(result, { status: 'error' in result ? 400 : 200 })
   } catch (err: any) {

@@ -469,7 +469,8 @@ export default function ChildProfilePage() {
 
   const sendToParent = async () => {
     if (!draftSwapRequestId) return
-    await supabase.from('swap_requests').update({ status: 'child_confirmed' }).eq('id', draftSwapRequestId)
+    const { error } = await supabase.from('swap_requests').update({ status: 'child_confirmed' }).eq('id', draftSwapRequestId)
+    if (error) { alert(error.message.includes('NEW_BOOKS_ON_HOLD') ? 'New books are on hold for now — ask a grown-up to send back the extra books first.' : 'Something went wrong — please try again.'); return }
     setSwapRequestStatus('child_confirmed')
   }
 
@@ -481,7 +482,8 @@ export default function ChildProfilePage() {
 
   const submitSwap = async () => {
     if (!draftSwapRequestId) return
-    await supabase.from('swap_requests').update({ status: 'submitted' }).eq('id', draftSwapRequestId)
+    const { error } = await supabase.from('swap_requests').update({ status: 'submitted' }).eq('id', draftSwapRequestId)
+    if (error) { alert(error.message.includes('NEW_BOOKS_ON_HOLD') ? 'New books are on hold until your extra books come back. Pop them in your tote for your next Bonkers Day.' : 'Something went wrong — please try again.'); return }
     setSwapRequestStatus('submitted')
   }
 
