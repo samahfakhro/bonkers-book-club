@@ -95,13 +95,13 @@ export default function SupportPage() {
                 <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.7rem', opacity: 0.5, margin: '2px 0 0' }}>Fastest way to reach us</p>
               </div>
             </a>
-            <a href="mailto:hello@bonkersbookclub.com" style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', borderRadius: '16px', border: '2px solid #e8e0d4', backgroundColor: 'transparent', textDecoration: 'none' }}>
+            <a href="mailto:hello@bonkers.ae" style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', borderRadius: '16px', border: '2px solid #e8e0d4', backgroundColor: 'transparent', textDecoration: 'none' }}>
               <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#1a2f51', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
               </div>
               <div>
                 <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, color: '#1a2f51', fontSize: '0.82rem', margin: 0 }}>Email us</p>
-                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.7rem', opacity: 0.5, margin: '2px 0 0' }}>hello@bonkersbookclub.com</p>
+                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.7rem', opacity: 0.5, margin: '2px 0 0' }}>hello@bonkers.ae</p>
               </div>
             </a>
           </div>
