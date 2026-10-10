@@ -17,7 +17,7 @@ type Report = {
 const font: React.CSSProperties = { fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', color: '#1a1a1a' }
 const card: React.CSSProperties = { border: '1px solid #e5e5e5', borderRadius: '10px', padding: '16px 18px', marginBottom: '16px', backgroundColor: '#fff' }
 const h2: React.CSSProperties = { ...font, fontSize: '14px', fontWeight: 700, margin: '0 0 12px' }
-const h3: React.CSSProperties = { ...font, fontSize: '11px', fontWeight: 700, color: '#9b9b9b', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '14px 0 8px' }
+const h3: React.CSSProperties = { ...font, fontSize: '16.5px', fontWeight: 700, color: '#9b9b9b', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '14px 0 8px' }
 const muted: React.CSSProperties = { ...font, fontSize: '12px', color: '#9b9b9b' }
 const inp: React.CSSProperties = { ...font, padding: '6px 8px', borderRadius: '6px', border: '1px solid #d4d4d4', fontSize: '13px', backgroundColor: '#fff' }
 
@@ -70,7 +70,7 @@ function ShowAll({ total, open, onToggle }: { total: number; open: boolean; onTo
 
 function BookCell({ title, cover }: { title: string; cover: string | null }) {
   return (
-    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <span style={{ ...font, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
       {cover ? <img src={cover} alt="" style={{ width: '24px', height: '34px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }} /> : <span style={{ width: '24px', height: '34px', background: '#eee', borderRadius: '2px', flexShrink: 0 }} />}
       {title}
     </span>
@@ -175,7 +175,7 @@ export default function ReportsPage() {
             <Table head={['Stage', 'Children', 'Books borrowed', 'Per child']} rows={d.books.loansByStage.map(s => [s.stage, s.children, s.loans, s.perChild ?? '—'])} />
             {d.books.neverBorrowedSample.length > 0 && <>
               <p style={h3}>Never borrowed</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>{top('never', d.books.neverBorrowedSample).map(b => <BookCell key={b.title} {...b} />)}</div>
+              <div style={{ ...font, fontSize: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}>{top('never', d.books.neverBorrowedSample).map(b => <BookCell key={b.title} {...b} />)}</div>
               <ShowAll total={d.books.neverBorrowedSample.length} open={!!open.never} onToggle={() => toggle('never')} />
             </>}
           </div>
