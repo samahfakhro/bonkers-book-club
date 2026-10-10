@@ -18,8 +18,7 @@ export const SETTING_GROUPS: { title: string; fields: { key: string; label: stri
     { key: 'lost_charge_percent', label: 'Lost book — % of replacement price', type: 'number' },
     { key: 'damage_charge_percent', label: 'Damaged book — % of replacement price', type: 'number' },
     { key: 'damage_warning_level', label: 'Damaged books before a ⚠ flag', type: 'number' },
-    { key: 'over_allowance_grace_bonkers_days', label: 'Grace period for extra books (Bonkers Days)', type: 'number' },
-    { key: 'on_hold_needs_action_weeks', label: 'Weeks on hold before “Needs action”', type: 'number' },
+    { key: 'on_hold_needs_action_weeks', label: 'Weeks on hold before “Needs action” (mark lost / charge)', type: 'number' },
   ] },
   { title: 'New families', fields: [
     { key: 'default_notify_whatsapp', label: 'WhatsApp messages on by default', type: 'boolean' },

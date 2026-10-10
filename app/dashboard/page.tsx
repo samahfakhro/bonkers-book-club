@@ -496,7 +496,8 @@ export default function DashboardPage() {
       }
     }
     if (!reqId) return
-    await supabase.from('swap_request_items').insert({ swap_request_id: reqId, book_id: bookId, child_id: childId })
+    const { error: addErr } = await supabase.from('swap_request_items').insert({ swap_request_id: reqId, book_id: bookId, child_id: childId })
+    if (addErr?.message.includes('NEW_BOOKS_ON_HOLD')) { alert('New books are on hold until your extra books come back. Mark them as Returning for your next Bonkers Day — you can choose again once they’re back.'); return }
     const book = [...savedBooks.values()].flat().find(b => b.id === bookId)
     setNextStack(prev => {
       if (prev.some(n => n.book?.id === bookId)) return prev
@@ -641,10 +642,11 @@ export default function DashboardPage() {
         {(() => {
           const atHome = loans.filter(l => !l.collected).length + lostUnpaid
           const extra = atHome - planTotal
-          if (extra <= 0) return null
+          if (extra <= 0 && !overAllowance) return null
           const todayDubai = new Date(Date.now() + 4 * 3600_000).toISOString().slice(0, 10)
-          const onHold = !!overAllowance?.graceUntil && overAllowance.graceUntil < todayDubai
-          const until = overAllowance?.graceUntil ? new Date(`${overAllowance.graceUntil}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }) : null
+          const onHold = !!overAllowance // found at the hub: no grace period
+          const until = null as string | null
+          void todayDubai
           const reply = async (response: string) => {
             setOverAllowance(o => o ? { ...o, response } : o)
             await supabase.from('households').update({ over_allowance_response: response, over_allowance_responded_at: new Date().toISOString() }).eq('id', member!.id)

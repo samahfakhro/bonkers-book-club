@@ -27,7 +27,7 @@ const PREFERENCE: Record<string, string> = {
   leave_at_door: 'Leave at the door (contactless)', leave_safe_spot: 'Leave in their safe spot', ring_bell: 'Ring the bell — someone is home',
   call_no_bell: 'Call them — don’t ring the bell', leave_with_reception: 'Leave with reception / concierge',
 }
-const FAILED = new Set(['delivery_failed', 'collection_failed', 'no_access', 'no_answer', 'partial_issue'])
+const FAILED = new Set(['delivery_failed', 'collection_failed', 'no_access', 'no_answer', 'partial_issue', 'books_not_returned'])
 const REPLY: Record<string, string> = {
   retry_today: 'Please try again today', neighbour: 'Leave with a neighbour', concierge: 'Leave with reception / concierge',
   safe_drop: 'Leave in a safe spot', next_bonkers_day: 'Wait for next Bonkers Day',
@@ -161,6 +161,11 @@ function StopDetail({ route, stop, onBack, onDone }: { route: DriverRoute; stop:
     } catch (e: any) { setError(e.message || 'Couldn’t reopen this stop') }
     setRetrying(false)
   }
+  const noReturn = hasDelivery && hasCollection && collection === 'not_collected'
+  useEffect(() => {
+    if (noReturn) { setDelivery('failed'); setFailReason('no_return') }
+    else if (failReason === 'no_return') { setDelivery(null); setFailReason(null) }
+  }, [noReturn]) // eslint-disable-line react-hooks/exhaustive-deps
   const allScanned = stop.children.every(c => scanned.has(c.envelopeCode))
   const deliveredOk = delivery && delivery !== 'failed'
 
@@ -285,8 +290,26 @@ function StopDetail({ route, stop, onBack, onDone }: { route: DriverRoute; stop:
         </>
       ) : (
         <>
-          {/* 1. delivery */}
-          {hasDelivery && (
+          {/* collection — first, so the driver checks the tote before handing over new books */}
+          {hasCollection && (
+            <>
+              {section(`COLLECT — ${stop.collectCount} BOOK${stop.collectCount === 1 ? '' : 'S'} FROM THEIR ${(h?.delivery_container_type || 'tote').toUpperCase()}`)}
+              <Choice selected={collection === 'collected'} onClick={() => setCollection('collected')}>Collected — into the return bin</Choice>
+              <Choice selected={collection === 'partial'} onClick={() => setCollection('partial')}>Only some books were there</Choice>
+              <Choice selected={collection === 'not_collected'} onClick={() => setCollection('not_collected')}>{hasDelivery ? 'No books out (tried door, call + WhatsApp)' : 'Couldn’t collect'}</Choice>
+            </>
+          )}
+
+          {/* delivery */}
+          {hasDelivery && noReturn && (
+            <>
+              {section('DELIVER')}
+              <Card style={{ background: '#fff4e5', color: navy, fontWeight: 700, lineHeight: 1.5 }}>
+                No books were handed back — keep the new books in the van. The family has been asked to put them out so you can come back today.
+              </Card>
+            </>
+          )}
+          {hasDelivery && !noReturn && (
             <>
               {section(`DELIVER — ${stop.children.length} ENVELOPE${stop.children.length === 1 ? '' : 'S'}`)}
               <Card>
@@ -329,16 +352,6 @@ function StopDetail({ route, stop, onBack, onDone }: { route: DriverRoute; stop:
                   <Choice selected={failReason === 'other'} onClick={() => setFailReason('other')}>Other problem</Choice>
                 </>
               )}
-            </>
-          )}
-
-          {/* 2. collection */}
-          {hasCollection && (
-            <>
-              {section(`COLLECT — ${stop.collectCount} BOOK${stop.collectCount === 1 ? '' : 'S'} FROM THEIR ${(h?.delivery_container_type || 'tote').toUpperCase()}`)}
-              <Choice selected={collection === 'collected'} onClick={() => setCollection('collected')}>Collected — into the return bin</Choice>
-              <Choice selected={collection === 'partial'} onClick={() => setCollection('partial')}>Only some books were there</Choice>
-              <Choice selected={collection === 'not_collected'} onClick={() => setCollection('not_collected')}>Couldn’t collect</Choice>
             </>
           )}
 

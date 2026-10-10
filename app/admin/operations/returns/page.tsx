@@ -186,12 +186,12 @@ Amount in AED — leave blank for the suggested amount:`, '')
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <span style={{ ...font, fontSize: '13px' }}>
                   <strong style={{ color: '#1a1a1a' }}>{o.family}</strong> <span style={{ color: '#dc2626', fontWeight: 700 }}>{o.atHome}/{o.plan} at home</span>
-                  <span style={{ color: o.onHold ? '#dc2626' : '#9b9b9b', fontWeight: o.onHold ? 700 : 400 }}> · {o.onHold ? 'NEW BOOKS ON HOLD' : o.graceUntil ? `grace until ${prettyDate(o.graceUntil)}` : ''}</span>
+                  <span style={{ color: o.onHold ? '#dc2626' : '#9b9b9b', fontWeight: o.onHold ? 700 : 400 }}> · NEW BOOKS ON HOLD{o.graceUntil ? ` since ${prettyDate(o.graceUntil)}` : ''}</span>
                   {o.response && <span style={{ color: '#4a4a4a' }}> · Family: {REPLY[o.response] || o.response}</span>}
                   {o.lostAwaitingPayment > 0 && <span style={{ color: '#b45309' }}> · {o.lostAwaitingPayment} lost, awaiting payment</span>}
                 </span>
                 <span style={{ display: 'flex', gap: '6px' }}>
-                  <Btn variant="secondary" onClick={async () => { await post({ action: 'more_time', householdId: o.householdId }); await load() }}>+1 week</Btn>
+                  <Btn variant="secondary" onClick={async () => { await post({ action: 'more_time', householdId: o.householdId }); await load() }}>+1 week before “needs action”</Btn>
                   <Btn variant="secondary" onClick={() => setLostFor(lostFor === o.householdId ? null : o.householdId)}>Mark a book lost</Btn>
                   {o.phone && <a href={waLink(o.phone)} target="_blank" rel="noreferrer" style={{ ...font, padding: '8px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, backgroundColor: '#f0f0f0', color: '#1a1a1a', textDecoration: 'none' }}>WhatsApp</a>}
                 </span>

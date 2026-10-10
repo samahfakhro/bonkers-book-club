@@ -463,6 +463,7 @@ export default function ChildProfilePage() {
       setSwapRequestStatus('draft')
     }
     const { error: itemErr } = await supabase.from('swap_request_items').insert({ swap_request_id: reqId, book_id: bookId, child_id: childId })
+    if (itemErr?.message.includes('NEW_BOOKS_ON_HOLD')) { alert('New books are on hold for now — the extra books at home need to go back first.'); return }
     if (itemErr && itemErr.code !== '23505') { console.error('swap_request_items insert failed:', itemErr); return }
     setDraftItems(prev => {
       if (prev.some(d => d.book.id === bookId)) return prev

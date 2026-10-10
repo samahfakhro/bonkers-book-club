@@ -23,9 +23,10 @@ export async function stopForParent(stopId: string, accessToken: string | undefi
 export async function manageInfo(stop: any) {
   const { data: children } = await supabaseAdmin.from('swap_requests').select('child_profiles(name)').eq('route_stop_id', stop.id)
   const missedDelivery = FAILED_DELIVERY.has(stop.outcome || '')
-  const missedCollection = stop.outcome === 'collection_failed' || stop.outcome === 'partial_issue'
+  const noReturn = stop.outcome === 'books_not_returned'
+  const missedCollection = stop.outcome === 'collection_failed' || stop.outcome === 'partial_issue' || noReturn
   return {
-    missedDelivery, missedCollection,
+    missedDelivery, missedCollection, noReturn,
     deliveredAfterAll: stop.status === 'done' && !missedDelivery && !missedCollection,
     open: manageLinkOpen(stop.routes),
     routeDate: stop.routes?.route_date,

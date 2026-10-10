@@ -10,7 +10,7 @@ const heading: React.CSSProperties = { fontFamily: 'var(--font-cormorant), serif
 const body: React.CSSProperties = { fontFamily: 'var(--font-montserrat), sans-serif', color: navy, fontSize: '0.95rem', lineHeight: 1.55 }
 
 type Info = {
-  missedDelivery: boolean; missedCollection: boolean; deliveredAfterAll: boolean; open: boolean; routeDate: string
+  missedDelivery: boolean; missedCollection: boolean; noReturn?: boolean; deliveredAfterAll: boolean; open: boolean; routeDate: string
   parentName: string | null; childNames: string[]; isApartment: boolean; savedSafeSpot: string; savedNeighbour: string
   response: string | null; responseDetails: string | null; respondedAt: string | null
 }
@@ -76,7 +76,7 @@ export default function ManageDelivery({ apiPath, headers, footer }: { apiPath: 
       {info && (
         <>
           <h1 style={{ ...heading, fontSize: '2.4rem', margin: '26px 0 10px' }}>
-            {info.deliveredAfterAll ? 'All sorted! 🎉' : info.missedDelivery ? 'We missed you today!' : 'We couldn’t collect your books'}
+            {info.deliveredAfterAll ? 'All sorted! 🎉' : info.noReturn ? 'We couldn’t swap your books' : info.missedDelivery ? 'We missed you today!' : 'We couldn’t collect your books'}
           </h1>
 
           {info.deliveredAfterAll ? (
@@ -87,18 +87,20 @@ export default function ManageDelivery({ apiPath, headers, footer }: { apiPath: 
             <>
               <p style={{ ...body, marginBottom: '20px' }}>
                 {info.parentName ? `Hi ${info.parentName}! ` : ''}
-                {info.missedDelivery
+                {info.noReturn
+                  ? `There were no books out for our driver to collect, so ${kids} new books stayed in the van. Pop the books out and let us know — we’ll try to come back today.`
+                  : info.missedDelivery
                   ? `Our driver came by with ${kids} new books but couldn’t deliver them. Tell us what you’d like us to do — our driver will see it straight away.`
                   : 'Some of your returning books weren’t there when our driver called. Let us know what you’d like us to do.'}
               </p>
 
-              {OPTIONS.filter(o => !o.apartmentOnly || info.isApartment).map(o => (
+              {OPTIONS.filter(o => (!o.apartmentOnly || info.isApartment) && (!info.noReturn || o.value === 'retry_today' || o.value === 'next_bonkers_day')).map(o => (
                 <button key={o.value} type="button" onClick={() => pick(o)}
                   style={{ display: 'flex', gap: '12px', alignItems: 'center', width: '100%', textAlign: 'left', padding: '14px 16px', marginBottom: '10px', borderRadius: '14px', cursor: 'pointer',
                     border: choice === o.value ? '4px solid #fee297' : '2px solid #e8e0d4', backgroundColor: choice === o.value ? '#fffef9' : 'transparent' }}>
                   <img src={choice === o.value ? '/star_yellow.png' : '/star_cream.png'} alt="" style={{ width: '28px', height: '28px', objectFit: 'contain', flexShrink: 0 }} />
                   <span>
-                    <span style={{ ...body, display: 'block', fontWeight: 700 }}>{o.label}</span>
+                    <span style={{ ...body, display: 'block', fontWeight: 700 }}>{info.noReturn && o.value === 'retry_today' ? 'I’ve put the books out — please come back today' : o.label}</span>
                     <span style={{ ...body, display: 'block', fontSize: '0.78rem', opacity: 0.8 }}>{o.sub}</span>
                   </span>
                 </button>

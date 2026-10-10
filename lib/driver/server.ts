@@ -7,7 +7,7 @@ import { sendMissedVisitMessage } from '@/lib/messaging'
 import { dubaiToday } from '@/lib/routes/server'
 
 export type DeliveryResult = 'handed_over' | 'concierge' | 'neighbour' | 'safe_drop' | 'failed'
-export type FailReason = 'no_answer' | 'no_access' | 'other'
+export type FailReason = 'no_answer' | 'no_access' | 'other' | 'no_return'  // no_return: no books handed back, so the new books stay in the van
 export type CollectionResult = 'collected' | 'partial' | 'not_collected'
 
 export type StopReport = {
@@ -28,6 +28,7 @@ export const OUTCOME_LABEL: Record<string, string> = {
   left_with_concierge: 'Left with concierge',
   left_with_neighbour: 'Left with neighbour',
   safe_drop_completed: 'Safe drop completed',
+  books_not_returned: 'No books out — new books kept',
 }
 
 // What the driver may do at this door — never leave books unattended without the family's permission.
@@ -41,7 +42,7 @@ export function allowedDeliveryResults(h: any, familyResponse?: string | null): 
   return options
 }
 
-export const FAILED_DELIVERY = new Set(['no_answer', 'no_access', 'delivery_failed'])
+export const FAILED_DELIVERY = new Set(['no_answer', 'no_access', 'delivery_failed', 'books_not_returned'])
 
 // The Manage Delivery link works until the route is closed (completed) or its day is over
 export function manageLinkOpen(route: { status: string; route_date: string }) {
@@ -50,6 +51,7 @@ export function manageLinkOpen(route: { status: string; route_date: string }) {
 
 function outcomeFor(r: StopReport): string {
   const d = r.delivery, c = r.collection
+  if (d?.result === 'failed' && d.failReason === 'no_return') return 'books_not_returned'
   if (d?.result === 'failed') return d.failReason === 'no_access' ? 'no_access' : d.failReason === 'no_answer' ? 'no_answer' : 'delivery_failed'
   if (d) {
     if (c && c.result !== 'collected') return 'partial_issue'
@@ -78,6 +80,10 @@ export async function completeStop(stopId: string, report: StopReport) {
   if (hasDelivery && !report.delivery) throw new Error('Record what happened with the delivery')
   if (hasCollection && !report.collection) throw new Error('Record what happened with the collection')
   const d = report.delivery
+  // a library rule: no books handed back → no new books
+  if (hasDelivery && hasCollection && report.collection?.result === 'not_collected' && d && d.result !== 'failed') {
+    throw new Error('No books were handed back, so the new books stay in the van')
+  }
   if (d) {
     if (!allowedDeliveryResults(stop.households, (stop as any).family_response).includes(d.result)) throw new Error('That option isn’t allowed for this family')
     if (d.result === 'neighbour' && !d.neighbour?.trim()) throw new Error('Add the neighbour’s name and villa/flat number')
@@ -143,7 +149,7 @@ export async function completeStop(stopId: string, report: StopReport) {
   const missedDelivery = d?.result === 'failed'
   const missedCollection = !!report.collection && report.collection.result !== 'collected'
   if (missedDelivery || missedCollection) {
-    await sendMissedVisitMessage(stopId, missedDelivery ? 'delivery' : 'collection', stop.children.map(c => c.name))
+    await sendMissedVisitMessage(stopId, outcome === 'books_not_returned' ? 'no_return' : missedDelivery ? 'delivery' : 'collection', stop.children.map(c => c.name))
   }
 
   // ── last stop done → route completed ──
@@ -160,7 +166,7 @@ export async function reopenStop(stopId: string) {
   if ((stop.routes as any)?.status !== 'locked') throw new Error('This route is closed')
   if (stop.status !== 'done') throw new Error('This stop is still open')
   const failedDelivery = FAILED_DELIVERY.has(stop.outcome || '')
-  const failedCollection = stop.outcome === 'collection_failed' || stop.outcome === 'partial_issue'
+  const failedCollection = stop.outcome === 'collection_failed' || stop.outcome === 'partial_issue' || stop.outcome === 'books_not_returned'
   if (!failedDelivery && !failedCollection) throw new Error('Only a missed visit can be tried again')
   if (failedDelivery) {
     // the envelope is still in the van — choices back to locked

@@ -70,7 +70,7 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 
 // "We missed you today" — sent the moment the driver records a missed delivery or collection.
 // Goes to the parent only (never the children's envelopes), with a no-login link to Manage Delivery.
-export async function sendMissedVisitMessage(stopId: string, kind: 'delivery' | 'collection', childNames: string[]) {
+export async function sendMissedVisitMessage(stopId: string, kind: 'delivery' | 'collection' | 'no_return', childNames: string[]) {
   const { data: stop } = await supabaseAdmin
     .from('route_stops').select('id, manage_token, household_id, households(first_name, whatsapp_number, mobile_phone, user_id, notify_whatsapp, notify_email)')
     .eq('id', stopId).single()
@@ -90,7 +90,9 @@ export async function sendMissedVisitMessage(stopId: string, kind: 'delivery' | 
   const subject = kind === 'delivery' ? 'We missed you today! 📚' : 'We couldn’t collect your books today'
   const lead = kind === 'delivery'
     ? `Our driver came by with ${kidsPossessive} new books but couldn’t deliver them.`
-    : 'Some of your returning books weren’t there when our driver called.'
+    : kind === 'no_return'
+      ? `Our driver came to swap your books, but there were no books out to collect — so ${kidsPossessive} new books have stayed in the van. New books go out once the old ones come back.`
+      : 'Some of your returning books weren’t there when our driver called.'
   const ask = 'Tap below to tell us what to do — the sooner you reply, the more likely we can sort it today.'
   const text = `Hi ${parent},\n\n${lead}\n\n${ask}\n\n${link}\n\nThe Bonkers team`
   const html = `<div style="font-family:Arial,sans-serif;color:#1a2f51;font-size:16px;line-height:1.5;max-width:480px">

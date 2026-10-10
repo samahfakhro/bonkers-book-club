@@ -6,9 +6,9 @@ import { requestPayment } from '@/lib/returns/charges'
 
 // "Finished inspecting" on the Returns screen:
 //  1. "Back on the shelf" alerts for every book checked in as lendable in this batch
-//  2. Over-allowance check: more books at home than the plan allows → message + grace period
-//     (2 Bonkers Days, admin setting). After that, new books are on hold (database blocks submitting)
-//     until enough books come back. Families who are back within their plan are cleared.
+//  2. Over-allowance check: more books at home than the plan allows → new books on hold straight away
+//     (no grace period). They can only book a collection; their choices go back to the saved list and the
+//     database blocks choosing/submitting until they're back within their plan, then they're cleared.
 
 const addDays = (date: string, n: number) => new Date(Date.parse(`${date}T12:00:00Z`) + n * 86400_000).toISOString().slice(0, 10)
 const pretty = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
@@ -68,22 +68,20 @@ export async function finishInspecting() {
     if (extra <= 0) continue
     const graceUntil = flaggedMap.get(householdId)
     if (!flaggedMap.has(householdId)) {
-      const until = addDays(today, 7 * grace)
-      await supabaseAdmin.from('households').update({ over_allowance_since: today, over_allowance_grace_until: until, over_allowance_response: null, over_allowance_responded_at: null }).eq('id', householdId)
-      await notifyHousehold({ householdId, type: 'general', title: 'A few too many books at home',
-        message: `You have ${n} books at home, but your plan is for ${plan}. Please pop ${books(extra)} in your tote for your next Bonkers Day — or let us know what happened on your dashboard. If ${extra === 1 ? 'it’s' : 'they’re'} not back by ${pretty(until)}, new books will pause until ${extra === 1 ? 'it is' : 'they are'}.`,
+      // no grace period: new books are on hold straight away; choices for next time go back to the saved list
+      await supabaseAdmin.from('households').update({ over_allowance_since: today, over_allowance_grace_until: today, over_allowance_response: null, over_allowance_responded_at: null }).eq('id', householdId)
+      await clearChoices(householdId)
+      await notifyHousehold({ householdId, type: 'general', title: 'Some books didn’t come back',
+        message: `You have ${n} books at home, but your plan is for ${plan}. New books are on hold until ${books(extra)} ${extra === 1 ? 'comes' : 'come'} back — mark ${extra === 1 ? 'it' : 'them'} as Returning for your next Bonkers Day. Anything you’d chosen is safe on your saved list.`,
         link: '/dashboard' })
       result.newlyOver++
     } else if (visited.has(householdId)) {
-      const onHold = !!graceUntil && graceUntil < today
-      const title = onHold ? 'New books are on hold' : 'Reminder: books to return'
+      const title = 'New books are on hold'
       if (await alreadyToldToday(householdId, title)) continue
       await notifyHousehold({ householdId, type: 'general', title,
-        message: onHold
-          ? `We still need ${books(extra)} back before we can send new ones. Pop ${extra === 1 ? 'it' : 'them'} in your tote for your next Bonkers Day — new books start again as soon as ${extra === 1 ? 'it’s' : 'they’re'} back.`
-          : `You still have ${books(extra)} more than your plan at home. Please pop ${extra === 1 ? 'it' : 'them'} in your tote for your next Bonkers Day${graceUntil ? ` — new books pause after ${pretty(graceUntil)}` : ''}.`,
+        message: `We still need ${books(extra)} back before we can send new ones. Mark ${extra === 1 ? 'it' : 'them'} as Returning for your next Bonkers Day — you can choose books again as soon as ${extra === 1 ? 'it’s' : 'they’re'} back.`,
         link: '/dashboard' })
-      onHold ? result.onHold++ : result.reminded++
+      result.onHold++
     }
   }
   // back within the plan → clear the flag
@@ -96,9 +94,23 @@ export async function finishInspecting() {
   return { checkedIn: ids.length, alertsSent, notScanned: notScanned || 0, ...result }
 }
 
+async function clearChoices(householdId: string) {
+  const { data: reqs } = await supabaseAdmin.from('swap_requests').select('id, child_id, route_stop_id, swap_request_items(book_id, packed_copy_id)')
+    .eq('household_id', householdId).in('status', ['draft', 'child_confirmed', 'submitted', 'awaiting_approval', 'approved', 'locked'])
+  for (const r of reqs || []) {
+    const items = (r.swap_request_items || []) as { book_id: string; packed_copy_id: string | null }[]
+    if (items.some(i => i.packed_copy_id)) continue // already packed — leave it for the warehouse
+    if (items.length) {
+      await supabaseAdmin.from('wishlists').upsert(items.map(i => ({ child_id: r.child_id, book_id: i.book_id })), { onConflict: 'child_id,book_id', ignoreDuplicates: true })
+      await supabaseAdmin.from('swap_request_items').delete().eq('swap_request_id', r.id)
+    }
+    await supabaseAdmin.from('swap_requests').update({ status: 'draft', route_stop_id: null }).eq('id', r.id)
+  }
+}
+
 export async function clearOverAllowance(householdId: string) {
   await supabaseAdmin.from('households').update({ over_allowance_since: null, over_allowance_grace_until: null, over_allowance_response: null, over_allowance_responded_at: null }).eq('id', householdId)
-  await notifyHousehold({ householdId, type: 'general', title: 'All sorted — thank you!', message: 'Everything’s back within your plan. Happy reading!', link: '/dashboard' })
+  await notifyHousehold({ householdId, type: 'general', title: 'All sorted — thank you!', message: 'Everything’s back within your plan, so you can choose new books again. Happy reading!', link: '/dashboard' })
 }
 
 // ── Admin actions for families over their allowance ──
@@ -120,9 +132,9 @@ export async function overAllowanceList() {
     householdId: h.id, family: [h.first_name, h.last_name].filter(Boolean).join(' ') || h.name || 'Family',
     phone: h.whatsapp_number || h.mobile_phone || null, atHome: atHome.get(h.id) || 0, plan: planFor(h.id),
     since: h.over_allowance_since, graceUntil: h.over_allowance_grace_until,
-    onHold: !!h.over_allowance_grace_until && h.over_allowance_grace_until < today,
+    onHold: true, // no grace period: flagged = new books on hold
     response: h.over_allowance_response, respondedAt: h.over_allowance_responded_at,
-    needsAction: !!h.over_allowance_grace_until && addDays(h.over_allowance_grace_until, 7 * weeks) < today,
+    needsAction: !!h.over_allowance_since && addDays(h.over_allowance_since, 7 * weeks) < today,
     lostAwaitingPayment: (lost || []).filter(l => l.household_id === h.id).length,
     books: (loans || []).filter(l => l.household_id === h.id).map((l: any) => ({ loanId: l.id, title: l.book_copies?.books?.title || '', cover: l.book_copies?.books?.cover_image_url || null, internalId: l.book_copies?.internal_id || '', child: l.child_profiles?.name || '' })),
   }))
@@ -137,11 +149,10 @@ export async function recheckAllowance(householdId: string) {
   if ((atHome.get(householdId) || 0) <= planFor(householdId)) await clearOverAllowance(householdId)
 }
 
-// "More time": one more Bonkers Day (a week)
+// "More time": pushes back the "Needs action" flag by a week (new books stay on hold)
 export async function giveMoreTime(householdId: string) {
-  const { data: h } = await supabaseAdmin.from('households').select('over_allowance_grace_until').eq('id', householdId).single()
-  const base = h?.over_allowance_grace_until && h.over_allowance_grace_until > dubaiToday() ? h.over_allowance_grace_until : dubaiToday()
-  await supabaseAdmin.from('households').update({ over_allowance_grace_until: addDays(base, 7) }).eq('id', householdId)
+  const { data: h } = await supabaseAdmin.from('households').select('over_allowance_since').eq('id', householdId).single()
+  if (h?.over_allowance_since) await supabaseAdmin.from('households').update({ over_allowance_since: addDays(h.over_allowance_since, 7) }).eq('id', householdId)
   return { ok: true }
 }
 
