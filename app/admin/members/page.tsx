@@ -254,6 +254,8 @@ export default function MembersPage() {
       const update: Record<string, string | null> = { status: sub_status ?? 'active' }
       if (plan_id) update.plan_id = plan_id
       await supabase.from('subscriptions').update(update).eq('id', sub_id)
+      // a bigger plan can bring an on-hold family back within their allowance
+      if (plan_id) await fetch('/api/admin/allowance-recheck', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ householdId: selected.id }) }).catch(() => {})
     }
 
     for (const child of editChildren) {

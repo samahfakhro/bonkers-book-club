@@ -198,6 +198,8 @@ export default function DashboardPage() {
   const [member, setMember] = useState<Member | null>(null)
   // set at the warehouse when there are more books at home than the plan allows
   const [overAllowance, setOverAllowance] = useState<{ graceUntil: string | null; response: string | null } | null>(null)
+  const [biggerPlan, setBiggerPlan] = useState<{ name: string; books: number } | null>(null)
+  const [upgrading, setUpgrading] = useState(false)
   const [lostUnpaid, setLostUnpaid] = useState(0) // lost books still count as at home until their payment is settled
   const [children, setChildren] = useState<Child[]>([])
   const [loans, setLoans] = useState<Loan[]>([])
@@ -260,6 +262,7 @@ export default function DashboardPage() {
         swap_cutoff_time: zoneCutoff,
         avatar_id: (hh as any).avatar_id ?? null,
       })
+      getPublicSettings().then(st => { const b = [...st.plans].sort((x, y) => y.books - x.books).find(p => p.books > planBooks); setBiggerPlan(b ? { name: b.name, books: b.books } : null) }).catch(() => {})
       supabase.from('loans').select('id', { count: 'exact', head: true }).eq('household_id', hh.id).eq('status', 'lost').then(({ count }) => setLostUnpaid(count || 0))
       setOverAllowance((hh as any).over_allowance_since ? { graceUntil: (hh as any).over_allowance_grace_until ?? null, response: (hh as any).over_allowance_response ?? null } : null)
 
@@ -657,8 +660,21 @@ export default function DashboardPage() {
               {lostUnpaid > 0 && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', color: '#1a2f51', margin: '0 0 6px' }}>Includes {lostUnpaid} lost book{lostUnpaid === 1 ? '' : 's'} — once the replacement is paid, {lostUnpaid === 1 ? 'it' : 'they'} no longer count.</p>}
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.88rem', color: '#1a2f51', lineHeight: 1.55, margin: 0 }}>
                 You have {extra} more book{extra === 1 ? '' : 's'} at home than your plan allows. Please mark {extra === 1 ? 'it' : 'them'} as <strong>Returning</strong> and pop {extra === 1 ? 'it' : 'them'} in your tote for your next Bonkers Day.
-                {planTotal < 6 && atHome <= 6 && <> Want to keep more? <a href="/dashboard/settings" style={{ color: '#1a2f51', fontWeight: 700 }}>Upgrade to 6 books</a>.</>}
               </p>
+              {biggerPlan && atHome <= biggerPlan.books && (
+                <button disabled={upgrading} onClick={async () => {
+                  if (!confirm(`Move to ${biggerPlan.name} (${biggerPlan.books} books at a time)? You’ll be able to choose new books straight away.`)) return
+                  setUpgrading(true)
+                  const { data: { session } } = await supabase.auth.getSession()
+                  const res = await fetch('/api/plan/upgrade', { method: 'POST', headers: { Authorization: `Bearer ${session?.access_token}` } })
+                  const b = await res.json().catch(() => ({}))
+                  setUpgrading(false)
+                  if (!res.ok) { alert(b.error || 'Something went wrong'); return }
+                  window.location.reload()
+                }} style={{ marginTop: '10px', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', fontWeight: 700, color: '#fff', background: '#1a2f51', border: 'none', borderRadius: '999px', padding: '10px 18px', cursor: 'pointer', opacity: upgrading ? 0.6 : 1 }}>
+                  {upgrading ? 'Upgrading…' : `Keep them — upgrade to ${biggerPlan.books} books`}
+                </button>
+              )}
               {onHold
                 ? <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.88rem', color: '#e8533a', fontWeight: 700, margin: '10px 0 0' }}>New books are on hold until {extra === 1 ? 'it comes' : 'they come'} back.</p>
                 : until && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.88rem', color: '#1a2f51', margin: '10px 0 0' }}>If {extra === 1 ? 'it isn’t' : 'they aren’t'} back by <strong>{until}</strong>, new books will pause until {extra === 1 ? 'it is' : 'they are'}.</p>}

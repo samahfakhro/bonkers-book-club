@@ -290,20 +290,35 @@ function StopDetail({ route, stop, onBack, onDone }: { route: DriverRoute; stop:
         </>
       ) : (
         <>
-          {/* collection — first, so the driver checks the tote before handing over new books */}
+          {/* everything for this stop together, so the driver takes it all from the van in one trip */}
+          {section('TAKE TO THE DOOR')}
+          <Card>
+            {hasDelivery && <>
+              <p style={{ margin: '0 0 8px', fontSize: '15px', fontWeight: 800, color: navy }}>📦 Deliver {stop.children.length} envelope{stop.children.length === 1 ? '' : 's'}</p>
+              {stop.children.map(c => (
+                <p key={c.childId} style={{ margin: '0 0 8px', fontSize: '17px', color: navy, display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                  <span><strong>{c.name} {c.lastName}</strong> <span style={{ opacity: 0.6, fontSize: '14px' }}>· {c.bookCount} book{c.bookCount === 1 ? '' : 's'}</span></span>
+                  <span style={{ fontWeight: 800, color: scanned.has(c.envelopeCode) ? '#2e7d32' : '#b3261e' }}>{scanned.has(c.envelopeCode) ? '✓ scanned' : 'not scanned'}</span>
+                </p>
+              ))}
+              <Big onClick={() => { setFeedback(null); setScanning(true) }} tone={allScanned ? 'light' : 'navy'}>{allScanned ? '✓ All envelopes scanned' : '📷 Scan envelopes'}</Big>
+            </>}
+            {hasCollection && <p style={{ margin: hasDelivery ? '14px 0 0' : 0, fontSize: '15px', fontWeight: 800, color: navy }}>🔁 Collect {stop.collectCount} book{stop.collectCount === 1 ? '' : 's'} from their {h?.delivery_container_type || 'tote'}</p>}
+            {hasDelivery && hasCollection && <p style={{ margin: '6px 0 0', fontSize: '14px', color: navy, opacity: 0.75 }}>No books out? Keep the new books — they only go in exchange for the old ones.</p>}
+          </Card>
+
           {hasCollection && (
             <>
-              {section(`COLLECT — ${stop.collectCount} BOOK${stop.collectCount === 1 ? '' : 'S'} FROM THEIR ${(h?.delivery_container_type || 'tote').toUpperCase()}`)}
+              {section('COLLECTION — WHAT HAPPENED?')}
               <Choice selected={collection === 'collected'} onClick={() => setCollection('collected')}>Collected — into the return bin</Choice>
               <Choice selected={collection === 'partial'} onClick={() => setCollection('partial')}>Only some books were there</Choice>
               <Choice selected={collection === 'not_collected'} onClick={() => setCollection('not_collected')}>{hasDelivery ? 'No books out (tried door, call + WhatsApp)' : 'Couldn’t collect'}</Choice>
             </>
           )}
 
-          {/* delivery */}
           {hasDelivery && noReturn && (
             <>
-              {section('DELIVER')}
+              {section('DELIVERY')}
               <Card style={{ background: '#fff4e5', color: navy, fontWeight: 700, lineHeight: 1.5 }}>
                 No books were handed back — keep the new books in the van. The family has been asked to put them out so you can come back today.
               </Card>
@@ -311,18 +326,8 @@ function StopDetail({ route, stop, onBack, onDone }: { route: DriverRoute; stop:
           )}
           {hasDelivery && !noReturn && (
             <>
-              {section(`DELIVER — ${stop.children.length} ENVELOPE${stop.children.length === 1 ? '' : 'S'}`)}
-              <Card>
-                {stop.children.map(c => (
-                  <p key={c.childId} style={{ margin: '0 0 8px', fontSize: '17px', color: navy, display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
-                    <span><strong>{c.name} {c.lastName}</strong> <span style={{ opacity: 0.6, fontSize: '14px' }}>· {c.bookCount} book{c.bookCount === 1 ? '' : 's'}</span></span>
-                    <span style={{ fontWeight: 800, color: scanned.has(c.envelopeCode) ? '#2e7d32' : '#b3261e' }}>{scanned.has(c.envelopeCode) ? '✓ scanned' : 'not scanned'}</span>
-                  </p>
-                ))}
-                <Big onClick={() => { setFeedback(null); setScanning(true) }} tone={allScanned ? 'light' : 'navy'}>{allScanned ? '✓ All envelopes scanned' : '📷 Scan envelopes'}</Big>
-              </Card>
+              {section('DELIVERY — WHAT HAPPENED?')}
 
-              <p style={{ margin: '14px 0 8px', fontSize: '16px', fontWeight: 700, color: navy }}>What happened?</p>
               {stop.allowed.includes('handed_over') && <Choice selected={delivery === 'handed_over'} onClick={() => setDelivery('handed_over')}>Delivered</Choice>}
               {stop.allowed.includes('concierge') && <Choice selected={delivery === 'concierge'} onClick={() => setDelivery('concierge')}>Left with concierge</Choice>}
               {stop.allowed.includes('neighbour') && <Choice selected={delivery === 'neighbour'} onClick={() => setDelivery('neighbour')}>Left with neighbour</Choice>}
