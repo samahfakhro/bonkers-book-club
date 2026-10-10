@@ -27,9 +27,20 @@ async function lookUpArea(lat: unknown, lng: unknown): Promise<{ community: stri
 
 // Saves a waitlist entry with the internal reason + zone worked out here (never trusted from the browser).
 // One entry per email — a repeat updates the existing entry.
+
+// where the visitor first came from (lib/first-touch.ts), stored with the family
+function firstTouchColumns(ft: any) {
+  if (!ft || typeof ft !== 'object' || !ft.source) return {}
+  return {
+    first_touch_source: String(ft.source).slice(0, 60),
+    first_touch_detail: { medium: ft.medium ?? null, campaign: ft.campaign ?? null, referrer: ft.referrer ?? null, landingPath: ft.landingPath ?? null, at: ft.at ?? null },
+    visitor_id: /^[0-9a-f-]{36}$/i.test(String(ft.visitorId || '')) ? ft.visitorId : null,
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, phone, lat, lng, address, area, propertyType } = await request.json()
+    const { name, email, phone, lat, lng, address, area, propertyType, firstTouch } = await request.json()
     const cleanEmail = String(email ?? '').trim().toLowerCase()
     if (!cleanEmail) return NextResponse.json({ error: 'Missing email' }, { status: 400 })
 
@@ -46,6 +57,7 @@ export async function POST(request: NextRequest) {
       zone_id: availability.zoneId,
       reason: availability.canJoin ? null : availability.reason,
       status: 'waiting',
+      ...firstTouchColumns(firstTouch),
     }
 
     const { data: existing } = await supabaseAdmin

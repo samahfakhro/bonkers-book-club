@@ -5,6 +5,7 @@ import confetti from 'canvas-confetti'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getPublicSettings } from '@/lib/public-settings'
+import { getFirstTouch } from '@/lib/first-touch'
 import { Suspense } from 'react'
 import SignupMap, { type Zone, type MapResult } from '@/components/SignupMap'
 import AddressFields, { validateAddress } from '@/components/AddressFields'
@@ -352,7 +353,7 @@ function SignupForm() {
         name: `${form.firstName} ${form.lastName}`.trim(), email: form.email, phone: form.phone,
         lat: mapResult?.lat, lng: mapResult?.lng,
         address: mapResult?.address.fullText, area: mapResult?.address.area,
-        propertyType: form.houseType,
+        propertyType: form.houseType, firstTouch: getFirstTouch(),
       }),
     }).catch(() => null)
     setWaitlistLoading(false)
@@ -419,7 +420,7 @@ function SignupForm() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        userId: authData.user.id, planLabel: selectedPlanData?.label ?? null,
+        userId: authData.user.id, planLabel: selectedPlanData?.label ?? null, firstTouch: getFirstTouch(),
         first_name: form.firstName, last_name: form.lastName,
         mobile_phone: form.phone, whatsapp_number: whatsappFull,
         community_id: form.community || null, property_type: form.houseType || null,

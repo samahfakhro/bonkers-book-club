@@ -96,6 +96,8 @@ export default function AdminSettingsPage() {
         </div>
       ))}
 
+      <BioLinks />
+
       <div style={card}>
         <p style={h2}>“How did you hear about us?” options</p>
         {how.map((h, i) => (
@@ -107,6 +109,29 @@ export default function AdminSettingsPage() {
         ))}
         <Btn variant="secondary" onClick={() => { setHow(hs => [...hs, { label: '', followUp: null }]); setDirty(true) }}>+ Add option</Btn>
       </div>
+    </div>
+  )
+}
+
+// Tagged links for bios and posts, so visits are counted under the right source
+const LINK_SOURCES = ['instagram', 'tiktok', 'facebook', 'whatsapp', 'google', 'flyer', 'school']
+function BioLinks() {
+  const [base, setBase] = useState('')
+  const [copied, setCopied] = useState<string | null>(null)
+  useEffect(() => { setBase(window.location.origin) }, [])
+  return (
+    <div style={card}>
+      <p style={h2}>Links for your bios and posts</p>
+      <p style={{ ...hint, margin: '0 0 10px' }}>Use these so we know where visitors came from. ChatGPT, Perplexity, Gemini, Claude and Google searches are recognised automatically. Once bonkers.ae is live these will start with https://bonkers.ae.</p>
+      {LINK_SOURCES.map(src => {
+        const url = `${base}/?src=${src}`
+        return (
+          <div key={src} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+            <span style={{ ...font, fontSize: '13px' }}><strong style={{ textTransform: 'capitalize' }}>{src}</strong> <span style={{ color: '#6b6b6b' }}>{url}</span></span>
+            <Btn variant="secondary" onClick={() => { navigator.clipboard.writeText(url); setCopied(src); setTimeout(() => setCopied(null), 1500) }}>{copied === src ? 'Copied ✓' : 'Copy'}</Btn>
+          </div>
+        )
+      })}
     </div>
   )
 }

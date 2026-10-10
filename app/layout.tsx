@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from "next";
 import { Montserrat, Patrick_Hand, Amatic_SC, Love_Ya_Like_A_Sister, Cormorant_Garamond, Instrument_Serif, Chelsea_Market, Nunito, Caveat } from "next/font/google";
 import "./globals.css";
 import MoonDisplay from "./components/MoonDisplay";
+import FirstTouchTracker from "@/components/FirstTouchTracker";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -79,6 +80,7 @@ export default function RootLayout({
       <body className="flex flex-col font-[family-name:var(--font-montserrat)]">
         {/* Full-screen background — always fills the viewport */}
         <div style={{ position: 'fixed', inset: 0, backgroundColor: '#fefaf2', zIndex: -1 }} />
+        <FirstTouchTracker />
         {/* Content constrained to iPad Pro width, centred */}
         <div className="main-wrapper" style={{ width: '100%', maxWidth: '768px', margin: '0 auto', position: 'relative', minHeight: '100vh' }}>
           {children}

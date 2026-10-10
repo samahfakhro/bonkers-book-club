@@ -3,6 +3,16 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { checkAvailability } from '@/lib/membership/availability'
 import { getSettingValues } from '@/lib/settings'
 
+// where the visitor first came from (lib/first-touch.ts), stored with the family
+function firstTouchColumns(ft: any) {
+  if (!ft || typeof ft !== 'object' || !ft.source) return {}
+  return {
+    first_touch_source: String(ft.source).slice(0, 60),
+    first_touch_detail: { medium: ft.medium ?? null, campaign: ft.campaign ?? null, referrer: ft.referrer ?? null, landingPath: ft.landingPath ?? null, at: ft.at ?? null },
+    visitor_id: /^[0-9a-f-]{36}$/i.test(String(ft.visitorId || '')) ? ft.visitorId : null,
+  }
+}
+
 const digits = (s: unknown) => String(s ?? '').replace(/\D/g, '').replace(/^(971|0)/, '')
 
 // A waitlisted family that signs up (same email or same mobile) is marked Joined
@@ -26,7 +36,7 @@ async function markWaitlistJoined(email: string | undefined, phone: unknown, hou
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { userId, planLabel, ...householdFields } = body
+    const { userId, planLabel, firstTouch, ...householdFields } = body
 
     if (!userId) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
@@ -65,7 +75,7 @@ export async function POST(request: NextRequest) {
     // Create household — zone + Bonkers Day come from the server's check, not the browser
     const { data: household, error: hhError } = await supabaseAdmin
       .from('households')
-      .insert({ user_id: userId, notify_whatsapp: defaults.default_notify_whatsapp !== 'false', notify_email: defaults.default_notify_email !== 'false', ...householdFields, signup_zone_id: availability.zoneId, bonkers_day: availability.bonkersDay })
+      .insert({ user_id: userId, notify_whatsapp: defaults.default_notify_whatsapp !== 'false', notify_email: defaults.default_notify_email !== 'false', ...firstTouchColumns(firstTouch), ...householdFields, signup_zone_id: availability.zoneId, bonkers_day: availability.bonkersDay })
       .select('id')
       .single()
 
