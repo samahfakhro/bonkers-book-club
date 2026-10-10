@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import ComingNextEditor from '@/components/admin/ComingNextEditor'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -546,6 +547,10 @@ export default function MembersPage() {
             </div>
 
           </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Coming next">
+            <ComingNextEditor householdId={selected.id} />
           </CollapsibleSection>
 
           <CollapsibleSection title="Swap History">
