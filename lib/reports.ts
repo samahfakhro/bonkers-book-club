@@ -79,12 +79,12 @@ export async function buildReport(from: string | null, to: string | null) {
   const loansInRange = loans.filter(l => inRange(l.checked_out_at))
   const loanBook = (l: any) => l.book_copies?.book_id as string | undefined
   const borrowCount = tally(loansInRange.map(loanBook))
-  const mostBorrowed = borrowCount.filter(r => bookById.has(r.label)).slice(0, 10)
+  const mostBorrowed = borrowCount.filter(r => bookById.has(r.label))
     .map(r => ({ title: bookById.get(r.label)!.title, cover: bookById.get(r.label)!.cover_image_url, count: r.count }))
   const everBorrowed = new Set(loans.map(loanBook))
   const neverBorrowedList = books.filter(b => !everBorrowed.has(b.id))
   const bestReviewed = books.filter(b => Number(b.total_ratings_count) > 0)
-    .sort((a, b) => Number(b.average_rating) - Number(a.average_rating) || Number(b.total_ratings_count) - Number(a.total_ratings_count)).slice(0, 10)
+    .sort((a, b) => Number(b.average_rating) - Number(a.average_rating) || Number(b.total_ratings_count) - Number(a.total_ratings_count))
     .map(b => ({ title: b.title, cover: b.cover_image_url, rating: Number(b.average_rating), ratings: Number(b.total_ratings_count) }))
   const returned = loans.filter(l => l.returned_at && inRange(l.returned_at) && l.checked_out_at)
   const avgDaysOut = returned.length ? Math.round(returned.reduce((s, l) => s + (Date.parse(l.returned_at!) - Date.parse(l.checked_out_at!)) / 86400_000, 0) / returned.length) : null
@@ -125,7 +125,7 @@ export async function buildReport(from: string | null, to: string | null) {
     range: { from, to },
     members: { signups: signups.length, cancellations: cancellations.length, activeFamilies, childrenPerFamily, byMonth },
     sources: { funnel, saidVsSaw, totalVisits: visits.length },
-    books: { mostBorrowed, neverBorrowed: neverBorrowedList.length, neverBorrowedSample: neverBorrowedList.slice(0, 12).map(b => ({ title: b.title, cover: b.cover_image_url })), bestReviewed, avgDaysOut, loansInRange: loansInRange.length, loansByStage },
+    books: { mostBorrowed, neverBorrowed: neverBorrowedList.length, neverBorrowedSample: neverBorrowedList.map(b => ({ title: b.title, cover: b.cover_image_url })), bestReviewed, avgDaysOut, loansInRange: loansInRange.length, loansByStage },
     stock, waitlist,
   }
 }

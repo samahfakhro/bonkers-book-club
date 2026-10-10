@@ -62,6 +62,12 @@ function Table({ head, rows }: { head: string[]; rows: (string | number | React.
   )
 }
 
+// first 10, with a Show all / Show fewer button
+function ShowAll({ total, open, onToggle }: { total: number; open: boolean; onToggle: () => void }) {
+  if (total <= 10) return null
+  return <button onClick={onToggle} style={{ ...font, marginTop: '8px', padding: '5px 12px', borderRadius: '6px', border: '1px solid #d4d4d4', background: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>{open ? 'Show fewer' : `Show all ${total}`}</button>
+}
+
 function BookCell({ title, cover }: { title: string; cover: string | null }) {
   return (
     <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -79,6 +85,9 @@ export default function ReportsPage() {
   const [data, setData] = useState<Report | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [open, setOpen] = useState<Record<string, boolean>>({})
+  const toggle = (k: string) => setOpen(o => ({ ...o, [k]: !o[k] }))
+  const top = <T,>(k: string, rows: T[]) => (open[k] ? rows : rows.slice(0, 10))
   const years = Array.from({ length: Math.max(1, new Date().getFullYear() - FIRST_YEAR + 1) }, (_, i) => String(new Date().getFullYear() - i))
 
   // the range actually asked for
@@ -157,14 +166,17 @@ export default function ReportsPage() {
               <Stat label="Never borrowed" value={d.books.neverBorrowed} sub="all time" />
             </div>
             <p style={h3}>Most borrowed</p>
-            <Table head={['Book', 'Times borrowed']} rows={d.books.mostBorrowed.map(b => [<BookCell key={b.title} {...b} />, b.count])} />
+            <Table head={['Book', 'Times borrowed']} rows={top('most', d.books.mostBorrowed).map((b, i) => [<span key={b.title} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span style={muted}>{i + 1}</span><BookCell {...b} /></span>, b.count])} />
+            <ShowAll total={d.books.mostBorrowed.length} open={!!open.most} onToggle={() => toggle('most')} />
             <p style={h3}>Best reviewed (all time)</p>
-            <Table head={['Book', 'Rating', 'Reviews']} rows={d.books.bestReviewed.map(b => [<BookCell key={b.title} {...b} />, b.rating.toFixed(1), b.ratings])} />
+            <Table head={['Book', 'Rating', 'Reviews']} rows={top('best', d.books.bestReviewed).map((b, i) => [<span key={b.title} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span style={muted}>{i + 1}</span><BookCell {...b} /></span>, b.rating.toFixed(1), b.ratings])} />
+            <ShowAll total={d.books.bestReviewed.length} open={!!open.best} onToggle={() => toggle('best')} />
             <p style={h3}>Borrowing by reading stage</p>
             <Table head={['Stage', 'Children', 'Books borrowed', 'Per child']} rows={d.books.loansByStage.map(s => [s.stage, s.children, s.loans, s.perChild ?? '—'])} />
             {d.books.neverBorrowedSample.length > 0 && <>
-              <p style={h3}>Never borrowed (first {d.books.neverBorrowedSample.length})</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>{d.books.neverBorrowedSample.map(b => <BookCell key={b.title} {...b} />)}</div>
+              <p style={h3}>Never borrowed</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>{top('never', d.books.neverBorrowedSample).map(b => <BookCell key={b.title} {...b} />)}</div>
+              <ShowAll total={d.books.neverBorrowedSample.length} open={!!open.never} onToggle={() => toggle('never')} />
             </>}
           </div>
 
