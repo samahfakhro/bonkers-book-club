@@ -133,7 +133,7 @@ export default function LandingPage() {
   return (
     <main style={{ backgroundColor: '#1a2744', backgroundImage: 'url(/Background_3.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', minHeight: '100vh', overflowX: 'hidden', fontFamily: 'var(--font-montserrat), sans-serif', position: 'relative' }}>
       {/* ── HEADER ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isTablet ? '0 20px' : '16px 20px', position: 'relative', zIndex: 30 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isTablet ? '24px 20px 0' : '16px 20px', position: 'relative', zIndex: 30 }}>
         <div style={{ lineHeight: 1 }}>
           <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#eddbc3', letterSpacing: '0.04em', margin: 0 }}>CURIOUS</p>
           <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.58rem', color: '#eddbc3', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0', lineHeight: 1.4 }}>THE CHILDREN'S LIBRARY</p>
@@ -144,7 +144,7 @@ export default function LandingPage() {
       </div>
 
       {/* ── 1. HERO ── */}
-      <section className="lp-hero-section" style={{ position: 'relative', marginTop: isTablet ? '-70px' : '-60px', zIndex: 20 }}>
+      <section className="lp-hero-section" style={{ position: 'relative', marginTop: isTablet ? '-94px' : '-60px', zIndex: 20 }}>
 
         {/* Full-width hero image — text flows naturally below it */}
         <img src="/bonkers_mainimagea.png" alt="" style={{ width: '100%', display: 'block', height: 'auto' }} />
