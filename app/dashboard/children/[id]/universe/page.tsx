@@ -139,7 +139,7 @@ export default function UniversePage() {
       <style>{`.uni-inner::-webkit-scrollbar{display:none} @keyframes bonky-z{0%{opacity:0;transform:translateY(0) scale(0.8)}15%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translateY(-32px) scale(1.1)}}`}</style>
 
       {/* Top left: logo */}
-      <div style={{ position: 'absolute', top: '20px', left: '16px', zIndex: 20, lineHeight: 1 }}>
+      <div style={{ position: 'absolute', top: '24px', left: '16px', zIndex: 20, lineHeight: 1 }}>
         <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '2.4rem', color: '#eddbc3', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
         <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.45rem', color: '#eddbc3', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0' }}>THE CHILDREN&apos;S LIBRARY</p>
       </div>

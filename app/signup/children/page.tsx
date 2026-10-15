@@ -139,7 +139,7 @@ function ChildrenForm() {
 
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#faf7f0', position: 'relative' }}>
-      <div style={{ position: 'absolute', top: '20px', left: '20px', lineHeight: 1, zIndex: 10 }}>
+      <div style={{ position: 'absolute', top: '24px', left: '20px', lineHeight: 1, zIndex: 10 }}>
         <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#eddbc3', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
         <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.5rem', color: '#eddbc3', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0' }}>THE CHILDREN'S LIBRARY</p>
       </div>

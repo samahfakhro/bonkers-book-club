@@ -485,7 +485,7 @@ function SignupForm() {
     <main style={{ minHeight: '100svh', position: 'relative', backgroundColor: '#fefaf2' }}>
 
       {/* Header */}
-      <div style={{ padding: isTablet ? '20px 32px 10px' : '16px 20px 8px', position: 'relative', zIndex: 2, lineHeight: 1 }}>
+      <div style={{ padding: isTablet ? '24px 32px 6px' : '24px 20px 0', position: 'relative', zIndex: 2, lineHeight: 1 }}>
         <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#1a2744', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
         <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.58rem', color: '#1a2744', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0', lineHeight: 1.4 }}>THE CHILDREN'S LIBRARY</p>
       </div>

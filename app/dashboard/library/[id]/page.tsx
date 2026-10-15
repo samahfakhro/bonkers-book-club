@@ -658,7 +658,7 @@ export default function BookDetailPage() {
       `}</style>
 
       {/* ── Header ── */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 40, backgroundColor: '#fefaf2', padding: '16px 20px 10px', paddingTop: 'max(16px, env(safe-area-inset-top))' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 40, backgroundColor: '#fefaf2', padding: '24px 20px 2px', paddingTop: 'max(24px, env(safe-area-inset-top))' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ lineHeight: 1 }}>
             <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#1a2f51', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>

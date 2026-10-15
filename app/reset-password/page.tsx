@@ -44,7 +44,7 @@ export default function ResetPasswordPage() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-start px-4 py-12" style={{ backgroundColor: '#fefaf2', paddingTop: 'max(3rem, env(safe-area-inset-top))', position: 'relative' }}>
-      <div style={{ position: 'absolute', top: '20px', left: '20px', lineHeight: 1, zIndex: 10 }}>
+      <div style={{ position: 'absolute', top: '24px', left: '20px', lineHeight: 1, zIndex: 10 }}>
         <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#1a2f51', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
         <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.5rem', color: '#1a2f51', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0' }}>THE CHILDREN'S LIBRARY</p>
       </div>
