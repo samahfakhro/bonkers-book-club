@@ -730,13 +730,13 @@ export default function DashboardPage() {
                   <img src={activeCharacter.src} alt="" className="dashboard-character-sm" style={{ height: '45px', width: 'auto', pointerEvents: 'none', position: 'relative', top: '-38px' }} />
                 </div>
               )}
-              <section style={{ marginBottom: '16px', backgroundColor: 'transparent', borderRadius: '16px', border: '2px solid #e8e0d4', padding: '20px 16px' }}>
+              <section onClick={() => { if (collapsedChildren.has(child.id)) toggleCollapse(child.id) }} style={{ marginBottom: '16px', backgroundColor: 'transparent', borderRadius: '16px', border: '2px solid #e8e0d4', padding: '20px 16px', cursor: collapsedChildren.has(child.id) ? 'pointer' : 'default' }}>
                 {/* Child header */}
                 {(() => {
                   const isCollapsed = collapsedChildren.has(child.id)
                   return (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: isCollapsed ? 0 : '18px' }}>
-                      <div onClick={() => router.push(`/dashboard/children/${child.id}`)} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, cursor: 'pointer' }}>
+                    <div onClick={e => { e.stopPropagation(); toggleCollapse(child.id) }} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: isCollapsed ? 0 : '18px', cursor: 'pointer' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
                       {(() => { const av = AVATARS.find(a => a.id === child.avatar_id); return (
                       <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: av?.bg || 'rgba(26,47,81,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '2px solid rgba(26,47,81,0.1)', fontSize: av ? '1.7rem' : '1.3rem' }}>
                         {av ? av.emoji : <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontWeight: 700 }}>{child.first_name[0]}</span>}
@@ -746,7 +746,7 @@ export default function DashboardPage() {
                         {child.age && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.72rem', opacity: 0.45, margin: '2px 0 0' }}>Age {child.age}</p>}
                       </div>
                       </div>
-                      <div onClick={() => toggleCollapse(child.id)} style={{ cursor: 'pointer', padding: '4px', flexShrink: 0 }}>
+                      <div style={{ padding: '4px', flexShrink: 0 }}>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a2f51" strokeWidth="2.5" style={{ opacity: 0.7, transition: 'transform 0.2s', transform: isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)', display: 'block' }}><polyline points="6 9 12 15 18 9"/></svg>
                       </div>
                     </div>

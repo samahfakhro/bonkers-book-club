@@ -135,7 +135,7 @@ export default function LandingPage() {
       {/* ── HEADER ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isTablet ? '0 20px' : '16px 20px', position: 'relative', zIndex: 30 }}>
         <div style={{ lineHeight: 1 }}>
-          <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#eddbc3', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
+          <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#eddbc3', letterSpacing: '0.04em', margin: 0 }}>CURIOUS</p>
           <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.58rem', color: '#eddbc3', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0', lineHeight: 1.4 }}>THE CHILDREN'S LIBRARY</p>
         </div>
         <button onClick={() => router.push('/login')} style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', color: '#eddbc3', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, letterSpacing: '0.04em' }}>
