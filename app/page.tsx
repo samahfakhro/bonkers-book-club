@@ -151,13 +151,13 @@ export default function LandingPage() {
             <>
               <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontWeight: 700, lineHeight: 1.05, margin: '-40px 0 14px', textAlign: 'center', width: '100%' }}>
                 <span style={{ fontSize: 'min(2.9rem, 7.4vw)', display: 'block', whiteSpace: 'nowrap' }}>A brilliant kids’ library.</span>
-                <span style={{ fontSize: 'min(2.25rem, 5.7vw)', display: 'block', marginTop: '8px' }}>Delivered to your <span style={{ display: 'inline-block', position: 'relative' }}>door<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-18px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
+                <span style={{ fontSize: 'min(2.25rem, 5.7vw)', display: 'block', marginTop: '8px' }}>Delivered to your <span style={{ display: 'inline-block', position: 'relative' }}>door<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-11px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
               </h1>
               <div style={{ position: 'relative', width: '100%' }}>
                 <p style={{ color: '#1a2f51', fontSize: '1.1rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '8px', position: 'relative', zIndex: 1, textAlign: 'center', width: '100%' }}>
                   Curated by kids. Approved by parents.<br />No commitment. No late fees.
                 </p>
-                <img src="/penguin_sneak.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-180px', height: '240px', width: 'auto', zIndex: -1 }} />
+                <img src="/penguin_sneak1.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-180px', height: '240px', width: 'auto', zIndex: -1 }} />
               </div>
               <div style={{ marginTop: '56px', transform: 'scale(1.4)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} /></div>
             </>
@@ -165,14 +165,14 @@ export default function LandingPage() {
             <>
               <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontWeight: 700, lineHeight: 1.05, margin: '-20px 0 14px', textAlign: 'center', width: '100%' }}>
                 <span style={{ fontSize: 'clamp(1.7rem, 8.5vw, 3.4rem)', display: 'block', whiteSpace: 'nowrap' }}>A brilliant kids’ library.</span>
-                <span style={{ fontSize: 'clamp(1.4rem, 6.5vw, 2.6rem)', display: 'block' }}>Delivered to your <span style={{ display: 'inline-block', position: 'relative' }}>door<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-18px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
+                <span style={{ fontSize: 'clamp(1.4rem, 6.5vw, 2.6rem)', display: 'block' }}>Delivered to your <span style={{ display: 'inline-block', position: 'relative' }}>door<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-11px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
               </h1>
               <div style={{ position: 'relative' }}>
                 <p style={{ color: '#1a2f51', fontSize: '0.92rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '0', marginLeft: 'auto', marginRight: 'auto', maxWidth: '320px', position: 'relative', zIndex: 2, textAlign: 'center' }}>
                   Curated by kids. Approved by parents.<br />No commitment. No late fees.
                 </p>
                 <div style={{ marginTop: '16px', position: 'relative', zIndex: 20 }}><CheckAreaButton onClick={goCheck} /></div>
-                <img src="/penguin_sneak.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-8px', height: '110px', width: 'auto', zIndex: 1, pointerEvents: 'none' }} />
+                <img src="/penguin_sneak1.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-8px', height: '110px', width: 'auto', zIndex: 1, pointerEvents: 'none' }} />
               </div>
             </>
           )}
