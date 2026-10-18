@@ -133,32 +133,28 @@ export default function LandingPage() {
   return (
     <main style={{ backgroundColor: '#1a2744', backgroundImage: 'url(/Background_3.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', minHeight: '100vh', overflowX: 'hidden', fontFamily: 'var(--font-montserrat), sans-serif', position: 'relative' }}>
       {/* ── HEADER ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isTablet ? '24px 20px 0' : '16px 20px', position: 'relative', zIndex: 30 }}>
-        <div style={{ lineHeight: 1 }}>
-          <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#eddbc3', letterSpacing: '0.04em', margin: 0 }}>CURIOUS</p>
-          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.58rem', color: '#eddbc3', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0', lineHeight: 1.4 }}>THE CHILDREN'S LIBRARY</p>
-        </div>
-        <button onClick={() => router.push('/login')} style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', color: '#eddbc3', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, letterSpacing: '0.04em' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: isTablet ? '24px 20px 0' : '16px 20px', position: 'relative', zIndex: 30, backgroundColor: '#fefef5' }}>
+        <button onClick={() => router.push('/login')} style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', color: '#1a2f51', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, letterSpacing: '0.04em' }}>
           <span style={{ borderBottom: '2px solid #f9ce71', paddingBottom: '1px' }}>Log in</span>
         </button>
       </div>
 
       {/* ── 1. HERO ── */}
-      <section className="lp-hero-section" style={{ position: 'relative', marginTop: isTablet ? '-94px' : '-60px', zIndex: 20 }}>
+      <section className="lp-hero-section" style={{ position: 'relative', marginTop: isTablet ? '-94px' : '-60px', zIndex: 20, backgroundColor: '#fefef5' }}>
 
         {/* Full-width hero image — text flows naturally below it */}
-        <img src="/bonkers_mainimagea.png" alt="" style={{ width: '100%', display: 'block', height: 'auto' }} />
+        <img src="/The%20Curious%20Library%20Adventure(1).png" alt="The Curious Library" style={{ width: '100%', display: 'block', height: 'auto' }} />
 
         <div className="lp-hero-content" style={{ textAlign: 'center', width: '100%', position: 'relative', padding: isTablet ? '0 44px 60px' : '0 24px 40px' }}>
 
           {isTablet ? (
             <>
-              <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontWeight: 700, lineHeight: 1.05, margin: '0 0 14px', textAlign: 'center', width: '100%' }}>
+              <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontWeight: 700, lineHeight: 1.05, margin: '0 0 14px', textAlign: 'center', width: '100%' }}>
                 <span style={{ fontSize: '3.7rem', display: 'block' }}>Brilliant books.</span>
                 <span style={{ fontSize: '1.9rem', display: 'block', marginTop: '8px' }}>Delivered &amp; collected from your <span style={{ display: 'inline-block', position: 'relative' }}>doorstep<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-18px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
               </h1>
               <div style={{ position: 'relative', width: '100%' }}>
-                <p style={{ color: '#eddbc3', fontSize: '1.1rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '8px', position: 'relative', zIndex: 1, textAlign: 'center', width: '100%' }}>
+                <p style={{ color: '#1a2f51', fontSize: '1.1rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '8px', position: 'relative', zIndex: 1, textAlign: 'center', width: '100%' }}>
                   Curated by kids. Approved by parents.<br />No commitment. No late fees.
                 </p>
                 <img src="/penguin_sneak.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-180px', height: '240px', width: 'auto', zIndex: -1 }} />
@@ -167,12 +163,12 @@ export default function LandingPage() {
             </>
           ) : (
             <>
-              <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontWeight: 700, lineHeight: 1.05, margin: '0 0 14px', textAlign: 'center', width: '100%' }}>
+              <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontWeight: 700, lineHeight: 1.05, margin: '0 0 14px', textAlign: 'center', width: '100%' }}>
                 <span style={{ fontSize: 'clamp(3rem, 10vw, 4.2rem)', display: 'block' }}>Brilliant books.</span>
                 <span style={{ fontSize: 'clamp(1.7rem, 6vw, 2.6rem)', display: 'block' }}>Delivered &amp; collected from your <span style={{ display: 'inline-block', position: 'relative' }}>doorstep<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-18px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
               </h1>
               <div style={{ position: 'relative' }}>
-                <p style={{ color: '#eddbc3', fontSize: '0.92rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '0', marginLeft: 'auto', marginRight: 'auto', maxWidth: '320px', position: 'relative', zIndex: 2, textAlign: 'center' }}>
+                <p style={{ color: '#1a2f51', fontSize: '0.92rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '0', marginLeft: 'auto', marginRight: 'auto', maxWidth: '320px', position: 'relative', zIndex: 2, textAlign: 'center' }}>
                   Curated by kids. Approved by parents.<br />No commitment. No late fees.
                 </p>
                 <div style={{ marginTop: '16px', position: 'relative', zIndex: 20 }}><CheckAreaButton onClick={goCheck} /></div>
