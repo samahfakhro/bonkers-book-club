@@ -160,7 +160,7 @@ export default function LandingPage() {
                 </p>
                 <img src="/penguin_sneak1.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-240px', height: '240px', width: 'auto', zIndex: -1 }} />
               </div>
-              <div style={{ marginTop: '56px', transform: 'scale(1.4)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} /></div>
+              <div style={{ marginTop: '56px', transform: 'scale(1.4)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} navy /></div>
             </>
           ) : (
             <>
@@ -172,7 +172,7 @@ export default function LandingPage() {
                 <p style={{ color: '#1a2f51', fontSize: '0.92rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '0', marginLeft: 'auto', marginRight: 'auto', maxWidth: '320px', position: 'relative', zIndex: 2, textAlign: 'center' }}>
                   Curated by kids. Approved by parents.<br />No commitment. No late fees.
                 </p>
-                <div style={{ marginTop: '16px', position: 'relative', zIndex: 20 }}><CheckAreaButton onClick={goCheck} /></div>
+                <div style={{ marginTop: '16px', position: 'relative', zIndex: 20 }}><CheckAreaButton onClick={goCheck} navy /></div>
                 <img src="/penguin_sneak1.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-28px', height: '110px', width: 'auto', zIndex: 1, pointerEvents: 'none' }} />
               </div>
             </>
@@ -599,15 +599,20 @@ export default function LandingPage() {
   )
 }
 
-function CheckAreaButton({ onClick }: { onClick: () => void }) {
+// navy = the site's standard navy button (used on the cream top section)
+function CheckAreaButton({ onClick, navy }: { onClick: () => void; navy?: boolean }) {
   const whiskerFilter = 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)'
   return (
     <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
       <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', left: '-44px', height: '60px', width: 'auto', pointerEvents: 'none', zIndex: 1, filter: whiskerFilter }} />
-      <button onClick={onClick}
+      {navy ? (
+        <button onClick={onClick} style={{ backgroundColor: '#1a2f51', border: 'none', borderRadius: '999px', cursor: 'pointer', padding: '14px 40px' }}>
+          <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.85rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#fefaf2' }}>Join</span>
+        </button>
+      ) : <button onClick={onClick}
         style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', backgroundImage: 'url(/button2.png)', backgroundSize: '300% 300%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: 'transparent', border: 'none', borderRadius: '999px', padding: '12px 28px', cursor: 'pointer' }}>
         Join Bonkers
-      </button>
+      </button>}
       <img src="/whiskers_right.png" alt="" style={{ position: 'absolute', right: '-44px', height: '60px', width: 'auto', pointerEvents: 'none', zIndex: 1, filter: whiskerFilter }} />
     </div>
   )
