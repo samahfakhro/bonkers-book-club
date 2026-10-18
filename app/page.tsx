@@ -149,8 +149,8 @@ export default function LandingPage() {
 
           {isTablet ? (
             <>
-              <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontWeight: 700, lineHeight: 1.05, margin: '0 0 14px', textAlign: 'center', width: '100%' }}>
-                <span style={{ fontSize: '3.7rem', display: 'block' }}>Brilliant books.</span>
+              <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontWeight: 700, lineHeight: 1.05, margin: '-20px 0 14px', textAlign: 'center', width: '100%' }}>
+                <span style={{ fontSize: '3.2rem', display: 'block' }}>Brilliant children’s books.</span>
                 <span style={{ fontSize: '1.9rem', display: 'block', marginTop: '8px' }}>Delivered &amp; collected from your <span style={{ display: 'inline-block', position: 'relative' }}>doorstep<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-18px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
               </h1>
               <div style={{ position: 'relative', width: '100%' }}>
@@ -163,8 +163,8 @@ export default function LandingPage() {
             </>
           ) : (
             <>
-              <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontWeight: 700, lineHeight: 1.05, margin: '0 0 14px', textAlign: 'center', width: '100%' }}>
-                <span style={{ fontSize: 'clamp(3rem, 10vw, 4.2rem)', display: 'block' }}>Brilliant books.</span>
+              <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontWeight: 700, lineHeight: 1.05, margin: '-20px 0 14px', textAlign: 'center', width: '100%' }}>
+                <span style={{ fontSize: 'clamp(1.7rem, 7.5vw, 3.4rem)', display: 'block', whiteSpace: 'nowrap' }}>Brilliant children’s books.</span>
                 <span style={{ fontSize: 'clamp(1.7rem, 6vw, 2.6rem)', display: 'block' }}>Delivered &amp; collected from your <span style={{ display: 'inline-block', position: 'relative' }}>doorstep<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-18px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
               </h1>
               <div style={{ position: 'relative' }}>
