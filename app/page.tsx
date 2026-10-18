@@ -151,7 +151,7 @@ export default function LandingPage() {
             <>
               <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontWeight: 700, lineHeight: 1.05, margin: '-40px 0 14px', textAlign: 'center', width: '100%' }}>
                 <span style={{ fontSize: 'min(2.9rem, 7.4vw)', display: 'block', whiteSpace: 'nowrap' }}>Brilliant children’s books.</span>
-                <span style={{ fontSize: 'min(2.5rem, 6.3vw)', display: 'block', marginTop: '8px' }}>Delivered &amp; collected from your <span style={{ display: 'inline-block', position: 'relative' }}>doorstep<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-18px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
+                <span style={{ fontSize: 'min(2.25rem, 5.7vw)', display: 'block', marginTop: '8px' }}>Delivered &amp; collected from your <span style={{ display: 'inline-block', position: 'relative' }}>doorstep<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-18px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
               </h1>
               <div style={{ position: 'relative', width: '100%' }}>
                 <p style={{ color: '#1a2f51', fontSize: '1.1rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '8px', position: 'relative', zIndex: 1, textAlign: 'center', width: '100%' }}>
@@ -165,7 +165,7 @@ export default function LandingPage() {
             <>
               <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontWeight: 700, lineHeight: 1.05, margin: '-20px 0 14px', textAlign: 'center', width: '100%' }}>
                 <span style={{ fontSize: 'clamp(1.7rem, 8.5vw, 3.4rem)', display: 'block', whiteSpace: 'nowrap' }}>Brilliant children’s books.</span>
-                <span style={{ fontSize: 'clamp(1.5rem, 7.2vw, 2.9rem)', display: 'block' }}>Delivered &amp; collected from your <span style={{ display: 'inline-block', position: 'relative' }}>doorstep<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-18px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
+                <span style={{ fontSize: 'clamp(1.4rem, 6.5vw, 2.6rem)', display: 'block' }}>Delivered &amp; collected from your <span style={{ display: 'inline-block', position: 'relative' }}>doorstep<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-18px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
               </h1>
               <div style={{ position: 'relative' }}>
                 <p style={{ color: '#1a2f51', fontSize: '0.92rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '0', marginLeft: 'auto', marginRight: 'auto', maxWidth: '320px', position: 'relative', zIndex: 2, textAlign: 'center' }}>
