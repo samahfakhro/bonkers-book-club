@@ -133,7 +133,8 @@ export default function LandingPage() {
   return (
     <main style={{ backgroundColor: '#1a2744', backgroundImage: 'url(/Background_3.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', minHeight: '100vh', overflowX: 'hidden', fontFamily: 'var(--font-montserrat), sans-serif', position: 'relative' }}>
       {/* ── HEADER ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: isTablet ? '24px 20px 0' : '16px 20px', position: 'relative', zIndex: 30, backgroundColor: '#fefef5' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isTablet ? '24px 20px 0' : '16px 20px', position: 'relative', zIndex: 30, backgroundColor: '#fefef5' }}>
+        <img src="/Curious_logo.png" alt="The Curious Library" style={{ height: isTablet ? '64px' : '52px', width: 'auto', display: 'block' }} />
         <button onClick={() => router.push('/login')} style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', color: '#1a2f51', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, letterSpacing: '0.04em' }}>
           <span style={{ borderBottom: '2px solid #f9ce71', paddingBottom: '1px' }}>Log in</span>
         </button>
