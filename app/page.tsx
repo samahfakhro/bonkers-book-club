@@ -173,7 +173,7 @@ export default function LandingPage() {
                   Curated by kids. Approved by parents.<br />No commitment. No late fees.
                 </p>
                 <div style={{ marginTop: '16px', position: 'relative', zIndex: 20 }}><CheckAreaButton onClick={goCheck} /></div>
-                <img src="/penguin_sneak1.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-8px', height: '110px', width: 'auto', zIndex: 1, pointerEvents: 'none' }} />
+                <img src="/penguin_sneak1.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-28px', height: '110px', width: 'auto', zIndex: 1, pointerEvents: 'none' }} />
               </div>
             </>
           )}
