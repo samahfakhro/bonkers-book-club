@@ -236,8 +236,6 @@ export default function LandingPage() {
           {/* Divider with star */}
           {/* Take a peek */}
           <div className="lp-take-peek" style={{ position: 'relative', display: 'inline-block' }}>
-            <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', top: '-88px', left: '-160px', width: '54px', height: '54px', pointerEvents: 'none' }} />
-            <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', top: '-90px', right: '-200px', width: '40px', height: '40px', pointerEvents: 'none' }} />
             <img src="/sparklestar_pink.png" alt="" style={{ position: 'absolute', top: '-24px', right: '-320px', width: '40px', height: '40px', pointerEvents: 'none' }} />
             <img src="/sparklestar_turquoise.png" alt="" style={{ position: 'absolute', top: '100px', right: '-360px', width: '40px', height: '40px', pointerEvents: 'none' }} />
             <img src="/sparklestar_blue.png" alt="" style={{ position: 'absolute', top: '-20px', left: '-320px', width: '40px', height: '40px', pointerEvents: 'none' }} />
