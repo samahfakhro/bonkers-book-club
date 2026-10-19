@@ -581,9 +581,9 @@ export default function LandingPage() {
 // Three columns under the heading: picture + short line each, separated by thin vertical lines
 function ThreeColumns({ isTablet }: { isTablet: boolean }) {
   const cols = [
-    { img: '/Book_Stack.png', alt: 'Books', title: 'Choose', text: <>You choose<br />the books</> },
-    { img: '/van.png', alt: 'Delivery van', title: 'We Deliver', text: <>We deliver &amp;<br />collect weekly</> },
-    { img: '/magic_book1.png', alt: 'Magic book', title: 'Read & Return', text: <>Fresh stories<br />whenever you’re ready</> },
+    { img: '/Book_Stack.png', alt: 'Books', title: 'Choose', text: <>your books</> },
+    { img: '/van.png', alt: 'Delivery van', title: 'We Deliver', text: <>every week</> },
+    { img: '/magic_book1.png', alt: 'Magic book', title: 'Read & Return', text: <>at your pace</> },
   ]
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'stretch', width: '100%', maxWidth: isTablet ? '560px' : '360px', margin: isTablet ? '40px auto 26px' : '30px auto 20px' }}>
