@@ -242,7 +242,7 @@ export default function LandingPage() {
             <img src="/sparklestar_turquoise.png" alt="" style={{ position: 'absolute', top: '100px', right: '-360px', width: '40px', height: '40px', pointerEvents: 'none' }} />
             <img src="/sparklestar_blue.png" alt="" style={{ position: 'absolute', top: '-20px', left: '-320px', width: '40px', height: '40px', pointerEvents: 'none' }} />
             <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', top: '100px', left: '-360px', width: '40px', height: '40px', pointerEvents: 'none' }} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px', marginTop: isTablet ? '0px' : '68px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px', marginTop: isTablet ? '24px' : '52px' }}>
             <img src="/whiskers_left.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
             <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#1a2f51', fontSize: '1.05rem', letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0, lineHeight: 1 }}>
               Take a peek
