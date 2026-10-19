@@ -156,7 +156,7 @@ export default function LandingPage() {
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.8rem' : '0.8rem', lineHeight: 1.5, letterSpacing: '0.02em', margin: '-4px 0 0', textAlign: 'center' }}>Curated by kids. Approved by parents.</p>
               <ThreeColumns isTablet={isTablet} />
               <div style={{ position: 'relative', width: '100%' }}>
-                <p style={{ color: '#1a2f51', fontSize: '0.95rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '8px', position: 'relative', zIndex: 1, textAlign: 'center', width: '100%' }}>
+                <p style={{ color: '#1a2f51', fontSize: '0.8rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '8px', position: 'relative', zIndex: 1, textAlign: 'center', width: '100%' }}>
                   <img src="/sparklestar_yellow.png" alt="" style={{ display: 'inline-block', height: '1.25em', width: 'auto', verticalAlign: '-0.25em', marginRight: '5px' }} />No late fees<span style={{ display: 'inline-block', width: '16px' }} /><img src="/sparklestar_yellow.png" alt="" style={{ display: 'inline-block', height: '1.25em', width: 'auto', verticalAlign: '-0.25em', marginRight: '5px' }} />Cancel anytime
                 </p>
               </div>
