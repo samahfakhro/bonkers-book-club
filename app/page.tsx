@@ -212,7 +212,7 @@ export default function LandingPage() {
           <div className="lp-hiw-stars" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '6px 18px', marginTop: isTablet ? '32px' : '24px' }}>
             {[
               { star: '/sparklestar_yellow.png', label: 'Weekly delivery' },
-              { star: '/sparklestar_yellow.png', label: 'No late fees' },
+              { star: '/sparklestar_yellow.png', label: 'No due dates' },
               { star: '/sparklestar_yellow.png', label: 'Cancel anytime' },
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
