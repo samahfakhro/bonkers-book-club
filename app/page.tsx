@@ -581,9 +581,9 @@ export default function LandingPage() {
 // Three columns under the heading: picture + short line each, separated by thin vertical lines
 function ThreeColumns({ isTablet }: { isTablet: boolean }) {
   const cols = [
-    { img: '/Book_Stack.png', alt: 'Books', text: <>You choose<br />the books</> },
-    { img: '/van.png', alt: 'Delivery van', text: <>We deliver &amp;<br />collect weekly</> },
-    { img: '/magic_book1.png', alt: 'Magic book', text: <>Fresh stories<br />whenever you’re ready</> },
+    { img: '/Book_Stack.png', alt: 'Books', title: 'Choose', text: <>You choose<br />the books</> },
+    { img: '/van.png', alt: 'Delivery van', title: 'We Deliver', text: <>We deliver &amp;<br />collect weekly</> },
+    { img: '/magic_book1.png', alt: 'Magic book', title: 'Read & Return', text: <>Fresh stories<br />whenever you’re ready</> },
   ]
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'stretch', width: '100%', maxWidth: isTablet ? '560px' : '360px', margin: isTablet ? '40px auto 26px' : '30px auto 20px' }}>
@@ -592,6 +592,7 @@ function ThreeColumns({ isTablet }: { isTablet: boolean }) {
           {i > 0 && <img src="/divider_vertical.png" alt="" style={{ height: isTablet ? '100px' : '60px', width: 'auto', alignSelf: 'flex-start', margin: '0 4px', filter: 'brightness(0.35)' }} />}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
             <img src={c.img} alt={c.alt} style={{ height: isTablet ? '90px' : '50px', width: 'auto' }} />
+            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '22px' : '14px', fontWeight: 700, letterSpacing: '0.03em', margin: 0, textAlign: 'center' }}>{c.title}</p>
             <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '21px' : '13px', lineHeight: 1.25, letterSpacing: '0.03em', margin: 0, textAlign: 'center' }}>{c.text}</p>
           </div>
         </div>
