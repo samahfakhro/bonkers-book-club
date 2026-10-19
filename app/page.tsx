@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -160,7 +160,6 @@ export default function LandingPage() {
                 <img src="/penguin_sneak1.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-240px', height: '240px', width: 'auto', zIndex: -1 }} />
               </div>
               <div style={{ marginTop: '56px', transform: 'scale(1.4)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} label="Join" /></div>
-              <BonkySteps isTablet />
             </>
           ) : (
             <>
@@ -174,7 +173,6 @@ export default function LandingPage() {
                 <div style={{ marginTop: '16px', position: 'relative', zIndex: 20 }}><CheckAreaButton onClick={goCheck} label="Join" /></div>
                 <img src="/penguin_sneak1.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-28px', height: '110px', width: 'auto', zIndex: 1, pointerEvents: 'none' }} />
               </div>
-              <BonkySteps isTablet={false} />
             </>
           )}
 
@@ -596,57 +594,6 @@ export default function LandingPage() {
         div::-webkit-scrollbar { display: none; }
       `}</style>
     </main>
-  )
-}
-
-// The three steps with Bonky illustrations (from the September landing page), under the Join button
-function BonkySteps({ isTablet }: { isTablet: boolean }) {
-  const navy = '#1a2f51'
-  const steps = [
-    { num: '1', label: 'Choose books', img: '/bonky_choosingbooks.png', ml: '-16px', mr: '0' },
-    { num: '2', label: 'Bonkers Day!', img: '/bonky_delivering2.png', ml: '-12px', mr: '0' },
-    { num: '3', label: 'Keep Reading', img: '/bonky_reading.png', ml: '0', mr: '-28px' },
-  ]
-  const circle = (num: string) => (
-    <div style={{ width: '52px', height: '52px', borderRadius: '50%', border: '1.5px solid ' + navy, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '32px', fontWeight: 700, color: navy, lineHeight: 1 }}>{num}</span>
-    </div>
-  )
-  const label = (text: string, size: string) => (
-    <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: size, fontWeight: 600, color: navy, letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0, textAlign: 'center', whiteSpace: 'nowrap' }}>{text}</p>
-  )
-  const arrow = (w: string) => <img src="/arrow_cream.png" alt="" style={{ width: w, height: 'auto', alignSelf: 'flex-start', marginTop: '12px', flexShrink: 0, filter: 'brightness(0)' }} />
-  if (isTablet) return (
-    <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', gap: '8px', marginTop: '56px', width: '100%' }}>
-      {steps.map((st, i) => (
-        <Fragment key={st.num}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', flex: 1 }}>
-            {circle(st.num)}
-            {label(st.label, '14px')}
-            <img src={st.img} alt="" style={{ height: '200px', width: 'auto', marginLeft: st.ml, marginRight: st.mr }} />
-          </div>
-          {i < 2 && arrow('48px')}
-        </Fragment>
-      ))}
-    </div>
-  )
-  return (
-    <div style={{ marginTop: '36px' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', gap: '8px' }}>
-        {steps.map((st, i) => (
-          <Fragment key={st.num}>
-            <div style={{ width: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-              {circle(st.num)}
-              {label(st.label, '10.5px')}
-            </div>
-            {i < 2 && arrow('32px')}
-          </Fragment>
-        ))}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '16px', width: '100%' }}>
-        {steps.map(st => <img key={st.num} src={st.img} alt="" style={{ height: '110px', width: 'auto', marginLeft: st.ml, marginRight: st.mr }} />)}
-      </div>
-    </div>
   )
 }
 
