@@ -153,7 +153,7 @@ export default function LandingPage() {
               <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontWeight: 700, lineHeight: 1.05, margin: '-40px 0 14px', textAlign: 'center', width: '100%' }}>
                 <span style={{ fontSize: 'min(2.6rem, 6.6vw)', display: 'block' }}>Brilliant children’s books delivered to your <span style={{ display: 'inline-block', position: 'relative' }}>door<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-11px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
               </h1>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.8rem' : '0.88rem', lineHeight: 1.5, letterSpacing: '0.02em', margin: '-4px 0 0', textAlign: 'center' }}>Curated by kids. Approved by parents.</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.8rem' : '0.96rem', lineHeight: 1.5, letterSpacing: '0.02em', margin: '-4px 0 0', textAlign: 'center' }}>Curated by kids. Approved by parents.</p>
               <ThreeColumns isTablet={isTablet} />
               <div style={{ position: 'relative', width: '100%' }}>
                 <p style={{ color: '#1a2f51', fontSize: '0.8rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '8px', position: 'relative', zIndex: 1, textAlign: 'center', width: '100%' }}>
@@ -167,10 +167,10 @@ export default function LandingPage() {
               <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontWeight: 700, lineHeight: 1.05, margin: '-20px 0 14px', textAlign: 'center', width: '100%' }}>
                 <span style={{ fontSize: 'clamp(1.6rem, 7.6vw, 3rem)', display: 'block' }}>Brilliant children’s books delivered to your <span style={{ display: 'inline-block', position: 'relative' }}>door<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-11px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
               </h1>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.8rem' : '0.88rem', lineHeight: 1.5, letterSpacing: '0.02em', margin: '-4px 0 0', textAlign: 'center' }}>Curated by kids. Approved by parents.</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.8rem' : '0.96rem', lineHeight: 1.5, letterSpacing: '0.02em', margin: '-4px 0 0', textAlign: 'center' }}>Curated by kids. Approved by parents.</p>
               <ThreeColumns isTablet={isTablet} />
               <div style={{ position: 'relative' }}>
-                <p style={{ color: '#1a2f51', fontSize: '0.88rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '0', marginLeft: 'auto', marginRight: 'auto', maxWidth: '320px', position: 'relative', zIndex: 2, textAlign: 'center' }}>
+                <p style={{ color: '#1a2f51', fontSize: '0.96rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '0', marginLeft: 'auto', marginRight: 'auto', maxWidth: '320px', position: 'relative', zIndex: 2, textAlign: 'center' }}>
                   <img src="/sparklestar_yellow.png" alt="" style={{ display: 'inline-block', height: '1.25em', width: 'auto', verticalAlign: '-0.25em', marginRight: '5px' }} />No late fees<span style={{ display: 'inline-block', width: '16px' }} /><img src="/sparklestar_yellow.png" alt="" style={{ display: 'inline-block', height: '1.25em', width: 'auto', verticalAlign: '-0.25em', marginRight: '5px' }} />Cancel anytime
                 </p>
                 <div style={{ marginTop: '16px', position: 'relative', zIndex: 20 }}><CheckAreaButton onClick={goCheck} label="Join now" /></div>
