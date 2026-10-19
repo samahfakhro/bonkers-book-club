@@ -194,16 +194,16 @@ export default function LandingPage() {
         <div style={{ backgroundColor: '#fefef5', textAlign: 'center', padding: isTablet ? '32px 44px 0' : '20px 16px 0' }}>
           <div style={{ display: 'flex', gap: '16px', marginTop: '0', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center', flex: 1, border: '1.5px solid rgba(26,39,68,0.2)', borderRadius: '12px', padding: '16px 12px' }}>
-              <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.6rem' : '1.3rem', fontWeight: 700, margin: '0 0 6px', lineHeight: 1.1 }}>A Little Curious</p>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '0.72rem' : '0.85rem', fontWeight: 400, margin: '-2px 0 8px', opacity: 0.8 }}>up to 16 books a month*</p>
-              <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2.4rem' : '1.85rem', fontWeight: 700 }}><span style={{ fontSize: '0.6em', marginRight: '3px' }}>AED</span>149</span>
+              <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.6rem' : '1.3rem', fontWeight: 700, margin: '0 0 8px', lineHeight: 1.1 }}>A Little Curious</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '0.72rem' : '0.85rem', fontWeight: 400, margin: '0 0 8px', lineHeight: 1.2, opacity: 0.8 }}>up to 16 books a month*</p>
+              <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2.4rem' : '1.85rem', fontWeight: 700, display: 'block', lineHeight: 1 }}><span style={{ fontSize: '0.6em', marginRight: '3px' }}>AED</span>149</span>
               <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, display: 'block', marginTop: '-2px' }}>/month</span>
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 600, margin: '4px 0 0' }}>4 books at a time</p>
             </div>
             <div style={{ textAlign: 'center', flex: 1, border: '1.5px solid rgba(26,39,68,0.2)', borderRadius: '12px', padding: '16px 12px' }}>
-              <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.6rem' : '1.3rem', fontWeight: 700, margin: '0 0 6px', lineHeight: 1.1 }}>Quite Curious</p>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '0.72rem' : '0.85rem', fontWeight: 400, margin: '-2px 0 8px', opacity: 0.8 }}>up to 24 books a month*</p>
-              <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2.4rem' : '1.85rem', fontWeight: 700 }}><span style={{ fontSize: '0.6em', marginRight: '3px' }}>AED</span>199</span>
+              <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.6rem' : '1.3rem', fontWeight: 700, margin: '0 0 8px', lineHeight: 1.1 }}>Quite Curious</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '0.72rem' : '0.85rem', fontWeight: 400, margin: '0 0 8px', lineHeight: 1.2, opacity: 0.8 }}>up to 24 books a month*</p>
+              <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2.4rem' : '1.85rem', fontWeight: 700, display: 'block', lineHeight: 1 }}><span style={{ fontSize: '0.6em', marginRight: '3px' }}>AED</span>199</span>
               <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, display: 'block', marginTop: '-2px' }}>/month</span>
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 600, margin: '4px 0 0' }}>6 books at a time</p>
             </div>
