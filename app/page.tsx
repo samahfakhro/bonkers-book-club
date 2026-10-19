@@ -230,7 +230,7 @@ export default function LandingPage() {
 
       {/* ── 3. THE BOOKS ── */}
       <section className="lp-books-section" style={{ backgroundColor: 'transparent', padding: 0, marginTop: isTablet ? '-30px' : '0' }}>
-        <img src="/mainimage2c2.png" alt="" style={{ width: '100%', display: 'block', height: 'auto', marginTop: '-2px', position: 'relative' }} />
+        <img src="/whale_4.png" alt="" style={{ width: '100%', display: 'block', height: 'auto', marginTop: '-2px', position: 'relative' }} />
         <div style={{ maxWidth: isTablet ? '100%' : '480px', margin: '0 auto', textAlign: 'center', padding: isTablet ? '0 44px' : '0 24px' }}>
 
           {/* Divider with star */}
