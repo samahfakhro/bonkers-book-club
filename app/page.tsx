@@ -158,7 +158,7 @@ export default function LandingPage() {
                 <p style={{ color: '#1a2f51', fontSize: '0.95rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '8px', position: 'relative', zIndex: 1, textAlign: 'center', width: '100%' }}>
                   Curated by kids. Approved by parents.<br />No commitment. No late fees.
                 </p>
-                <img src="/penguin_sneak1.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-240px', height: '240px', width: 'auto', zIndex: -1 }} />
+                <img src="/penguin_sneak1.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-200px', height: '200px', width: 'auto', zIndex: -1 }} />
               </div>
               <div style={{ marginTop: '56px', transform: 'scale(1.4)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} label="Join" /></div>
             </>
