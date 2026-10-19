@@ -586,7 +586,7 @@ function ThreeColumns({ isTablet }: { isTablet: boolean }) {
     { img: '/magic_book.png', alt: 'Magic book', text: <>Fresh stories<br />whenever you’re ready.</> },
   ]
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'stretch', width: '100%', maxWidth: isTablet ? '560px' : '360px', margin: isTablet ? '22px auto 26px' : '16px auto 20px' }}>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'stretch', width: '100%', maxWidth: isTablet ? '560px' : '360px', margin: isTablet ? '40px auto 26px' : '30px auto 20px' }}>
       {cols.map((c, i) => (
         <div key={c.alt} style={{ display: 'flex', alignItems: 'stretch', flex: 1 }}>
           {i > 0 && <img src="/divider_vertical.png" alt="" style={{ height: isTablet ? '100px' : '60px', width: 'auto', alignSelf: 'flex-start', margin: '0 4px', filter: 'brightness(0.35)' }} />}
