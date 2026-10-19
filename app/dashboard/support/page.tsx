@@ -10,7 +10,7 @@ const FAQS = [
     items: [
       {
         q: 'How does Bonkers — The Children\'s Library work?',
-        a: 'Every Bonkers Day, a fresh selection of books is delivered to your door. You choose which books you want before the cutoff, they arrive, your kids read them, and they go back in the next delivery. Simple.',
+        a: 'Every Curious Day, a fresh selection of books is delivered to your door. You choose which books you want before the cutoff, they arrive, your kids read them, and they go back in the next delivery. Simple.',
       },
       {
         q: 'How do I choose books?',
@@ -26,12 +26,12 @@ const FAQS = [
     category: 'Deliveries & Returns',
     items: [
       {
-        q: 'When is my Bonkers Day?',
-        a: 'Your Bonkers Day is shown at the top of your dashboard. It\'s the same day every week — set by your community.',
+        q: 'When is my Curious Day?',
+        a: 'Your Curious Day is shown at the top of your dashboard. It\'s the same day every week — set by your community.',
       },
       {
         q: 'How do I return books?',
-        a: 'Mark any book as "Returning" on your dashboard. The books go back in the delivery bag on your next Bonkers Day.',
+        a: 'Mark any book as "Returning" on your dashboard. The books go back in the delivery bag on your next Curious Day.',
       },
       {
         q: 'What if a book is damaged?',

@@ -7,7 +7,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export type WaitlistReason =
   | 'GLOBAL_PAUSED'
-  | 'ZONE_NOT_OPEN'       // outside every zone, or zone has no Bonkers Day yet
+  | 'ZONE_NOT_OPEN'       // outside every zone, or zone has no Curious Day yet
   | 'ZONE_PAUSED'
   | 'GLOBAL_CAP_REACHED'
   | 'ZONE_CAP_REACHED'
@@ -54,7 +54,7 @@ export async function checkAvailability(lat: number | null | undefined, lng: num
       return { canJoin: false, reason: 'CHECK_FAILED', zoneId: null }
     }
     const zone = matches[0]
-    // A zone needs a Bonkers Day to be open. An empty cap means no limit.
+    // A zone needs a Curious Day to be open. An empty cap means no limit.
     if (!zone || !zone.bonkers_day) return { canJoin: false, reason: 'ZONE_NOT_OPEN', zoneId: zone?.id ?? null }
     if (zone.is_paused) return { canJoin: false, reason: 'ZONE_PAUSED', zoneId: zone.id }
 

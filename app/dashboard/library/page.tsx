@@ -421,7 +421,7 @@ function LibraryPageInner() {
     }
     if (reqId) {
       const { error: itemErr } = await supabase.from('swap_request_items').insert({ swap_request_id: reqId, book_id: book.id, child_id: child.id })
-      if (itemErr?.message.includes('NEW_BOOKS_ON_HOLD')) { alert('New books are on hold until your extra books come back. Mark them as Returning for your next Bonkers Day — you can choose again once they’re back.'); window.location.reload(); return }
+      if (itemErr?.message.includes('NEW_BOOKS_ON_HOLD')) { alert('New books are on hold until your extra books come back. Mark them as Returning for your next Curious Day — you can choose again once they’re back.'); window.location.reload(); return }
       if (itemErr && itemErr.code !== '23505') console.error('swap_request_items insert failed:', itemErr)
     }
   }

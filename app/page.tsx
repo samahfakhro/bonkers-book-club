@@ -39,7 +39,7 @@ const GUEST_MESSAGES = [
 ]
 
 const FAQS = [
-  { q: 'How often can we get new books?', a: 'As often as every week. Just open the app, choose your new books and let us know which ones you\'re returning. You can keep any you\'re still reading for as long as you like. On your community\'s next Bonkers Day, we\'ll collect the books you\'re returning and deliver your new ones.' },
+  { q: 'How often can we get new books?', a: 'As often as every week. Just open the app, choose your new books and let us know which ones you\'re returning. You can keep any you\'re still reading for as long as you like. On your community\'s next Curious Day, we\'ll collect the books you\'re returning and deliver your new ones.' },
   { q: 'What if we lose or damage a book?', a: 'We understand — kids and books can be a messy combination. Minor wear is totally fine. For lost or heavily damaged books, we may charge a replacement fee.' },
   { q: 'Can siblings share a membership?', a: 'Absolutely — that\'s how most families use The Curious Library. You can set up a profile for each child and allocate books across them based on your plan.' },
   { q: 'Which areas do you deliver to?', a: 'We deliver across Dubai. If you\'re not sure whether we reach your doorstep, just sign up and we\'ll confirm your delivery details when you join.' },

@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     // new families start with the notification defaults from admin → Settings
     const defaults = await getSettingValues(['default_notify_whatsapp', 'default_notify_email'])
 
-    // Create household — zone + Bonkers Day come from the server's check, not the browser
+    // Create household — zone + Curious Day come from the server's check, not the browser
     const { data: household, error: hhError } = await supabaseAdmin
       .from('households')
       .insert({ user_id: userId, notify_whatsapp: defaults.default_notify_whatsapp !== 'false', notify_email: defaults.default_notify_email !== 'false', ...firstTouchColumns(firstTouch), ...householdFields, signup_zone_id: availability.zoneId, bonkers_day: availability.bonkersDay })

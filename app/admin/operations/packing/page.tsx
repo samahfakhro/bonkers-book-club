@@ -114,7 +114,7 @@ function buildLabelHtml(labels: Label[]) {
     </table>
     <div class="footer">
       <div>
-        <div class="swap-label">Bonkers Day</div>
+        <div class="swap-label">Curious Day</div>
         <div class="swap-day">${esc(l.bonkersDay || '—')}</div>
         <div class="visit-ref">${esc(l.visitRef)}</div>
       </div>

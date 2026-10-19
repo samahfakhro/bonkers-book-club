@@ -201,7 +201,7 @@ export default function CapacityPage() {
   if (remaining === 0) warnings.push('Global membership cap reached — new applicants go to the waitlist.')
   else if (remaining != null && remaining <= 5) warnings.push(`Only ${remaining} global membership place${remaining === 1 ? '' : 's'} remain.`)
   for (const z of zones) {
-    if (!z.bonkers_day) warnings.push(`${z.name} has no Bonkers Day, so it isn't accepting members.`)
+    if (!z.bonkers_day) warnings.push(`${z.name} has no Curious Day, so it isn't accepting members.`)
     else if (z.membership_cap != null && z.active >= z.membership_cap) warnings.push(`${z.name} (${z.bonkers_day}) is full.`)
     else if (z.membership_cap != null && z.membership_cap > 0 && z.active / z.membership_cap >= 0.9) warnings.push(`${z.name} (${z.bonkers_day}) is at ${Math.round(z.active / z.membership_cap * 100)}% of its cap.`)
   }
@@ -257,7 +257,7 @@ export default function CapacityPage() {
 
         {/* BONKERS DAYS */}
         <div style={{ ...card, marginBottom: '16px' }}>
-          <h2 style={h2}>Bonkers Days</h2>
+          <h2 style={h2}>Curious Days</h2>
           {zones.length === 0 && <p style={{ margin: 0, fontSize: '13px', color: '#9b9b9b' }}>No zones saved yet — draw them in Zones.</p>}
           {zones.map(z => {
             const full = z.membership_cap != null && z.active >= z.membership_cap

@@ -57,7 +57,7 @@ export async function finishInspecting() {
   const { atHome, planFor } = await allowanceByHousehold()
   const { data: flagged } = await supabaseAdmin.from('households').select('id, over_allowance_grace_until').not('over_allowance_since', 'is', null)
   const flaggedMap = new Map((flagged || []).map(h => [h.id, h.over_allowance_grace_until as string | null]))
-  // families who had a visit in the last couple of days get a reminder (once per Bonkers Day)
+  // families who had a visit in the last couple of days get a reminder (once per Curious Day)
   const { data: recentStops } = await supabaseAdmin.from('route_stops').select('household_id, routes!inner(route_date)').gte('routes.route_date', addDays(today, -2)).lte('routes.route_date', today)
   const visited = new Set((recentStops || []).map(s => s.household_id))
   const grace = await graceDays()
@@ -72,14 +72,14 @@ export async function finishInspecting() {
       await supabaseAdmin.from('households').update({ over_allowance_since: today, over_allowance_grace_until: today, over_allowance_response: null, over_allowance_responded_at: null }).eq('id', householdId)
       await clearChoices(householdId)
       await notifyHousehold({ householdId, type: 'general', title: 'Some books didn’t come back',
-        message: `You have ${n} books at home, but your plan is for ${plan}. New books are on hold until ${books(extra)} ${extra === 1 ? 'comes' : 'come'} back — mark ${extra === 1 ? 'it' : 'them'} as Returning for your next Bonkers Day. Anything you’d chosen is safe on your saved list.`,
+        message: `You have ${n} books at home, but your plan is for ${plan}. New books are on hold until ${books(extra)} ${extra === 1 ? 'comes' : 'come'} back — mark ${extra === 1 ? 'it' : 'them'} as Returning for your next Curious Day. Anything you’d chosen is safe on your saved list.`,
         link: '/dashboard' })
       result.newlyOver++
     } else if (visited.has(householdId)) {
       const title = 'New books are on hold'
       if (await alreadyToldToday(householdId, title)) continue
       await notifyHousehold({ householdId, type: 'general', title,
-        message: `We still need ${books(extra)} back before we can send new ones. Mark ${extra === 1 ? 'it' : 'them'} as Returning for your next Bonkers Day — you can choose books again as soon as ${extra === 1 ? 'it’s' : 'they’re'} back.`,
+        message: `We still need ${books(extra)} back before we can send new ones. Mark ${extra === 1 ? 'it' : 'them'} as Returning for your next Curious Day — you can choose books again as soon as ${extra === 1 ? 'it’s' : 'they’re'} back.`,
         link: '/dashboard' })
       result.onHold++
     }

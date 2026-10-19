@@ -60,7 +60,7 @@ const caveat = Caveat({
 });
 
 export const metadata: Metadata = {
-  title: "Bonkers — The Children's Library",
+  title: "The Curious Library",
   description: "Dubai's most magical children's book swap",
 };
 

@@ -546,7 +546,7 @@ function SignupForm() {
       {step === 'waitlist' && (
         <div style={{ maxWidth: '480px', margin: '0 auto', padding: '0 24px 60px', textAlign: 'center' }}>
           <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '2.2rem', fontWeight: 700, lineHeight: 1.1 }}>Memberships in your area are currently full</h1>
-          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.9rem', opacity: 0.85, lineHeight: 1.6, margin: '12px 0 24px' }}>We keep Bonkers memberships limited so every family gets a brilliant selection of books and a reliable Bonkers Day. Join the waitlist and we&apos;ll let you know as soon as we increase our capacity. We promise it won&apos;t be long!</p>
+          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.9rem', opacity: 0.85, lineHeight: 1.6, margin: '12px 0 24px' }}>We keep Bonkers memberships limited so every family gets a brilliant selection of books and a reliable Curious Day. Join the waitlist and we&apos;ll let you know as soon as we increase our capacity. We promise it won&apos;t be long!</p>
           <img src="/map_bonkers.png" alt="" style={{ width: '100%', height: 'auto', marginBottom: '24px' }} />
           {waitlistError && (
             <p style={{ color: '#e05c3a', fontSize: '0.82rem', marginBottom: '12px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{waitlistError}</p>

@@ -181,7 +181,7 @@ export async function reopenStop(stopId: string) {
   await supabaseAdmin.from('delivery_events').insert({ route_stop_id: stopId, event_type: 'reopened_for_retry' })
 }
 
-// Route closed: anything not delivered rolls over to the family's next Bonkers Day.
+// Route closed: anything not delivered rolls over to the family's next Curious Day.
 // Their choices go back to a draft (books still reserved) so they just need to confirm before the cutoff;
 // the envelope is unpacked at the warehouse (Returns → Undelivered envelopes).
 export async function closeRoute(routeId: string) {

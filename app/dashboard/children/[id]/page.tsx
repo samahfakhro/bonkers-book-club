@@ -487,7 +487,7 @@ export default function ChildProfilePage() {
   const submitSwap = async () => {
     if (!draftSwapRequestId) return
     const { error } = await supabase.from('swap_requests').update({ status: 'submitted' }).eq('id', draftSwapRequestId)
-    if (error) { alert(error.message.includes('NEW_BOOKS_ON_HOLD') ? 'New books are on hold until your extra books come back. Pop them in your tote for your next Bonkers Day.' : 'Something went wrong — please try again.'); return }
+    if (error) { alert(error.message.includes('NEW_BOOKS_ON_HOLD') ? 'New books are on hold until your extra books come back. Pop them in your tote for your next Curious Day.' : 'Something went wrong — please try again.'); return }
     setSwapRequestStatus('submitted')
   }
 
@@ -788,7 +788,7 @@ export default function ChildProfilePage() {
         {/* ── HELLO + NEXT BONKERS DAY ── */}
         <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '2.8rem', fontWeight: 700, lineHeight: 1, marginTop: '24px', marginBottom: '16px', textAlign: 'center' }}>Hello, {childName}!</h1>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#1a2f51', margin: '0 0 4px' }}>Your next Bonkers Day is</p>
+          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#1a2f51', margin: '0 0 4px' }}>Your next Curious Day is</p>
           {swapDay ? (
             <>
               <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1.8rem', fontWeight: 700, lineHeight: 1, margin: '0 0 6px' }}>{isToday ? 'Today!' : `${dayName} ${dateStr}`}</p>

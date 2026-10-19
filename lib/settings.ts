@@ -7,7 +7,7 @@ export type Plan = { id: string; name: string; book_count: number; price_monthly
 
 export const SETTING_GROUPS: { title: string; fields: { key: string; label: string; type: 'number' | 'text' | 'boolean'; hint?: string }[] }[] = [
   { title: 'Choosing books', fields: [
-    { key: 'cutoff_days_before', label: 'Days before the Bonkers Day that choices close', type: 'number', hint: 'The time is set per zone (Zones page).' },
+    { key: 'cutoff_days_before', label: 'Days before the Curious Day that choices close', type: 'number', hint: 'The time is set per zone (Zones page).' },
   ] },
   { title: 'Contact details shown to parents', fields: [
     { key: 'contact_whatsapp', label: 'WhatsApp number', type: 'text', hint: 'e.g. 0501234567' },

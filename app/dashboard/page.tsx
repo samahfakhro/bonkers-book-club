@@ -500,7 +500,7 @@ export default function DashboardPage() {
     }
     if (!reqId) return
     const { error: addErr } = await supabase.from('swap_request_items').insert({ swap_request_id: reqId, book_id: bookId, child_id: childId })
-    if (addErr?.message.includes('NEW_BOOKS_ON_HOLD')) { alert('New books are on hold until your extra books come back. Mark them as Returning for your next Bonkers Day — you can choose again once they’re back.'); return }
+    if (addErr?.message.includes('NEW_BOOKS_ON_HOLD')) { alert('New books are on hold until your extra books come back. Mark them as Returning for your next Curious Day — you can choose again once they’re back.'); return }
     const book = [...savedBooks.values()].flat().find(b => b.id === bookId)
     setNextStack(prev => {
       if (prev.some(n => n.book?.id === bookId)) return prev
@@ -512,7 +512,7 @@ export default function DashboardPage() {
     setApprovingChildIds(prev => new Set(prev).add(childId))
     const { error } = await supabase.from('swap_requests').update({ status: 'submitted' }).eq('id', requestId)
     if (error) {
-      alert(error.message.includes('NEW_BOOKS_ON_HOLD') ? 'New books are on hold until your extra books come back. Pop them in your tote for your next Bonkers Day.' : 'Something went wrong — please try again.')
+      alert(error.message.includes('NEW_BOOKS_ON_HOLD') ? 'New books are on hold until your extra books come back. Pop them in your tote for your next Curious Day.' : 'Something went wrong — please try again.')
       setApprovingChildIds(prev => { const n = new Set(prev); n.delete(childId); return n })
       return
     }
@@ -625,7 +625,7 @@ export default function DashboardPage() {
           const { dayName, dateStr, isToday } = getNextBonkersDateParts(cutoffDay)
           return (
             <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-              <p className="dash-heading-sm" style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#1a2f51', margin: '0 0 4px' }}>Your next Bonkers Day is</p>
+              <p className="dash-heading-sm" style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#1a2f51', margin: '0 0 4px' }}>Your next Curious Day is</p>
               {cutoffDay ? (
             <>
               <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1.8rem', fontWeight: 700, lineHeight: 1, margin: '0 0 6px' }}>{isToday ? 'Today!' : `${dayName} ${dateStr}`}</p>
@@ -659,7 +659,7 @@ export default function DashboardPage() {
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#e8533a', margin: '0 0 6px' }}>{atHome}/{planTotal} books at home</p>
               {lostUnpaid > 0 && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', color: '#1a2f51', margin: '0 0 6px' }}>Includes {lostUnpaid} lost book{lostUnpaid === 1 ? '' : 's'} — once the replacement is paid, {lostUnpaid === 1 ? 'it' : 'they'} no longer count.</p>}
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.88rem', color: '#1a2f51', lineHeight: 1.55, margin: 0 }}>
-                You have {extra} more book{extra === 1 ? '' : 's'} at home than your plan allows. Please mark {extra === 1 ? 'it' : 'them'} as <strong>Returning</strong> and pop {extra === 1 ? 'it' : 'them'} in your tote for your next Bonkers Day.
+                You have {extra} more book{extra === 1 ? '' : 's'} at home than your plan allows. Please mark {extra === 1 ? 'it' : 'them'} as <strong>Returning</strong> and pop {extra === 1 ? 'it' : 'them'} in your tote for your next Curious Day.
               </p>
               {biggerPlan && atHome <= biggerPlan.books && (
                 <button disabled={upgrading} onClick={async () => {

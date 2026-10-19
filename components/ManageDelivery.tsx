@@ -20,7 +20,7 @@ const OPTIONS: { value: string; label: string; sub: string; needs?: 'neighbour' 
   { value: 'neighbour', label: 'Leave them with a neighbour', sub: 'Just this once — tell us who.', needs: 'neighbour' },
   { value: 'concierge', label: 'Leave them with reception / concierge', sub: 'Just this once.', apartmentOnly: true },
   { value: 'safe_drop', label: 'Leave them in a safe spot', sub: 'Just this once — tell us where.', needs: 'safe_drop' },
-  { value: 'next_bonkers_day', label: 'Wait for my next Bonkers Day', sub: 'Your books stay reserved — you’ll just need to confirm them again.' },
+  { value: 'next_bonkers_day', label: 'Wait for my next Curious Day', sub: 'Your books stay reserved — you’ll just need to confirm them again.' },
 ]
 
 export default function ManageDelivery({ apiPath, headers, footer }: { apiPath: string; headers?: () => Promise<Record<string, string>>; footer?: React.ReactNode }) {
@@ -82,7 +82,7 @@ export default function ManageDelivery({ apiPath, headers, footer }: { apiPath: 
           {info.deliveredAfterAll ? (
             <p style={body}>Good news — our driver managed to come back. Everything’s done for today.</p>
           ) : !info.open ? (
-            <p style={body}>Today’s round has finished. {info.missedDelivery ? `${kids.charAt(0).toUpperCase() + kids.slice(1)} books are still reserved — you’ll find them on your dashboard ready to confirm for your next Bonkers Day.` : 'Please pop the books in your tote for your next Bonkers Day.'}</p>
+            <p style={body}>Today’s round has finished. {info.missedDelivery ? `${kids.charAt(0).toUpperCase() + kids.slice(1)} books are still reserved — you’ll find them on your dashboard ready to confirm for your next Curious Day.` : 'Please pop the books in your tote for your next Curious Day.'}</p>
           ) : (
             <>
               <p style={{ ...body, marginBottom: '20px' }}>

@@ -300,7 +300,7 @@ export default function NewChildPage() {
           <section>
             <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51', fontSize: '1.4rem', margin: '0 0 12px', lineHeight: 1 }}>Book Allocation <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, fontSize: '0.75rem', opacity: 0.7 }}>(optional)</span></p>
             <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.9rem', marginBottom: '12px', lineHeight: '1.5' }}>
-              Set how many books {form.name.trim() || 'this reader'} can choose each Bonkers Day. Useful if you have multiple children choosing independently. Leave blank if you don't need a limit per child.
+              Set how many books {form.name.trim() || 'this reader'} can choose each Curious Day. Useful if you have multiple children choosing independently. Leave blank if you don't need a limit per child.
             </p>
             <div className="flex items-center justify-center gap-6">
               <button type="button"

@@ -41,7 +41,7 @@ export async function manageInfo(stop: any) {
 
 // Returns an error message, or null when saved. The driver app shows the answer on the stop.
 export async function saveFamilyResponse(stop: any, body: { response?: string; details?: string }): Promise<string | null> {
-  if (!manageLinkOpen(stop.routes)) return 'Today’s round has finished — your books will come on your next Bonkers Day.'
+  if (!manageLinkOpen(stop.routes)) return 'Today’s round has finished — your books will come on your next Curious Day.'
   if (!RESPONSES.includes(body.response as any)) return 'Please choose an option'
   const details = String(body.details || '').trim().slice(0, 300)
   if ((body.response === 'neighbour' || body.response === 'safe_drop') && !details) {

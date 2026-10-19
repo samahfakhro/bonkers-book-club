@@ -9,7 +9,7 @@ export type PublicSettings = {
   plans: { id: string; name: string; books: number; price: number }[]
 }
 
-// Days before the Bonkers Day that choices close. Updated once settings load (2 until then).
+// Days before the Curious Day that choices close. Updated once settings load (2 until then).
 export let cutoffDaysBefore = 2
 
 let cache: Promise<PublicSettings> | null = null
@@ -21,5 +21,5 @@ export function getPublicSettings(): Promise<PublicSettings> {
   return cache
 }
 
-// Weekday index (0 = Sunday) on which choices close for a Bonkers Day weekday index
+// Weekday index (0 = Sunday) on which choices close for a Curious Day weekday index
 export const cutoffWeekday = (bonkersDayIdx: number) => ((bonkersDayIdx - (cutoffDaysBefore % 7)) % 7 + 7) % 7

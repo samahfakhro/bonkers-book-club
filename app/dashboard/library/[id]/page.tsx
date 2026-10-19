@@ -496,7 +496,7 @@ export default function BookDetailPage() {
     }
     if (reqId) {
       const { error: itemErr } = await supabase.from('swap_request_items').insert({ swap_request_id: reqId, book_id: bookId, child_id: childId })
-      if (itemErr?.message.includes('NEW_BOOKS_ON_HOLD')) { alert('New books are on hold until your extra books come back. Mark them as Returning for your next Bonkers Day — you can choose again once they’re back.'); return }
+      if (itemErr?.message.includes('NEW_BOOKS_ON_HOLD')) { alert('New books are on hold until your extra books come back. Mark them as Returning for your next Curious Day — you can choose again once they’re back.'); return }
       if (itemErr && itemErr.code !== '23505') { console.error('swap_request_items insert failed:', itemErr); return }
       setAddedBooks(prev => new Map(prev).set(bookId, childId))
       if (book) setAddedBookObjects(prev => new Map(prev).set(bookId, { id: book.id, title: book.title, author: book.author, cover_image_url: book.cover_image_url }))

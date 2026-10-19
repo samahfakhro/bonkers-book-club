@@ -30,7 +30,7 @@ const PREFERENCE: Record<string, string> = {
 const FAILED = new Set(['delivery_failed', 'collection_failed', 'no_access', 'no_answer', 'partial_issue', 'books_not_returned'])
 const REPLY: Record<string, string> = {
   retry_today: 'Please try again today', neighbour: 'Leave with a neighbour', concierge: 'Leave with reception / concierge',
-  safe_drop: 'Leave in a safe spot', next_bonkers_day: 'Wait for next Bonkers Day',
+  safe_drop: 'Leave in a safe spot', next_bonkers_day: 'Wait for next Curious Day',
 }
 const familyName = (h: Household | null) => [h?.first_name, h?.last_name].filter(Boolean).join(' ') || 'Family'
 const address = (h: Household | null) => !h ? '' : [
@@ -281,7 +281,7 @@ function StopDetail({ route, stop, onBack, onDone }: { route: DriverRoute; stop:
               {stop.family_response !== 'next_bonkers_day' && route.status === 'locked' && (
                 <div style={{ marginTop: '12px' }}>
                   <Big onClick={retry} disabled={retrying}>{retrying ? 'Reopening…' : '↻ Try again now'}</Big>
-                  <p style={{ margin: '6px 0 0', fontSize: '13px', color: navy, opacity: 0.7 }}>Only if you can fit it in — otherwise it rolls over to their next Bonkers Day automatically.</p>
+                  <p style={{ margin: '6px 0 0', fontSize: '13px', color: navy, opacity: 0.7 }}>Only if you can fit it in — otherwise it rolls over to their next Curious Day automatically.</p>
                 </div>
               )}
             </Card>
