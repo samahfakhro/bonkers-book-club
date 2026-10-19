@@ -198,14 +198,14 @@ export default function LandingPage() {
               <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2.4rem' : '1.85rem', fontWeight: 700 }}><span style={{ fontSize: '0.6em', marginRight: '3px' }}>AED</span>149</span>
               <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, display: 'block', marginTop: '-2px' }}>/month</span>
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 600, margin: '4px 0 0' }}>4 books at a time</p>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.72rem', fontWeight: 400, fontStyle: 'italic', margin: '2px 0 0', opacity: 0.6 }}>up to 16 books a month*</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '0.72rem' : '0.85rem', fontWeight: 400, fontStyle: 'italic', margin: '2px 0 0', opacity: 0.6 }}>up to 16 books a month*</p>
             </div>
             <div style={{ textAlign: 'center', flex: 1, border: '1.5px solid rgba(26,39,68,0.2)', borderRadius: '12px', padding: '16px 12px' }}>
               <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.6rem' : '1.3rem', fontWeight: 700, margin: '0 0 6px', lineHeight: 1.1 }}>Quite Curious</p>
               <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2.4rem' : '1.85rem', fontWeight: 700 }}><span style={{ fontSize: '0.6em', marginRight: '3px' }}>AED</span>199</span>
               <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, display: 'block', marginTop: '-2px' }}>/month</span>
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 600, margin: '4px 0 0' }}>6 books at a time</p>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.72rem', fontWeight: 400, fontStyle: 'italic', margin: '2px 0 0', opacity: 0.6 }}>up to 24 books a month*</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '0.72rem' : '0.85rem', fontWeight: 400, fontStyle: 'italic', margin: '2px 0 0', opacity: 0.6 }}>up to 24 books a month*</p>
             </div>
           </div>
           <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.72rem', fontStyle: 'italic', opacity: 0.6, margin: '10px 0 0', textAlign: 'center' }}>*Based on getting new books every week</p>
