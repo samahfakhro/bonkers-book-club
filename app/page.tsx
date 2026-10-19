@@ -160,7 +160,7 @@ export default function LandingPage() {
                   <img src="/sparklestar_yellow.png" alt="" style={{ display: 'inline-block', height: '1.25em', width: 'auto', verticalAlign: '-0.25em', marginRight: '5px' }} />No late fees<span style={{ display: 'inline-block', width: '16px' }} /><img src="/sparklestar_yellow.png" alt="" style={{ display: 'inline-block', height: '1.25em', width: 'auto', verticalAlign: '-0.25em', marginRight: '5px' }} />Cancel anytime
                 </p>
               </div>
-              <div style={{ marginTop: '56px', transform: 'scale(1.2)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} label="Join now" /></div>
+              <div style={{ marginTop: '44px', transform: 'scale(1.2)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} label="Join now" /></div>
             </>
           ) : (
             <>
