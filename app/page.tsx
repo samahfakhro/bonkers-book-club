@@ -227,7 +227,7 @@ export default function LandingPage() {
         </div>
 
         {/* Bottom decorative image */}
-        <img src="/mainimage2c.png" alt="" style={{ width: '100%', display: 'block', height: 'auto' }} />
+        <img src="/mainimage2c2.png" alt="" style={{ width: '100%', display: 'block', height: 'auto' }} />
         </div>{/* end cream wrapper */}
       </section>
 
