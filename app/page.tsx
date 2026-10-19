@@ -422,7 +422,7 @@ export default function LandingPage() {
               <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', left: '-32px', height: '44px', width: 'auto', pointerEvents: 'none', zIndex: 1, filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
               <button onClick={goCheck}
                 style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', backgroundImage: 'url(/button2.png)', backgroundSize: '300% 300%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: 'transparent', border: 'none', borderRadius: '999px', padding: '12px 28px', cursor: 'pointer' }}>
-                Join The Curious Library
+                Join now
               </button>
               <img src="/whiskers_right.png" alt="" style={{ position: 'absolute', right: '-32px', height: '44px', width: 'auto', pointerEvents: 'none', zIndex: 1, filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
             </div>
@@ -593,7 +593,7 @@ function ThreeColumns({ isTablet }: { isTablet: boolean }) {
   )
 }
 
-function CheckAreaButton({ onClick, label = 'Join The Curious Library' }: { onClick: () => void; label?: string }) {
+function CheckAreaButton({ onClick, label = 'Join now' }: { onClick: () => void; label?: string }) {
   const whiskerFilter = 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)'
   return (
     <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
