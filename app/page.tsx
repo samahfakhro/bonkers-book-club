@@ -203,13 +203,13 @@ export default function LandingPage() {
               <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.6rem' : '1.3rem', fontWeight: 700, margin: '0 0 6px', lineHeight: 1.1 }}>A Little Curious</p>
               <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2rem' : '1.5rem', fontWeight: 700 }}>AED 149</span>
               <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '1rem', fontWeight: 400, marginLeft: '6px' }}>/ month</span>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, margin: '4px 0 0', opacity: 0.8 }}>4 books at home at a time</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, margin: '4px 0 0', opacity: 0.8 }}>4 books at a time</p>
             </div>
             <div style={{ textAlign: 'center', flex: 1, border: '1.5px solid rgba(26,39,68,0.2)', borderRadius: '12px', padding: '16px 12px' }}>
               <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.6rem' : '1.3rem', fontWeight: 700, margin: '0 0 6px', lineHeight: 1.1 }}>Quite Curious</p>
               <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2rem' : '1.5rem', fontWeight: 700 }}>AED 199</span>
               <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '1rem', fontWeight: 400, marginLeft: '6px' }}>/ month</span>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, margin: '4px 0 0', opacity: 0.8 }}>6 books at home at a time</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, margin: '4px 0 0', opacity: 0.8 }}>6 books at a time</p>
             </div>
           </div>
           <div className="lp-hiw-stars" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '6px', marginTop: isTablet ? '32px' : '24px' }}>
