@@ -191,7 +191,7 @@ export default function LandingPage() {
         </div>
 
         {/* Steps, stars, pricing — in normal flow on cream background */}
-        <div style={{ backgroundColor: '#fefef5', textAlign: 'center', padding: isTablet ? '32px 44px 0' : '20px 16px 0' }}>
+        <div style={{ backgroundColor: '#fefef5', textAlign: 'center', padding: isTablet ? '32px 44px 56px' : '20px 16px 40px' }}>
           <div style={{ display: 'flex', gap: '16px', marginTop: '0', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center', flex: 1, border: '1.5px solid rgba(26,39,68,0.2)', borderRadius: '12px', padding: isTablet ? '16px 12px' : '16px 6px' }}>
               <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.6rem' : '1.42rem', fontWeight: 700, margin: '0 0 8px', lineHeight: 1.1, whiteSpace: 'nowrap' }}>A Little Curious</p>
