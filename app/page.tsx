@@ -413,7 +413,7 @@ export default function LandingPage() {
         </div>
 
         <div style={{ textAlign: 'center', marginTop: isTablet ? '32px' : '24px', transform: 'scale(1.15)', transformOrigin: 'center' }}>
-          <CheckAreaButton onClick={goCheck} />
+          <CheckAreaButton onClick={goCheck} label="Join now" />
         </div>
 
         <div style={{ textAlign: 'center', padding: isTablet ? '60px 24px 8px' : '10px 24px 8px' }}>
