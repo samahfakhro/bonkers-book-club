@@ -182,7 +182,7 @@ export default function LandingPage() {
       {/* ── HOW IT WORKS ── */}
       <section className="lp-hiw-section" style={{ position: 'relative', zIndex: isTablet ? 5 : 15 }}>
         {/* Top decorative image — sits over hero with no cream behind it */}
-        <img src="/whaledivider.png" alt="" style={{ width: '100%', display: 'block', height: 'auto' }} />
+        <img src="/whaledivider.png" alt="" style={{ width: '100%', display: 'block', height: 'auto', backgroundColor: '#fefef5' }} />
 
         {/* Cream starts here, after mainimage2a */}
         <div style={{ backgroundColor: '#fefef5' }}>
