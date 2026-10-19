@@ -213,7 +213,7 @@ export default function LandingPage() {
               { star: '/sparklestar_yellow.png', label: 'Cancel anytime' },
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <img src={item.star} alt="" style={{ height: isTablet ? '48px' : '26px', width: 'auto' }} />
+                <img src={item.star} alt="" style={{ height: isTablet ? '32px' : '26px', width: 'auto' }} />
                 <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#1a2744', fontSize: isTablet ? '0.8rem' : '1rem', letterSpacing: '0.04em' }}>{item.label}</span>
               </div>
             ))}
