@@ -211,7 +211,7 @@ export default function LandingPage() {
           <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.72rem', fontStyle: 'italic', opacity: 0.6, margin: '10px 0 0', textAlign: 'center' }}>*Based on getting new books every week</p>
           <div className="lp-hiw-stars" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '6px 18px', marginTop: isTablet ? '32px' : '24px' }}>
             {[
-              { star: '/sparklestar_yellow.png', label: 'Weekly delivery' },
+              { star: '/sparklestar_yellow.png', label: 'Weekly delivery / collection' },
               { star: '/sparklestar_yellow.png', label: 'No due dates' },
               { star: '/sparklestar_yellow.png', label: 'Cancel anytime' },
             ].map((item, i) => (
