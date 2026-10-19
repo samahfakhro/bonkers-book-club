@@ -154,7 +154,7 @@ export default function LandingPage() {
                 <span style={{ fontSize: 'min(2.6rem, 6.6vw)', display: 'block' }}>Brilliant children’s books delivered to your <span style={{ display: 'inline-block', position: 'relative' }}>door<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-11px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
               </h1>
               <div style={{ position: 'relative', width: '100%' }}>
-                <p style={{ color: '#1a2f51', fontSize: '1.1rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '8px', position: 'relative', zIndex: 1, textAlign: 'center', width: '100%' }}>
+                <p style={{ color: '#1a2f51', fontSize: '0.95rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '8px', position: 'relative', zIndex: 1, textAlign: 'center', width: '100%' }}>
                   Curated by kids. Approved by parents.<br />No commitment. No late fees.
                 </p>
                 <img src="/penguin_sneak1.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-240px', height: '240px', width: 'auto', zIndex: -1 }} />
@@ -167,7 +167,7 @@ export default function LandingPage() {
                 <span style={{ fontSize: 'clamp(1.6rem, 7.6vw, 3rem)', display: 'block' }}>Brilliant children’s books delivered to your <span style={{ display: 'inline-block', position: 'relative' }}>door<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-11px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
               </h1>
               <div style={{ position: 'relative' }}>
-                <p style={{ color: '#1a2f51', fontSize: '0.92rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '0', marginLeft: 'auto', marginRight: 'auto', maxWidth: '320px', position: 'relative', zIndex: 2, textAlign: 'center' }}>
+                <p style={{ color: '#1a2f51', fontSize: '0.8rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '0', marginLeft: 'auto', marginRight: 'auto', maxWidth: '320px', position: 'relative', zIndex: 2, textAlign: 'center' }}>
                   Curated by kids. Approved by parents.<br />No commitment. No late fees.
                 </p>
                 <div style={{ marginTop: '16px', position: 'relative', zIndex: 20 }}><CheckAreaButton onClick={goCheck} label="Join" /></div>
