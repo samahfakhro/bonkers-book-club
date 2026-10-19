@@ -460,7 +460,7 @@ export default function LandingPage() {
           <div style={{ position: 'absolute', top: isTablet ? '76px' : '58px', left: 0, right: 0, textAlign: 'center', padding: isTablet ? '0 44px' : '0 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <img src="/whiskers_left.png" alt="" style={{ height: isTablet ? '40px' : '28px', width: 'auto', pointerEvents: 'none' }} />
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#eddbc3', fontSize: isTablet ? '1.2rem' : '0.9rem', letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0, lineHeight: 1 }}>The Curious World</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#eddbc3', fontSize: '1.05rem', letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0, lineHeight: 1 }}>The Curious World</p>
               <img src="/whiskers_right.png" alt="" style={{ height: isTablet ? '40px' : '28px', width: 'auto', pointerEvents: 'none' }} />
             </div>
             <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: isTablet ? 'clamp(2.6rem, 5vw, 3.6rem)' : 'clamp(1.8rem, 7vw, 2.4rem)', fontWeight: 600, lineHeight: 1.2, margin: 0, width: '100%' }}>
