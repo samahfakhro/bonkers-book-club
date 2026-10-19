@@ -154,6 +154,7 @@ export default function LandingPage() {
                 <span style={{ fontSize: 'min(2.9rem, 7.4vw)', display: 'block', whiteSpace: 'nowrap' }}>Brilliant kids’ books.</span>
                 <span style={{ fontSize: 'min(2.25rem, 5.7vw)', display: 'block', marginTop: '8px' }}>Delivered to your <span style={{ display: 'inline-block', position: 'relative' }}>door<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-11px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
               </h1>
+              <ThreeColumns isTablet={isTablet} />
               <div style={{ position: 'relative', width: '100%' }}>
                 <p style={{ color: '#1a2f51', fontSize: '1.1rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '8px', position: 'relative', zIndex: 1, textAlign: 'center', width: '100%' }}>
                   Curated by kids. Approved by parents.<br />No commitment. No late fees.
@@ -168,6 +169,7 @@ export default function LandingPage() {
                 <span style={{ fontSize: 'clamp(1.7rem, 8.5vw, 3.4rem)', display: 'block', whiteSpace: 'nowrap' }}>Brilliant kids’ books.</span>
                 <span style={{ fontSize: 'clamp(1.4rem, 6.5vw, 2.6rem)', display: 'block' }}>Delivered to your <span style={{ display: 'inline-block', position: 'relative' }}>door<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-11px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
               </h1>
+              <ThreeColumns isTablet={isTablet} />
               <div style={{ position: 'relative' }}>
                 <p style={{ color: '#1a2f51', fontSize: '0.92rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '0', marginLeft: 'auto', marginRight: 'auto', maxWidth: '320px', position: 'relative', zIndex: 2, textAlign: 'center' }}>
                   Curated by kids. Approved by parents.<br />No commitment. No late fees.
@@ -596,6 +598,28 @@ export default function LandingPage() {
         div::-webkit-scrollbar { display: none; }
       `}</style>
     </main>
+  )
+}
+
+// Three columns under the heading: picture + short line each, separated by thin vertical lines
+function ThreeColumns({ isTablet }: { isTablet: boolean }) {
+  const cols = [
+    { img: '/Book_Stack.png', alt: 'Books', text: <>Brilliant books.<br />No boring allowed.</> },
+    { img: '/van.png', alt: 'Delivery van', text: <>We do the running.</> },
+    { img: '/magic_book.png', alt: 'Magic book', text: <>Fresh stories<br />whenever you’re ready.</> },
+  ]
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'stretch', width: '100%', maxWidth: isTablet ? '560px' : '360px', margin: isTablet ? '22px auto 26px' : '16px auto 20px' }}>
+      {cols.map((c, i) => (
+        <div key={c.alt} style={{ display: 'flex', alignItems: 'stretch', flex: 1 }}>
+          {i > 0 && <img src="/divider_vertical.png" alt="" style={{ height: isTablet ? '80px' : '60px', width: 'auto', alignSelf: 'flex-start', margin: '0 4px', filter: 'brightness(0.35)' }} />}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <img src={c.img} alt={c.alt} style={{ height: isTablet ? '70px' : '50px', width: 'auto' }} />
+            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '1rem' : '0.82rem', lineHeight: 1.2, letterSpacing: '0.03em', margin: 0, textAlign: 'center' }}>{c.text}</p>
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 
