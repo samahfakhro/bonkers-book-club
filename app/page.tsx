@@ -141,7 +141,7 @@ export default function LandingPage() {
       </div>
 
       {/* ── 1. HERO ── */}
-      <section className="lp-hero-section" style={{ position: 'relative', marginTop: isTablet ? '-70px' : '-36px', zIndex: 20, backgroundColor: '#fefef5' }}>
+      <section className="lp-hero-section" style={{ position: 'relative', marginTop: isTablet ? '-90px' : '-36px', zIndex: 20, backgroundColor: '#fefef5' }}>
 
         {/* Full-width hero image — text flows naturally below it */}
         <img src="/The%20Curious%20Library%20Adventure(1).png" alt="The Curious Library" style={{ width: '100%', display: 'block', height: 'auto' }} />
