@@ -155,13 +155,13 @@ export default function LandingPage() {
                 <span style={{ fontSize: 'min(2.25rem, 5.7vw)', display: 'block', marginTop: '8px' }}>Delivered to your <span style={{ display: 'inline-block', position: 'relative' }}>door<img src="/underline_yellow.png" alt="" style={{ position: 'absolute', bottom: '-11px', left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} /></span>.</span>
               </h1>
               <ThreeColumns isTablet={isTablet} />
+              <div style={{ marginTop: '28px', transform: 'scale(1.4)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} label="Join" /></div>
               <div style={{ position: 'relative', width: '100%' }}>
-                <p style={{ color: '#1a2f51', fontSize: '1.1rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '8px', position: 'relative', zIndex: 1, textAlign: 'center', width: '100%' }}>
+                <p style={{ color: '#1a2f51', fontSize: '1.1rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '0', marginTop: '36px', position: 'relative', zIndex: 1, textAlign: 'center', width: '100%' }}>
                   Curated by kids. Approved by parents.<br />No commitment. No late fees.
                 </p>
-                <img src="/penguin_sneak1.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-240px', height: '240px', width: 'auto', zIndex: -1 }} />
+                <img src="/penguin_sneak1.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-230px', height: '240px', width: 'auto', zIndex: -1 }} />
               </div>
-              <div style={{ marginTop: '56px', transform: 'scale(1.4)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} label="Join" /></div>
             </>
           ) : (
             <>
@@ -171,10 +171,10 @@ export default function LandingPage() {
               </h1>
               <ThreeColumns isTablet={isTablet} />
               <div style={{ position: 'relative' }}>
-                <p style={{ color: '#1a2f51', fontSize: '0.92rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '0', marginLeft: 'auto', marginRight: 'auto', maxWidth: '320px', position: 'relative', zIndex: 2, textAlign: 'center' }}>
+                <div style={{ marginTop: '8px', position: 'relative', zIndex: 20 }}><CheckAreaButton onClick={goCheck} label="Join" /></div>
+                <p style={{ color: '#1a2f51', fontSize: '0.92rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '24px', marginTop: '20px', marginLeft: 'auto', marginRight: 'auto', maxWidth: '320px', position: 'relative', zIndex: 2, textAlign: 'center' }}>
                   Curated by kids. Approved by parents.<br />No commitment. No late fees.
                 </p>
-                <div style={{ marginTop: '16px', position: 'relative', zIndex: 20 }}><CheckAreaButton onClick={goCheck} label="Join" /></div>
                 <img src="/penguin_sneak1.png" alt="" style={{ position: 'absolute', right: '-20px', bottom: '-28px', height: '110px', width: 'auto', zIndex: 1, pointerEvents: 'none' }} />
               </div>
             </>
@@ -612,10 +612,10 @@ function ThreeColumns({ isTablet }: { isTablet: boolean }) {
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'stretch', width: '100%', maxWidth: isTablet ? '560px' : '360px', margin: isTablet ? '22px auto 26px' : '16px auto 20px' }}>
       {cols.map((c, i) => (
         <div key={c.alt} style={{ display: 'flex', alignItems: 'stretch', flex: 1 }}>
-          {i > 0 && <img src="/divider_vertical.png" alt="" style={{ height: isTablet ? '80px' : '60px', width: 'auto', alignSelf: 'flex-start', margin: '0 4px', filter: 'brightness(0.35)' }} />}
+          {i > 0 && <img src="/divider_vertical.png" alt="" style={{ height: isTablet ? '100px' : '60px', width: 'auto', alignSelf: 'flex-start', margin: '0 4px', filter: 'brightness(0.35)' }} />}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-            <img src={c.img} alt={c.alt} style={{ height: isTablet ? '70px' : '50px', width: 'auto' }} />
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '1rem' : '0.82rem', lineHeight: 1.2, letterSpacing: '0.03em', margin: 0, textAlign: 'center' }}>{c.text}</p>
+            <img src={c.img} alt={c.alt} style={{ height: isTablet ? '90px' : '50px', width: 'auto' }} />
+            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '21px' : '13px', lineHeight: 1.25, letterSpacing: '0.03em', margin: 0, textAlign: 'center' }}>{c.text}</p>
           </div>
         </div>
       ))}
