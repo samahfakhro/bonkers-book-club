@@ -295,7 +295,7 @@ export default function LandingPage() {
 
           {/* Reading level selector — artwork cards */}
           <div style={{ marginBottom: '36px', marginTop: isTablet ? '80px' : '0' }}>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.74rem' : '0.75rem', fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase', marginBottom: '12px', textAlign: 'left' }}>Browse by Age</p>
+            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.8rem' : '0.75rem', fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase', marginBottom: '12px', textAlign: 'left' }}>Browse by Age</p>
             <div style={{ display: 'flex', flexDirection: 'row', gap: isTablet ? '10px' : '6px', marginLeft: isTablet ? '0' : '-8px', marginRight: isTablet ? '0' : '-8px' }}>
               {readingLevels.map(level => {
                 const key = level.name.toLowerCase()
@@ -324,7 +324,7 @@ export default function LandingPage() {
           {/* Category blob filter */}
           {categories.length > 0 && (
             <div style={{ marginBottom: '16px', marginTop: isTablet ? '80px' : '0' }}>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.74rem' : '0.75rem', fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase', marginBottom: '10px', textAlign: 'left' }}>Browse by Category</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.8rem' : '0.75rem', fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase', marginBottom: '10px', textAlign: 'left' }}>Browse by Category</p>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', flexWrap: isTablet ? 'nowrap' : 'wrap', overflowX: isTablet ? 'auto' : 'visible', padding: isTablet ? '4px 44px' : '4px 2px', margin: isTablet ? '0 -44px' : '0', WebkitOverflowScrolling: 'touch' as any }}>
                 {(() => {
                   const visible = categories.filter(c => getCategoryBlob(c.name))
