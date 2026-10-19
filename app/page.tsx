@@ -182,20 +182,20 @@ export default function LandingPage() {
       {/* ── HOW IT WORKS ── */}
       <section className="lp-hiw-section" style={{ position: 'relative', zIndex: isTablet ? 5 : 15 }}>
         {/* Top decorative image — sits over hero with no cream behind it */}
-        <img src="/mainimage2a.png" alt="" style={{ width: '100%', display: 'block', height: 'auto' }} />
+        <img src="/whaledivider.png" alt="" style={{ width: '100%', display: 'block', height: 'auto' }} />
 
         {/* Cream starts here, after mainimage2a */}
-        <div style={{ backgroundColor: '#faf2e4' }}>
+        <div style={{ backgroundColor: '#fefef5' }}>
 
         {/* How It Works label + heading — in normal flow on cream background */}
-        <div className="lp-hiw-content" style={{ backgroundColor: '#faf2e4', textAlign: 'center', padding: isTablet ? '0px 44px 24px' : '0px 24px 16px' }}>
+        <div className="lp-hiw-content" style={{ backgroundColor: '#fefef5', textAlign: 'center', padding: isTablet ? '0px 44px 24px' : '0px 24px 16px' }}>
           <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? 'clamp(2.4rem, 6vw, 3.4rem)' : '1.6rem', fontWeight: 800, lineHeight: 1.1, margin: 0, textAlign: 'center' }}>
             How It Works
           </h2>
         </div>
 
         {/* Steps, stars, pricing — in normal flow on cream background */}
-        <div style={{ backgroundColor: '#faf2e4', textAlign: 'center', padding: isTablet ? '32px 44px 0' : '20px 16px 0' }}>
+        <div style={{ backgroundColor: '#fefef5', textAlign: 'center', padding: isTablet ? '32px 44px 0' : '20px 16px 0' }}>
           <div className="lp-hiw-stars" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '6px', marginTop: isTablet ? '32px' : '24px' }}>
             {[
               { star: '/sparklestar_yellow.png', label: 'Weekly delivery' },
