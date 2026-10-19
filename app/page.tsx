@@ -160,7 +160,7 @@ export default function LandingPage() {
                   <img src="/sparklestar_yellow.png" alt="" style={{ display: 'inline-block', height: '1.25em', width: 'auto', verticalAlign: '-0.25em', marginRight: '5px' }} />No late fees<span style={{ display: 'inline-block', width: '16px' }} /><img src="/sparklestar_yellow.png" alt="" style={{ display: 'inline-block', height: '1.25em', width: 'auto', verticalAlign: '-0.25em', marginRight: '5px' }} />Cancel anytime
                 </p>
               </div>
-              <div style={{ marginTop: '56px', transform: 'scale(1.2)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} label="Join" /></div>
+              <div style={{ marginTop: '56px', transform: 'scale(1.2)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} label="Join now" /></div>
             </>
           ) : (
             <>
@@ -173,7 +173,7 @@ export default function LandingPage() {
                 <p style={{ color: '#1a2f51', fontSize: '0.8rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '0', marginLeft: 'auto', marginRight: 'auto', maxWidth: '320px', position: 'relative', zIndex: 2, textAlign: 'center' }}>
                   <img src="/sparklestar_yellow.png" alt="" style={{ display: 'inline-block', height: '1.25em', width: 'auto', verticalAlign: '-0.25em', marginRight: '5px' }} />No late fees<span style={{ display: 'inline-block', width: '16px' }} /><img src="/sparklestar_yellow.png" alt="" style={{ display: 'inline-block', height: '1.25em', width: 'auto', verticalAlign: '-0.25em', marginRight: '5px' }} />Cancel anytime
                 </p>
-                <div style={{ marginTop: '16px', position: 'relative', zIndex: 20 }}><CheckAreaButton onClick={goCheck} label="Join" /></div>
+                <div style={{ marginTop: '16px', position: 'relative', zIndex: 20 }}><CheckAreaButton onClick={goCheck} label="Join now" /></div>
               </div>
             </>
           )}
