@@ -192,7 +192,7 @@ export default function LandingPage() {
         {/* How It Works label + heading — in normal flow on cream background */}
         <div className="lp-hiw-content" style={{ backgroundColor: '#fefef5', textAlign: 'center', padding: isTablet ? '0px 44px 24px' : '0px 24px 16px' }}>
           <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? 'clamp(2.9rem, 7vw, 4rem)' : '2.4rem', fontWeight: 800, lineHeight: 1.1, margin: 0, textAlign: 'center' }}>
-            Membership Plans
+            Plans
           </h2>
         </div>
 
