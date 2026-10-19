@@ -394,10 +394,6 @@ export default function LandingPage() {
 
         {/* Bookshelf with scrollable covers behind transparent windows */}
         <div style={{ position: 'relative', width: '100%', marginTop: '90px' }}>
-          {/* Walking book peeking from left */}
-          <img src="/book_walking_left.png" alt="" style={{ position: 'absolute', left: isTablet ? '-36px' : '-16px', bottom: '26%', height: '28%', width: 'auto', zIndex: 4, pointerEvents: 'none' }} />
-          {/* Penguin on right side of shelf */}
-          <img src="/penguin_bookshelf.png" alt="" style={{ position: 'absolute', right: '-10px', bottom: '22%', height: '35%', width: 'auto', zIndex: 4, pointerEvents: 'none' }} />
           {/* Scrollable book strip — sits behind the PNG overlay */}
           <div style={{ position: 'absolute', top: '3%', left: 0, right: 0, height: '67%', display: 'flex', gap: '2%', overflowX: 'auto', scrollbarWidth: 'none', paddingLeft: '8%', paddingRight: '8%', zIndex: 3, boxSizing: 'border-box', alignItems: 'flex-end' }}>
             {books.map(book => (
