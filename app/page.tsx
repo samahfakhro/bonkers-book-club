@@ -455,18 +455,18 @@ export default function LandingPage() {
       )}
 
       {/* ── 4. WHY BONKERS ── */}
-      <section style={{ padding: isTablet ? '1280px 44px 0' : '560px 16px 0', backgroundImage: 'url(/whybonkerspage.png)', backgroundSize: '100% auto', backgroundPosition: isTablet ? 'center 380px' : 'center 200px', backgroundRepeat: 'no-repeat', position: 'relative', zIndex: 5 }}>
+      <section style={{ padding: isTablet ? '1280px 44px 0' : '560px 16px 0', backgroundImage: `url(/whybonkerspage.png), linear-gradient(#fefef5, #fefef5)`, backgroundSize: `100% auto, 100% ${isTablet ? 400 : 220}px`, backgroundPosition: isTablet ? 'center 380px, top' : 'center 200px, top', backgroundRepeat: 'no-repeat', position: 'relative', zIndex: 5 }}>
           <img src="/whybonkersbooks.png" alt="" className="lp-books-img" style={{ position: 'absolute', right: '0', bottom: '40px', height: '18%', width: 'auto', pointerEvents: 'none', zIndex: 1 }} />
           <div style={{ position: 'absolute', top: isTablet ? '76px' : '58px', left: 0, right: 0, textAlign: 'center', padding: isTablet ? '0 44px' : '0 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <img src="/whiskers_left.png" alt="" style={{ height: isTablet ? '40px' : '28px', width: 'auto', pointerEvents: 'none' }} />
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#eddbc3', fontSize: '1.05rem', letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0, lineHeight: 1 }}>The Curious World</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#1a2f51', fontSize: '1.05rem', letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0, lineHeight: 1 }}>The Curious World</p>
               <img src="/whiskers_right.png" alt="" style={{ height: isTablet ? '40px' : '28px', width: 'auto', pointerEvents: 'none' }} />
             </div>
-            <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: isTablet ? 'clamp(2.6rem, 5vw, 3.6rem)' : 'clamp(1.8rem, 7vw, 2.4rem)', fontWeight: 600, lineHeight: 1.2, margin: 0, width: '100%' }}>
+            <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: isTablet ? 'clamp(2.6rem, 5vw, 3.6rem)' : 'clamp(1.8rem, 7vw, 2.4rem)', fontWeight: 600, lineHeight: 1.2, margin: 0, width: '100%' }}>
               Every reader gets a world of their own.
             </h2>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: isTablet ? '0.95rem' : '0.82rem', lineHeight: 1.6, margin: 0, opacity: 0.85, maxWidth: '720px', width: '100%' }}>
+            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.95rem' : '0.82rem', lineHeight: 1.6, margin: 0, opacity: 0.85, maxWidth: '720px', width: '100%' }}>
               Every book they read unlocks something new. The more they read, the more their world grows.
             </p>
           </div>
