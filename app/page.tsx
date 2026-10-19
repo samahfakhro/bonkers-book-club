@@ -289,8 +289,8 @@ export default function LandingPage() {
               What's on our shelves?
             </h2>
           </div>
-          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '1.1rem' : '1.05rem', lineHeight: 1.6, marginBottom: '24px', marginTop: isTablet ? '24px' : '0' }}>
-            Every book in Bonkers is handpicked. Popular favourites, hidden gems and wonderfully weird discoveries, organised so kids can find something they genuinely want to read.
+          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.9rem' : '1.05rem', lineHeight: 1.6, marginBottom: '24px', marginTop: isTablet ? '24px' : '0' }}>
+            Every book in The Curious Library is handpicked. Popular favourites, hidden gems and wonderfully weird discoveries, organised so kids can find something they genuinely want to read.
           </p>
 
           {/* Reading level selector — artwork cards */}
