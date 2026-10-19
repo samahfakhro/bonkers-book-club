@@ -583,7 +583,7 @@ function ThreeColumns({ isTablet }: { isTablet: boolean }) {
   const cols = [
     { img: '/Book_Stack.png', alt: 'Books', text: <>You choose<br />the books</> },
     { img: '/van.png', alt: 'Delivery van', text: <>We deliver &amp;<br />collect weekly</> },
-    { img: '/magic_book.png', alt: 'Magic book', text: <>Fresh stories<br />whenever you’re ready</> },
+    { img: '/magic_book1.png', alt: 'Magic book', text: <>Fresh stories<br />whenever you’re ready</> },
   ]
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'stretch', width: '100%', maxWidth: isTablet ? '560px' : '360px', margin: isTablet ? '40px auto 26px' : '30px auto 20px' }}>
