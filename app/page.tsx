@@ -456,7 +456,7 @@ export default function LandingPage() {
       )}
 
       {/* ── 4. WHY BONKERS ── */}
-      <section style={{ padding: isTablet ? '1330px 44px 0' : '670px 16px 0', backgroundImage: 'url(/curiousworld.png)', backgroundSize: '100% auto', backgroundPosition: isTablet ? 'center 430px' : 'center 260px', backgroundRepeat: 'no-repeat', backgroundColor: '#fefef5', position: 'relative', zIndex: 5 }}>
+      <section style={{ padding: isTablet ? '1250px 44px 0' : '610px 16px 0', backgroundImage: 'url(/curiousworld.png)', backgroundSize: '100% auto', backgroundPosition: isTablet ? 'center 430px' : 'center 260px', backgroundRepeat: 'no-repeat', backgroundColor: '#fefef5', position: 'relative', zIndex: 5 }}>
           <img src="/whybonkersbooks.png" alt="" className="lp-books-img" style={{ position: 'absolute', right: '0', bottom: '40px', height: '18%', width: 'auto', pointerEvents: 'none', zIndex: 1 }} />
           <div style={{ position: 'absolute', top: isTablet ? '76px' : '58px', left: 0, right: 0, textAlign: 'center', padding: isTablet ? '0 44px' : '0 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
