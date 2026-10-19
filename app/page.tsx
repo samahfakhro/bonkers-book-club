@@ -41,7 +41,7 @@ const GUEST_MESSAGES = [
 const FAQS = [
   { q: 'How often can we get new books?', a: 'As often as every week. Just open the app, choose your new books and let us know which ones you\'re returning. You can keep any you\'re still reading for as long as you like. On your community\'s next Bonkers Day, we\'ll collect the books you\'re returning and deliver your new ones.' },
   { q: 'What if we lose or damage a book?', a: 'We understand — kids and books can be a messy combination. Minor wear is totally fine. For lost or heavily damaged books, we may charge a replacement fee.' },
-  { q: 'Can siblings share a membership?', a: 'Absolutely — that\'s how most families use Bonkers. You can set up a profile for each child and allocate books across them based on your plan.' },
+  { q: 'Can siblings share a membership?', a: 'Absolutely — that\'s how most families use The Curious Library. You can set up a profile for each child and allocate books across them based on your plan.' },
   { q: 'Which areas do you deliver to?', a: 'We deliver across Dubai. If you\'re not sure whether we reach your doorstep, just sign up and we\'ll confirm your delivery details when you join.' },
   { q: 'Can I cancel anytime?', a: 'Yes, no questions asked. You can pause, change your plan, or cancel at any time from your account. If you cancel, books should be returned within 14 days.' },
 ]
@@ -426,7 +426,7 @@ export default function LandingPage() {
               <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', left: '-32px', height: '44px', width: 'auto', pointerEvents: 'none', zIndex: 1, filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
               <button onClick={goCheck}
                 style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', backgroundImage: 'url(/button2.png)', backgroundSize: '300% 300%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: 'transparent', border: 'none', borderRadius: '999px', padding: '12px 28px', cursor: 'pointer' }}>
-                Join Bonkers
+                Join The Curious Library
               </button>
               <img src="/whiskers_right.png" alt="" style={{ position: 'absolute', right: '-32px', height: '44px', width: 'auto', pointerEvents: 'none', zIndex: 1, filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
             </div>
@@ -444,8 +444,8 @@ export default function LandingPage() {
             </p>
             <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#4a3728', fontSize: '0.88rem', lineHeight: 1.5, marginBottom: '24px' }}>
               {guestPopup.type === 'wishlist'
-                ? 'Join Bonkers to save this book to your wishlist.'
-                : 'Join Bonkers to add this book to your next delivery.'}
+                ? 'Join The Curious Library to save this book to your wishlist.'
+                : 'Join The Curious Library to add this book to your next delivery.'}
             </p>
             <button onClick={goCheck}
               style={{ backgroundImage: 'url(/button2.png)', backgroundSize: '300% 300%', backgroundPosition: 'center', border: 'none', borderRadius: '999px', color: '#fff', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.85rem', letterSpacing: '0.15em', textTransform: 'uppercase', padding: '14px 36px', cursor: 'pointer', width: '100%' }}>
@@ -464,7 +464,7 @@ export default function LandingPage() {
           <div style={{ position: 'absolute', top: isTablet ? '76px' : '58px', left: 0, right: 0, textAlign: 'center', padding: isTablet ? '0 44px' : '0 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <img src="/whiskers_left.png" alt="" style={{ height: isTablet ? '40px' : '28px', width: 'auto', pointerEvents: 'none' }} />
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#eddbc3', fontSize: isTablet ? '1.2rem' : '0.9rem', letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0, lineHeight: 1 }}>Bonkers World</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#eddbc3', fontSize: isTablet ? '1.2rem' : '0.9rem', letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0, lineHeight: 1 }}>The Curious Library World</p>
               <img src="/whiskers_right.png" alt="" style={{ height: isTablet ? '40px' : '28px', width: 'auto', pointerEvents: 'none' }} />
             </div>
             <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: isTablet ? 'clamp(2.6rem, 5vw, 3.6rem)' : 'clamp(1.8rem, 7vw, 2.4rem)', fontWeight: 600, lineHeight: 1.2, margin: 0, width: '100%' }}>
@@ -478,7 +478,7 @@ export default function LandingPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px', marginTop: isTablet ? '100px' : '40px' }}>
             <img src="/whiskers_left.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
             <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '1.05rem', fontWeight: 400, letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0 }}>
-              Why Bonkers?
+              Why The Curious Library?
             </p>
             <img src="/whiskers_right.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
           </div>
@@ -488,10 +488,10 @@ export default function LandingPage() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', marginTop: isTablet ? '48px' : '0' }}>
             {[
-              { title: 'Nine billion books. Good luck.', desc: 'There are approximately nine billion children\'s books to choose from.* You have twenty minutes in the bookshop, and one increasingly bored child. Let Bonkers do the digging for you. Every Bonkers book is handpicked, read and judged by actual kids, with the boring ones shown the door.\n* Possibly an exaggeration.' },
-              { title: 'The AED 50+ Gamble', desc: 'They begged for it. They read six pages. They never touched it again. Joining Bonkers means kids can experiment with new books and genres without every experiment costing AED 50+.' },
-              { title: 'Your bookshelf called. It\'s full.', desc: 'Books are wonderful. Four hundred books your children have outgrown are... storage. Joining Bonkers means they can keep the books they can\'t part with as long as they like, and exchange the rest for fresh new stories.' },
-              { title: '"Muuuum, can I get this?"', desc: 'No dragging everyone around a bookshop and mysteriously leaving with 7 squishies and a slime kit. Independent readers can choose their own Bonkers books and even arrange their own delivery and collection.' },
+              { title: 'Nine billion books. Good luck.', desc: 'There are approximately nine billion children\'s books to choose from.* You have twenty minutes in the bookshop, and one increasingly bored child. Let The Curious Library do the digging for you. Every book in The Curious Library is handpicked, read and judged by actual kids, with the boring ones shown the door.\n* Possibly an exaggeration.' },
+              { title: 'The AED 50+ Gamble', desc: 'They begged for it. They read six pages. They never touched it again. Joining The Curious Library means kids can experiment with new books and genres without every experiment costing AED 50+.' },
+              { title: 'Your bookshelf called. It\'s full.', desc: 'Books are wonderful. Four hundred books your children have outgrown are... storage. Joining The Curious Library means they can keep the books they can\'t part with as long as they like, and exchange the rest for fresh new stories.' },
+              { title: '"Muuuum, can I get this?"', desc: 'No dragging everyone around a bookshop and mysteriously leaving with 7 squishies and a slime kit. Independent readers can choose their own books and even arrange their own delivery and collection.' },
             ].map((reason, i) => (
               <div key={i} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
                 <img src="/star_button_on.png" alt="" style={{ width: isTablet ? '26px' : '18px', height: isTablet ? '26px' : '18px', flexShrink: 0, marginTop: isTablet ? '22px' : '10px' }} />
@@ -552,7 +552,7 @@ export default function LandingPage() {
         <section style={{ padding: isTablet ? '0 24px 200px' : '0 24px 100px', textAlign: 'center', position: 'relative', zIndex: 2, marginTop: isTablet ? '-280px' : '-180px' }}>
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
             <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: 'clamp(2rem, 7vw, 2.8rem)', fontWeight: 700, lineHeight: 1.05, marginBottom: '28px', whiteSpace: 'nowrap' }}>
-              Ready to go Bonkers?
+              Ready to get curious?
             </h2>
             <CheckAreaButton onClick={goCheck} />
           </div>
@@ -560,7 +560,7 @@ export default function LandingPage() {
 
         <footer style={{ backgroundColor: '#1a2744', padding: '20px 24px', textAlign: 'center', position: 'relative', zIndex: 2 }}>
           <p style={{ color: '#eddbc3', opacity: 0.45, fontSize: '0.75rem', letterSpacing: '0.06em', margin: 0 }}>
-            © {new Date().getFullYear()} Bonkers The Children's Library · Dubai · hello@bonkers.ae
+            © {new Date().getFullYear()} The Curious Library · Dubai · hello@bonkers.ae
           </p>
         </footer>
 
@@ -597,7 +597,7 @@ function ThreeColumns({ isTablet }: { isTablet: boolean }) {
   )
 }
 
-function CheckAreaButton({ onClick, label = 'Join Bonkers' }: { onClick: () => void; label?: string }) {
+function CheckAreaButton({ onClick, label = 'Join The Curious Library' }: { onClick: () => void; label?: string }) {
   const whiskerFilter = 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)'
   return (
     <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
