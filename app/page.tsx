@@ -189,13 +189,8 @@ export default function LandingPage() {
 
         {/* How It Works label + heading — in normal flow on cream background */}
         <div className="lp-hiw-content" style={{ backgroundColor: '#faf2e4', textAlign: 'center', padding: isTablet ? '0px 44px 24px' : '0px 24px 16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isTablet ? '16px' : '10px', marginBottom: '12px' }}>
-            <div style={{ width: isTablet ? '50px' : '32px', height: '2px', backgroundColor: '#8ba8b2', borderRadius: '1px' }} />
-            <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#8ba8b2', fontSize: isTablet ? '1.2rem' : '0.95rem', fontWeight: 600, whiteSpace: 'nowrap' }}>How It Works</span>
-            <div style={{ width: isTablet ? '50px' : '32px', height: '2px', backgroundColor: '#8ba8b2', borderRadius: '1px' }} />
-          </div>
-          <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? 'clamp(2.4rem, 6vw, 3.4rem)' : '1.6rem', fontWeight: 800, lineHeight: 1.1, margin: 0, textAlign: 'center', whiteSpace: isTablet ? 'normal' : 'nowrap' }}>
-            Borrow. Read. Return. Repeat.
+          <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? 'clamp(2.4rem, 6vw, 3.4rem)' : '1.6rem', fontWeight: 800, lineHeight: 1.1, margin: 0, textAlign: 'center' }}>
+            How It Works
           </h2>
         </div>
 
