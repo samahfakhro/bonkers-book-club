@@ -156,9 +156,6 @@ export default function LandingPage() {
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.8rem' : '0.96rem', lineHeight: 1.5, letterSpacing: '0.02em', margin: '-4px 0 0', textAlign: 'center' }}>Curated by kids. Approved by parents.</p>
               <ThreeColumns isTablet={isTablet} />
               <div style={{ position: 'relative', width: '100%' }}>
-                <p style={{ color: '#1a2f51', fontSize: '0.8rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '8px', position: 'relative', zIndex: 1, textAlign: 'center', width: '100%' }}>
-                  <img src="/sparklestar_yellow.png" alt="" style={{ display: 'inline-block', height: '1.25em', width: 'auto', verticalAlign: '-0.25em', marginRight: '5px' }} />No late fees<span style={{ display: 'inline-block', width: '16px' }} /><img src="/sparklestar_yellow.png" alt="" style={{ display: 'inline-block', height: '1.25em', width: 'auto', verticalAlign: '-0.25em', marginRight: '5px' }} />Cancel anytime
-                </p>
               </div>
               <div style={{ marginTop: '44px', transform: 'scale(1.2)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} label="Join now" /></div>
             </>
@@ -170,9 +167,6 @@ export default function LandingPage() {
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.8rem' : '0.96rem', lineHeight: 1.5, letterSpacing: '0.02em', margin: '-4px 0 0', textAlign: 'center' }}>Curated by kids. Approved by parents.</p>
               <ThreeColumns isTablet={isTablet} />
               <div style={{ position: 'relative' }}>
-                <p style={{ color: '#1a2f51', fontSize: '0.96rem', lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: '28px', marginTop: '0', marginLeft: 'auto', marginRight: 'auto', maxWidth: '320px', position: 'relative', zIndex: 2, textAlign: 'center' }}>
-                  <img src="/sparklestar_yellow.png" alt="" style={{ display: 'inline-block', height: '1.25em', width: 'auto', verticalAlign: '-0.25em', marginRight: '5px' }} />No late fees<span style={{ display: 'inline-block', width: '16px' }} /><img src="/sparklestar_yellow.png" alt="" style={{ display: 'inline-block', height: '1.25em', width: 'auto', verticalAlign: '-0.25em', marginRight: '5px' }} />Cancel anytime
-                </p>
                 <div style={{ marginTop: '16px', position: 'relative', zIndex: 20 }}><CheckAreaButton onClick={goCheck} label="Join now" /></div>
               </div>
             </>
@@ -215,8 +209,8 @@ export default function LandingPage() {
           <div className="lp-hiw-stars" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '6px', marginTop: isTablet ? '32px' : '24px' }}>
             {[
               { star: '/sparklestar_yellow.png', label: 'Weekly delivery' },
-              { star: '/sparklestar_turquoise.png', label: 'No late fees' },
-              { star: '/sparklestar_pink.png', label: 'Cancel anytime' },
+              { star: '/sparklestar_yellow.png', label: 'No late fees' },
+              { star: '/sparklestar_yellow.png', label: 'Cancel anytime' },
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <img src={item.star} alt="" style={{ height: isTablet ? '48px' : '26px', width: 'auto' }} />
