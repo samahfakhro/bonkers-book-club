@@ -456,7 +456,7 @@ export default function LandingPage() {
       )}
 
       {/* ── 4. WHY BONKERS ── */}
-      <section style={{ padding: isTablet ? '1280px 44px 0' : '560px 16px 0', backgroundImage: `url(/whybonkerspage.png), linear-gradient(#fefef5, #fefef5)`, backgroundSize: `100% auto, 100% ${isTablet ? 400 : 220}px`, backgroundPosition: isTablet ? 'center 380px, top' : 'center 200px, top', backgroundRepeat: 'no-repeat', position: 'relative', zIndex: 5 }}>
+      <section style={{ padding: isTablet ? '1330px 44px 0' : '670px 16px 0', backgroundImage: 'url(/curiousworld.png)', backgroundSize: '100% auto', backgroundPosition: isTablet ? 'center 430px' : 'center 260px', backgroundRepeat: 'no-repeat', backgroundColor: '#fefef5', position: 'relative', zIndex: 5 }}>
           <img src="/whybonkersbooks.png" alt="" className="lp-books-img" style={{ position: 'absolute', right: '0', bottom: '40px', height: '18%', width: 'auto', pointerEvents: 'none', zIndex: 1 }} />
           <div style={{ position: 'absolute', top: isTablet ? '76px' : '58px', left: 0, right: 0, textAlign: 'center', padding: isTablet ? '0 44px' : '0 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -474,12 +474,12 @@ export default function LandingPage() {
         <div style={{ maxWidth: isTablet ? '100%' : '480px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px', marginTop: isTablet ? '100px' : '40px' }}>
             <img src="/whiskers_left.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '1.05rem', fontWeight: 400, letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0 }}>
+            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '1.05rem', fontWeight: 400, letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0 }}>
               Why The Curious Library?
             </p>
             <img src="/whiskers_right.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
           </div>
-          <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: 'clamp(2.16rem, 7.2vw, 3.12rem)', fontWeight: 700, lineHeight: 1.1, marginBottom: '36px', marginTop: isTablet ? '48px' : '16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+          <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: 'clamp(2.16rem, 7.2vw, 3.12rem)', fontWeight: 700, lineHeight: 1.1, marginBottom: '36px', marginTop: isTablet ? '48px' : '16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
             The 'Great Book' Hunt
           </h2>
 
@@ -493,8 +493,8 @@ export default function LandingPage() {
               <div key={i} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
                 <img src="/star_button_on.png" alt="" style={{ width: isTablet ? '26px' : '18px', height: isTablet ? '26px' : '18px', flexShrink: 0, marginTop: isTablet ? '22px' : '10px' }} />
                 <div>
-                  <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.61rem', fontWeight: 700, marginBottom: '4px', whiteSpace: 'nowrap' }}>{reason.title}</p>
-                  <p style={{ color: '#eddbc3', fontSize: '1rem', lineHeight: 1.5, opacity: 0.9, whiteSpace: 'pre-line', margin: 0 }}>{reason.desc}</p>
+                  <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1.61rem', fontWeight: 700, marginBottom: '4px', whiteSpace: 'nowrap' }}>{reason.title}</p>
+                  <p style={{ color: '#1a2f51', fontSize: '1rem', lineHeight: 1.5, opacity: 0.9, whiteSpace: 'pre-line', margin: 0 }}>{reason.desc}</p>
                 </div>
               </div>
             ))}
