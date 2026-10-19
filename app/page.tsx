@@ -199,24 +199,8 @@ export default function LandingPage() {
           </h2>
         </div>
 
-        {/* Middle decorative image */}
-        <img src="/mainimage2b.png" alt="" style={{ width: '100%', display: 'block', height: 'auto' }} />
-
         {/* Steps, stars, pricing — in normal flow on cream background */}
         <div style={{ backgroundColor: '#faf2e4', textAlign: 'center', padding: isTablet ? '32px 44px 0' : '20px 16px 0' }}>
-          <div className="lp-hiw-steps" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: isTablet ? '24px' : '8px', textAlign: 'center' }}>
-            {[
-              { heading: 'Choose books', sub: 'from our curated library', subMobile: 'from our curated' },
-              { heading: 'We deliver', sub: "weekly on your Bonkers Day" },
-              { heading: 'Read', sub: 'and keep books as long as you like', subMobile: 'and keep as long as you like' },
-              { heading: 'Return', sub: "any books you've finished on your Bonkers Day", subMobile: 'books on your Bonkers Day' },
-            ].map(({ heading, sub, subMobile }, i) => (
-              <div key={i}>
-                <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.4rem' : '1.25rem', fontWeight: 600, lineHeight: isTablet ? 1.3 : 1.1, margin: '0 0 4px', whiteSpace: isTablet ? 'nowrap' : 'normal' }}>{heading}</p>
-                {sub && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.78rem', lineHeight: 1.4, margin: 0, marginTop: isTablet ? '0' : '-4px', opacity: 0.8 }}>{!isTablet && subMobile ? subMobile : sub}</p>}
-              </div>
-            ))}
-          </div>
           <div className="lp-hiw-stars" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '6px', marginTop: isTablet ? '32px' : '24px' }}>
             {[
               { star: '/sparklestar_yellow.png', label: 'Weekly delivery' },
