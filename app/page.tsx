@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import CuriousHero from '@/components/CuriousHero'
 import { supabase } from '@/lib/supabase'
 
 type Book = { id: string; title: string; author: string; cover_image_url: string | null }
@@ -144,7 +145,7 @@ export default function LandingPage() {
       <section className="lp-hero-section" style={{ position: 'relative', marginTop: isTablet ? '-70px' : '-36px', zIndex: 20, backgroundColor: '#fefef5' }}>
 
         {/* Full-width hero image — text flows naturally below it */}
-        <img src="/The%20Curious%20Library%20Adventure(1).png" alt="The Curious Library" style={{ width: '100%', display: 'block', height: 'auto' }} />
+        <CuriousHero />
 
         <div className="lp-hero-content" style={{ textAlign: 'center', width: '100%', position: 'relative', padding: isTablet ? '0 44px 60px' : '0 24px 40px' }}>
 
