@@ -198,6 +198,20 @@ export default function LandingPage() {
 
         {/* Steps, stars, pricing — in normal flow on cream background */}
         <div style={{ backgroundColor: '#fefef5', textAlign: 'center', padding: isTablet ? '32px 44px 0' : '20px 16px 0' }}>
+          <div style={{ display: 'flex', gap: '16px', marginTop: '0', justifyContent: 'center' }}>
+            <div style={{ textAlign: 'center', flex: 1, border: '1.5px solid rgba(26,39,68,0.2)', borderRadius: '12px', padding: '16px 12px' }}>
+              <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.6rem' : '1.3rem', fontWeight: 700, margin: '0 0 6px', lineHeight: 1.1 }}>A Little Curious</p>
+              <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2rem' : '1.5rem', fontWeight: 700 }}>AED 149</span>
+              <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '1rem', fontWeight: 400, marginLeft: '6px' }}>/ month</span>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, margin: '4px 0 0', opacity: 0.8 }}>4 books at home at a time</p>
+            </div>
+            <div style={{ textAlign: 'center', flex: 1, border: '1.5px solid rgba(26,39,68,0.2)', borderRadius: '12px', padding: '16px 12px' }}>
+              <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.6rem' : '1.3rem', fontWeight: 700, margin: '0 0 6px', lineHeight: 1.1 }}>Quite Curious</p>
+              <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2rem' : '1.5rem', fontWeight: 700 }}>AED 199</span>
+              <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '1rem', fontWeight: 400, marginLeft: '6px' }}>/ month</span>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, margin: '4px 0 0', opacity: 0.8 }}>6 books at home at a time</p>
+            </div>
+          </div>
           <div className="lp-hiw-stars" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '6px', marginTop: isTablet ? '32px' : '24px' }}>
             {[
               { star: '/sparklestar_yellow.png', label: 'Weekly delivery' },
@@ -211,19 +225,7 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: '16px', marginTop: '24px', justifyContent: 'center' }}>
-            <div style={{ textAlign: 'center', flex: 1, border: '1.5px solid rgba(26,39,68,0.2)', borderRadius: '12px', padding: '16px 12px' }}>
-              <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2rem' : '1.5rem', fontWeight: 700 }}>AED 149</span>
-              <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '1rem', fontWeight: 400, marginLeft: '6px' }}>/ month</span>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, margin: '4px 0 0', opacity: 0.8 }}>4 books at home at a time</p>
-            </div>
-            <div style={{ textAlign: 'center', flex: 1, border: '1.5px solid rgba(26,39,68,0.2)', borderRadius: '12px', padding: '16px 12px' }}>
-              <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2rem' : '1.5rem', fontWeight: 700 }}>AED 199</span>
-              <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '1rem', fontWeight: 400, marginLeft: '6px' }}>/ month</span>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, margin: '4px 0 0', opacity: 0.8 }}>6 books at home at a time</p>
-            </div>
-          </div>
-          <div style={{ marginTop: '36px', marginBottom: '0', transform: 'scale(1.15)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} /></div>
+          <div style={{ marginTop: '36px', marginBottom: '0', transform: 'scale(1.15)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} label="Join now" /></div>
         </div>
 
         {/* Bottom decorative image */}
