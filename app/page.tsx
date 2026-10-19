@@ -244,7 +244,7 @@ export default function LandingPage() {
             <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', top: '100px', left: '-360px', width: '40px', height: '40px', pointerEvents: 'none' }} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px', marginTop: isTablet ? '-70px' : '24px' }}>
             <img src="/whiskers_left.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, color: '#eddbc3', fontSize: '1.05rem', letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0, lineHeight: 1 }}>
+            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#eddbc3', fontSize: '1.05rem', letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0, lineHeight: 1 }}>
               Take a peek
             </p>
             <img src="/whiskers_right.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
@@ -466,7 +466,7 @@ export default function LandingPage() {
           <div style={{ position: 'absolute', top: isTablet ? '76px' : '58px', left: 0, right: 0, textAlign: 'center', padding: isTablet ? '0 44px' : '0 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <img src="/whiskers_left.png" alt="" style={{ height: isTablet ? '40px' : '28px', width: 'auto', pointerEvents: 'none' }} />
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, color: '#eddbc3', fontSize: isTablet ? '1.2rem' : '0.9rem', letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0, lineHeight: 1 }}>Bonkers World</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#eddbc3', fontSize: isTablet ? '1.2rem' : '0.9rem', letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0, lineHeight: 1 }}>Bonkers World</p>
               <img src="/whiskers_right.png" alt="" style={{ height: isTablet ? '40px' : '28px', width: 'auto', pointerEvents: 'none' }} />
             </div>
             <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: isTablet ? 'clamp(2.6rem, 5vw, 3.6rem)' : 'clamp(1.8rem, 7vw, 2.4rem)', fontWeight: 600, lineHeight: 1.2, margin: 0, width: '100%' }}>
@@ -479,7 +479,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: isTablet ? '100%' : '480px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px', marginTop: isTablet ? '100px' : '40px' }}>
             <img src="/whiskers_left.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '1.05rem', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0 }}>
+            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '1.05rem', fontWeight: 400, letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0 }}>
               Why Bonkers?
             </p>
             <img src="/whiskers_right.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
