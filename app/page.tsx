@@ -229,7 +229,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── 3. THE BOOKS ── */}
-      <section className="lp-books-section" style={{ backgroundColor: 'transparent', padding: 0, marginTop: isTablet ? '-30px' : '0' }}>
+      <section className="lp-books-section" style={{ backgroundColor: '#fefef5', padding: 0, marginTop: isTablet ? '-30px' : '0' }}>
         <img src="/whale_4.png" alt="" style={{ width: '100%', display: 'block', height: 'auto', marginTop: '-2px', position: 'relative', backgroundColor: '#fefef5', paddingTop: isTablet ? '40px' : '24px', boxSizing: 'content-box' }} />
         <div style={{ maxWidth: isTablet ? '100%' : '480px', margin: '0 auto', textAlign: 'center', padding: isTablet ? '0 44px' : '0 24px' }}>
 
@@ -242,9 +242,9 @@ export default function LandingPage() {
             <img src="/sparklestar_turquoise.png" alt="" style={{ position: 'absolute', top: '100px', right: '-360px', width: '40px', height: '40px', pointerEvents: 'none' }} />
             <img src="/sparklestar_blue.png" alt="" style={{ position: 'absolute', top: '-20px', left: '-320px', width: '40px', height: '40px', pointerEvents: 'none' }} />
             <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', top: '100px', left: '-360px', width: '40px', height: '40px', pointerEvents: 'none' }} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px', marginTop: isTablet ? '-70px' : '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px', marginTop: isTablet ? '0px' : '68px' }}>
             <img src="/whiskers_left.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#eddbc3', fontSize: '1.05rem', letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0, lineHeight: 1 }}>
+            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#1a2f51', fontSize: '1.05rem', letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0, lineHeight: 1 }}>
               Take a peek
             </p>
             <img src="/whiskers_right.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
@@ -287,17 +287,17 @@ export default function LandingPage() {
               <span key={i} style={{ position: 'absolute', top: d.top, left: (d as any).left, right: (d as any).right, width: `${d.s}px`, height: `${d.s}px`, borderRadius: '50%', backgroundColor: '#fff', opacity: d.o, pointerEvents: 'none' }} />
             ))}
             </div>
-            <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: 'clamp(2.8rem, 9vw, 4rem)', fontWeight: 700, lineHeight: 1.1, margin: 0 }}>
+            <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: 'clamp(2.8rem, 9vw, 4rem)', fontWeight: 700, lineHeight: 1.1, margin: 0 }}>
               What's on our shelves?
             </h2>
           </div>
-          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: isTablet ? '1.1rem' : '1.05rem', lineHeight: 1.6, marginBottom: '24px', marginTop: isTablet ? '24px' : '0' }}>
+          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '1.1rem' : '1.05rem', lineHeight: 1.6, marginBottom: '24px', marginTop: isTablet ? '24px' : '0' }}>
             Every book in Bonkers is handpicked. Popular favourites, hidden gems and wonderfully weird discoveries, organised so kids can find something they genuinely want to read.
           </p>
 
           {/* Reading level selector — artwork cards */}
           <div style={{ marginBottom: '36px', marginTop: isTablet ? '80px' : '0' }}>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: isTablet ? '0.85rem' : '0.75rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '12px', textAlign: 'left' }}>Browse by Age</p>
+            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.85rem' : '0.75rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '12px', textAlign: 'left' }}>Browse by Age</p>
             <div style={{ display: 'flex', flexDirection: 'row', gap: isTablet ? '10px' : '6px', marginLeft: isTablet ? '0' : '-8px', marginRight: isTablet ? '0' : '-8px' }}>
               {readingLevels.map(level => {
                 const key = level.name.toLowerCase()
@@ -309,13 +309,13 @@ export default function LandingPage() {
                 const age = AGE_MAP[key] ?? ''
                 return (
                   <button key={level.id} onClick={() => toggleLevel(level)}
-                    style={{ background: 'transparent', border: `1.5px solid ${isSelected ? '#f9ce71' : 'rgba(237,219,195,0.3)'}`, borderRadius: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'row', alignItems: 'center', overflow: 'hidden', transition: 'border-color 0.15s', flex: 1, padding: isTablet ? '18px 12px' : '18px 2px', gap: isTablet ? '10px' : '0px' }}>
+                    style={{ background: 'transparent', border: `1.5px solid ${isSelected ? '#f9ce71' : 'rgba(26,47,81,0.25)'}`, borderRadius: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'row', alignItems: 'center', overflow: 'hidden', transition: 'border-color 0.15s', flex: 1, padding: isTablet ? '18px 12px' : '18px 2px', gap: isTablet ? '10px' : '0px' }}>
                     <div style={{ height: '60px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: isTablet ? 'center' : 'flex-start' }}>
                       <img src={art} alt={level.name} style={{ width: isTablet ? (key.startsWith('hatchling') || key === '3-5' ? '70px' : key.startsWith('chick') || key === '5-7' ? '66px' : '88px') : (key.startsWith('hatchling') ? '34px' : key.startsWith('chick') ? '32px' : '46px'), height: isTablet ? (key.startsWith('hatchling') || key === '3-5' ? '70px' : key.startsWith('chick') || key === '5-7' ? '66px' : '88px') : (key.startsWith('hatchling') ? '34px' : key.startsWith('chick') ? '32px' : '46px'), objectFit: 'contain', display: 'block' }} />
                     </div>
                     <div style={{ textAlign: 'left' }}>
-                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: isTablet ? '1rem' : '0.78rem', fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{displayName}</p>
-                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: isTablet ? '0.88rem' : '0.76rem', fontWeight: 400, margin: 0 }}>{age}</p>
+                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '1rem' : '0.78rem', fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{displayName}</p>
+                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.88rem' : '0.76rem', fontWeight: 400, margin: 0 }}>{age}</p>
                     </div>
                   </button>
                 )
@@ -326,7 +326,7 @@ export default function LandingPage() {
           {/* Category blob filter */}
           {categories.length > 0 && (
             <div style={{ marginBottom: '16px', marginTop: isTablet ? '80px' : '0' }}>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: isTablet ? '0.85rem' : '0.75rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '10px', textAlign: 'left' }}>Browse by Category</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.85rem' : '0.75rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '10px', textAlign: 'left' }}>Browse by Category</p>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', flexWrap: isTablet ? 'nowrap' : 'wrap', overflowX: isTablet ? 'auto' : 'visible', padding: isTablet ? '4px 44px' : '4px 2px', margin: isTablet ? '0 -44px' : '0', WebkitOverflowScrolling: 'touch' as any }}>
                 {(() => {
                   const visible = categories.filter(c => getCategoryBlob(c.name))
@@ -370,7 +370,7 @@ export default function LandingPage() {
                             <img src="/symbol_magichat.png" alt="" style={{ position: 'absolute', inset: 0, width: '75%', height: '75%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)' }} />
                           )}
                         </div>
-                        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.78rem' : '0.7rem', fontWeight: 600, color: '#eddbc3', letterSpacing: '0.04em', lineHeight: 1.2, textAlign: 'center' }}>
+                        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.78rem' : '0.7rem', fontWeight: 600, color: '#1a2f51', letterSpacing: '0.04em', lineHeight: 1.2, textAlign: 'center' }}>
                           {cat.name.toLowerCase().startsWith('heartwarming') ? 'Heart' : cat.name.toLowerCase().startsWith('amazing') ? 'Adventure' : cat.name.toLowerCase().startsWith('magical') ? 'Magic' : cat.name.split(' ')[0]}
                         </span>
                       </button>
@@ -379,10 +379,10 @@ export default function LandingPage() {
                       {hasMore && (
                         <button onClick={() => setShowAllCategories(true)}
                           style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                          <div style={{ width: '44px', height: '44px', borderRadius: '50%', border: '1.5px solid rgba(237,219,195,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <span style={{ color: '#eddbc3', fontSize: '1rem', letterSpacing: '2px', lineHeight: 1 }}>···</span>
+                          <div style={{ width: '44px', height: '44px', borderRadius: '50%', border: '1.5px solid rgba(26,47,81,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ color: '#1a2f51', fontSize: '1rem', letterSpacing: '2px', lineHeight: 1 }}>···</span>
                           </div>
-                          <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.6rem', fontWeight: 600, color: '#eddbc3', opacity: 0.6, letterSpacing: '0.04em' }}>more</span>
+                          <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.6rem', fontWeight: 600, color: '#1a2f51', opacity: 0.6, letterSpacing: '0.04em' }}>more</span>
                         </button>
                       )}
                     </>
@@ -422,8 +422,8 @@ export default function LandingPage() {
 
           {/* Inline expand */}
           <div style={{ overflow: 'hidden', maxHeight: showLibraryExpand ? '200px' : '0', transition: 'max-height 0.4s ease', marginTop: showLibraryExpand ? '20px' : '0' }}>
-            <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700, lineHeight: 1.2, margin: '0 0 6px' }}>Like what you see?</p>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: 'rgba(237,219,195,0.7)', fontSize: '0.82rem', lineHeight: 1.6, margin: '0 0 20px' }}>There are plenty more where those came from.</p>
+            <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1.6rem', fontWeight: 700, lineHeight: 1.2, margin: '0 0 6px' }}>Like what you see?</p>
+            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: 'rgba(26,47,81,0.7)', fontSize: '0.82rem', lineHeight: 1.6, margin: '0 0 20px' }}>There are plenty more where those came from.</p>
             <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
               <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', left: '-32px', height: '44px', width: 'auto', pointerEvents: 'none', zIndex: 1, filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
               <button onClick={goCheck}
