@@ -206,7 +206,7 @@ export default function LandingPage() {
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, margin: '4px 0 0', opacity: 0.8 }}>6 books at a time</p>
             </div>
           </div>
-          <div className="lp-hiw-stars" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '6px', marginTop: isTablet ? '32px' : '24px' }}>
+          <div className="lp-hiw-stars" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '6px 18px', marginTop: isTablet ? '32px' : '24px' }}>
             {[
               { star: '/sparklestar_yellow.png', label: 'Weekly delivery' },
               { star: '/sparklestar_yellow.png', label: 'No late fees' },
@@ -215,7 +215,6 @@ export default function LandingPage() {
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <img src={item.star} alt="" style={{ height: isTablet ? '48px' : '26px', width: 'auto' }} />
                 <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#1a2744', fontSize: '1rem', letterSpacing: '0.04em' }}>{item.label}</span>
-                {i < 2 && <img src="/divider_vertical.png" alt="" style={{ height: '32px', width: 'auto', margin: '0 6px', filter: 'brightness(0) saturate(100%)' }} />}
               </div>
             ))}
           </div>
