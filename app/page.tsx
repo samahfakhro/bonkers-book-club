@@ -582,7 +582,7 @@ export default function LandingPage() {
 function ThreeColumns({ isTablet }: { isTablet: boolean }) {
   const cols = [
     { img: '/Book_Stack.png', alt: 'Books', text: <>Choose books.</> },
-    { img: '/van.png', alt: 'Delivery van', text: <>We deliver<br />and collect.</> },
+    { img: '/van.png', alt: 'Delivery van', text: <>We deliver and<br />collect weekly.</> },
     { img: '/magic_book.png', alt: 'Magic book', text: <>Fresh stories<br />whenever you’re ready.</> },
   ]
   return (
