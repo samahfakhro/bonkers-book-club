@@ -1,14 +1,16 @@
 // Server-only. Sends urgent messages straight to the PARENT by WhatsApp and email at the same time.
 // Each channel switches on by itself once its keys are added to the environment:
 //
-//   Email (Resend)       RESEND_API_KEY                 from "Bonkers <hello@bonkers.ae>" (bonkers.ae must be verified in Resend)
+//   Email (Resend)       RESEND_API_KEY                 from "The Curious Library <hello@curiouslibrary.ae>" (curiouslibrary.ae must be verified in Resend)
 //   WhatsApp (Meta)      WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID, and an approved template (see WHATSAPP_TEMPLATES)
-//   Links                APP_URL  e.g. https://bonkers.ae  (falls back to the current Vercel address)
+//   Links                APP_URL  e.g. https://curiouslibrary.ae  (falls back to the current Vercel address)
 //
 // Until then a channel is skipped and the skip is logged — nothing breaks.
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { renderMessage } from '@/lib/messages'
+import { emailHtml } from '@/lib/email-layout'
 
-const FROM_EMAIL = process.env.MESSAGING_FROM_EMAIL || 'Bonkers <hello@bonkers.ae>'
+const FROM_EMAIL = process.env.MESSAGING_FROM_EMAIL || 'The Curious Library <hello@curiouslibrary.ae>'
 export const appUrl = () => (process.env.APP_URL || 'https://bonkers-book-club.vercel.app').replace(/\/$/, '')
 
 // Template names + languages as approved in Meta's WhatsApp Manager
@@ -87,18 +89,11 @@ export async function sendMissedVisitMessage(stopId: string, kind: 'delivery' | 
     email = data?.user?.email ?? null
   }
 
-  const subject = kind === 'delivery' ? 'We missed you today! 📚' : 'We couldn’t collect your books today'
-  const lead = kind === 'delivery'
-    ? `Our driver came by with ${kidsPossessive} new books but couldn’t deliver them.`
-    : kind === 'no_return'
-      ? `Our driver came to swap your books, but there were no books out to collect — so ${kidsPossessive} new books have stayed in the van. New books go out once the old ones come back.`
-      : 'Some of your returning books weren’t there when our driver called.'
-  const ask = 'Tap below to tell us what to do — the sooner you reply, the more likely we can sort it today.'
-  const text = `Hi ${parent},\n\n${lead}\n\n${ask}\n\n${link}\n\nThe Bonkers team`
-  const html = `<div style="font-family:Arial,sans-serif;color:#1a2f51;font-size:16px;line-height:1.5;max-width:480px">
-    <p>Hi ${esc(parent)},</p><p>${esc(lead)}</p><p>${esc(ask)}</p>
-    <p><a href="${link}" style="display:inline-block;background:#1a2f51;color:#fff;text-decoration:none;padding:14px 26px;border-radius:999px;font-weight:bold">Tell us what to do</a></p>
-    <p style="color:#888;font-size:13px">The Bonkers team</p></div>`
+  const missed = await renderMessage(kind === 'delivery' ? 'missed_delivery' : kind === 'no_return' ? 'missed_no_return' : 'missed_collection', { children_possessive: kidsPossessive })
+  const subject = missed.title, lead = missed.body
+  const ask = (await renderMessage('missed_ask')).body
+  const text = `Hi ${parent},\n\n${lead}\n\n${ask}\n\n${link}\n\nThe Curious Library team`
+  const html = emailHtml({ greeting: `Hi ${parent},`, title: subject, paragraphs: [lead, ask], button: { label: 'Tell us what to do', url: link }, settingsUrl: `${appUrl()}/dashboard/settings` })
 
   // Follow the family's Settings choice (they must keep at least one on; if both somehow off, send both)
   let useWhatsApp = h?.notify_whatsapp !== false, useEmail = h?.notify_email !== false
@@ -109,6 +104,11 @@ export async function sendMissedVisitMessage(stopId: string, kind: 'delivery' | 
     !useWhatsApp ? off('whatsapp') : sendWhatsAppTemplate(h?.whatsapp_number || h?.mobile_phone, kind === 'delivery' ? 'missed_delivery' : 'missed_collection', kind === 'delivery' ? [parent, kids, link] : [parent, link]),
     !useEmail ? off('email') : email ? sendEmail(email, subject, text, html) : Promise.resolve<SendResult>({ channel: 'email', status: 'skipped', detail: 'no email address' }),
   ])
+  // keep a copy in the family's Messages in the app, with the same "tell us what to do" link
+  await supabaseAdmin.from('notifications').insert({
+    household_id: stop.household_id, type: 'missed_visit', title: subject, message: `${lead} ${ask}`,
+    action_link: `/m/${stop.manage_token}`, channel: 'in_app', status: 'sent', sent_at: new Date().toISOString(),
+  }).then(() => {}, () => {})
   // log each attempt on the visit (not in the children's message envelopes)
   await supabaseAdmin.from('delivery_events').insert(results.map(r => ({ route_stop_id: stopId, event_type: `message_${r.channel}_${r.status}`, notes: r.detail || null })))
   return results

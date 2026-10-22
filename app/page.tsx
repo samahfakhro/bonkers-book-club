@@ -429,6 +429,7 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
+        <img src="/whale_5.png" alt="" style={{ width: isTablet ? '280px' : '180px', height: 'auto', display: 'block', margin: isTablet ? '48px auto 0' : '32px auto 0' }} />
       </section>
 
       {/* Guest popup */}
@@ -456,30 +457,30 @@ export default function LandingPage() {
       )}
 
       {/* ── 4. WHY BONKERS ── */}
-      <section style={{ padding: isTablet ? '1280px 44px 0' : '560px 16px 0', backgroundImage: 'url(/whybonkerspage.png)', backgroundSize: '100% auto', backgroundPosition: isTablet ? 'center 380px' : 'center 200px', backgroundRepeat: 'no-repeat', position: 'relative', zIndex: 5 }}>
-          <img src="/whybonkersbooks.png" alt="" className="lp-books-img" style={{ position: 'absolute', right: '0', bottom: '40px', height: '18%', width: 'auto', pointerEvents: 'none', zIndex: 1 }} />
+      <section style={{ padding: isTablet ? '1320px 44px 0' : '700px 16px 0', backgroundImage: 'url(/curiousworld.png)', backgroundSize: '100% auto', backgroundPosition: isTablet ? 'center 560px' : 'center 340px', backgroundColor: '#fefef5', marginTop: '-1px', backgroundRepeat: 'no-repeat', position: 'relative', zIndex: 5 }}>
+          <img src="/whycurious.png" alt="" className="lp-books-img" style={{ position: 'absolute', right: '0', bottom: isTablet ? '40px' : '10px', height: '18%', width: 'auto', pointerEvents: 'none', zIndex: 1 }} />
           <div style={{ position: 'absolute', top: isTablet ? '76px' : '58px', left: 0, right: 0, textAlign: 'center', padding: isTablet ? '0 44px' : '0 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <img src="/whiskers_left.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#eddbc3', fontSize: '1.05rem', letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0, lineHeight: 1 }}>The Curious World</p>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, color: '#1a2f51', fontSize: '1.05rem', letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0, lineHeight: 1 }}>The Curious World</p>
               <img src="/whiskers_right.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
             </div>
-            <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: isTablet ? 'clamp(2.6rem, 5vw, 3.6rem)' : 'clamp(1.8rem, 7vw, 2.4rem)', fontWeight: 600, lineHeight: 1.2, margin: 0, width: '100%' }}>
+            <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: isTablet ? 'clamp(2.6rem, 5vw, 3.6rem)' : 'clamp(2.05rem, 8vw, 2.7rem)', fontWeight: 600, lineHeight: 1.2, margin: 0, width: '100%' }}>
               Every reader gets a world of their own.
             </h2>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: isTablet ? '0.95rem' : '0.82rem', lineHeight: 1.6, margin: 0, opacity: 0.85, maxWidth: '720px', width: '100%' }}>
-              Every book they read unlocks something new. The more they read, the more their world grows.
+            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.95rem', lineHeight: 1.6, margin: 0, opacity: 0.85, maxWidth: '720px', width: '100%' }}>
+              Every book your child reads adds something new to their very own world. Read about dragons and a dragon might appear. Keep reading and whole new worlds appear.
             </p>
           </div>
         <div style={{ maxWidth: isTablet ? '100%' : '480px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px', marginTop: isTablet ? '100px' : '40px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px', marginTop: '40px' }}>
             <img src="/whiskers_left.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '1.05rem', fontWeight: 400, letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0 }}>
-              Why The Curious Library?
+            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '1.05rem', fontWeight: 400, letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0, textAlign: 'center', lineHeight: 1.4 }}>
+              Why The<br />Curious Library?
             </p>
             <img src="/whiskers_right.png" alt="" style={{ height: isTablet ? '48px' : '32px', width: 'auto', pointerEvents: 'none' }} />
           </div>
-          <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: 'clamp(2.16rem, 7.2vw, 3.12rem)', fontWeight: 700, lineHeight: 1.1, marginBottom: '36px', marginTop: isTablet ? '48px' : '16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+          <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: 'clamp(2.16rem, 7.2vw, 3.12rem)', fontWeight: 700, lineHeight: 1.1, marginBottom: '36px', marginTop: isTablet ? '48px' : '16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
             The 'Great Book' Hunt
           </h2>
 
@@ -491,30 +492,18 @@ export default function LandingPage() {
               { title: '"Muuuum, can I get this?"', desc: 'No dragging everyone around a bookshop and mysteriously leaving with 7 squishies and a slime kit. Independent readers can choose their own books and even arrange their own delivery and collection.' },
             ].map((reason, i) => (
               <div key={i} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-                <img src="/star_button_on.png" alt="" style={{ width: isTablet ? '26px' : '18px', height: isTablet ? '26px' : '18px', flexShrink: 0, marginTop: isTablet ? '22px' : '10px' }} />
+                <img src="/sparklestar_yellow.png" alt="" style={{ width: isTablet ? '26px' : '18px', height: isTablet ? '26px' : '18px', flexShrink: 0, marginTop: isTablet ? '22px' : '10px' }} />
                 <div>
-                  <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.61rem', fontWeight: 700, marginBottom: '4px', whiteSpace: 'nowrap' }}>{reason.title}</p>
-                  <p style={{ color: '#eddbc3', fontSize: '1rem', lineHeight: 1.5, opacity: 0.9, whiteSpace: 'pre-line', margin: 0 }}>{reason.desc}</p>
+                  <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1.61rem', fontWeight: 700, marginBottom: '4px', whiteSpace: 'nowrap' }}>{reason.title}</p>
+                  <p style={{ color: '#1a2f51', fontSize: '1rem', lineHeight: 1.5, opacity: 0.9, whiteSpace: 'pre-line', margin: 0 }}>{reason.desc}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          <div style={{ marginTop: isTablet ? '140px' : '120px', marginLeft: isTablet ? '-44px' : '-24px', width: isTablet ? 'calc(100% + 88px)' : 'calc(100% + 48px)', position: 'relative' }}>
+          <div style={{ marginTop: isTablet ? '220px' : '120px', marginLeft: isTablet ? '-44px' : '-24px', width: isTablet ? 'calc(100% + 88px)' : 'calc(100% + 48px)', position: 'relative' }}>
             <img src="/bonkers_questions.png" alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
             <h2 style={{ position: 'absolute', top: '65%', left: '63%', transform: 'translate(-50%, -50%)', fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: 'clamp(4rem, 10vw, 7rem)', fontWeight: 700, margin: 0, whiteSpace: 'nowrap' }}>uestions?</h2>
-            <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', top: '8%', left: '12%', width: isTablet ? '48px' : '30px', height: isTablet ? '48px' : '30px', pointerEvents: 'none' }} />
-
-            <img src="/sparklestar_blue.png" alt="" style={{ position: 'absolute', top: '55%', left: '6%', width: isTablet ? '44px' : '28px', height: isTablet ? '44px' : '28px', pointerEvents: 'none' }} />
-            <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', bottom: '12%', left: '20%', width: isTablet ? '34px' : '22px', height: isTablet ? '34px' : '22px', pointerEvents: 'none' }} />
-            <img src="/sparklestar_pink.png" alt="" style={{ position: 'absolute', bottom: '8%', right: '18%', width: isTablet ? '42px' : '26px', height: isTablet ? '42px' : '26px', pointerEvents: 'none' }} />
-            <img src="/sparklestar_blue.png" alt="" style={{ position: 'absolute', top: '35%', right: '6%', width: isTablet ? '32px' : '20px', height: isTablet ? '32px' : '20px', pointerEvents: 'none' }} />
-            <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', top: '4%', right: '28%', width: isTablet ? '30px' : '18px', height: isTablet ? '30px' : '18px', pointerEvents: 'none' }} />
-            <img src="/sparklestar_blue.png" alt="" style={{ position: 'absolute', top: '22%', left: '4%', width: isTablet ? '28px' : '18px', height: isTablet ? '28px' : '18px', pointerEvents: 'none' }} />
-            <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', bottom: isTablet ? '22%' : '8%', right: '8%', width: isTablet ? '46px' : '28px', height: isTablet ? '46px' : '28px', pointerEvents: 'none' }} />
-            <img src="/sparklestar_pink.png" alt="" style={{ position: 'absolute', top: '45%', right: '22%', width: isTablet ? '28px' : '18px', height: isTablet ? '28px' : '18px', pointerEvents: 'none' }} />
-            <img src="/sparklestar_blue.png" alt="" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: isTablet ? '34px' : '22px', height: isTablet ? '34px' : '22px', pointerEvents: 'none' }} />
-            <img src="/sparklestar_yellow.png" alt="" style={{ position: 'absolute', top: '30%', left: '28%', width: isTablet ? '28px' : '18px', height: isTablet ? '28px' : '18px', pointerEvents: 'none' }} />
           </div>
         </div>
       </section>
@@ -530,11 +519,11 @@ export default function LandingPage() {
                   <button
                     onClick={() => setOpenFaq(openFaq === i ? null : i)}
                     style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: '16px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.35rem' : '1.15rem', fontWeight: 600, lineHeight: 1.3 }}>{faq.q}</span>
+                    <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.35rem' : '1.3rem', fontWeight: 600, lineHeight: 1.3 }}>{faq.q}</span>
                     <span style={{ color: '#1a2744', fontSize: '1.2rem', flexShrink: 0, transition: 'transform 0.2s', transform: openFaq === i ? 'rotate(45deg)' : 'none' }}>+</span>
                   </button>
                   {openFaq === i && (
-                    <p style={{ color: '#1a2744', fontSize: isTablet ? '1.05rem' : '0.9rem', lineHeight: 1.6, paddingBottom: '16px' }}>
+                    <p style={{ color: '#1a2744', fontSize: isTablet ? '1.05rem' : '1rem', lineHeight: 1.6, paddingBottom: '16px' }}>
                       {faq.a}
                     </p>
                   )}
@@ -546,10 +535,10 @@ export default function LandingPage() {
 
         <img src="/bonkers_bottompage.png" alt="" style={{ width: '100%', height: 'auto', display: 'block', position: 'relative', zIndex: 1 }} />
 
-        <section style={{ padding: isTablet ? '0 24px 200px' : '0 24px 100px', textAlign: 'center', position: 'relative', zIndex: 2, marginTop: isTablet ? '-280px' : '-180px' }}>
+        <section style={{ padding: isTablet ? '0 24px 200px' : '0 24px 100px', textAlign: 'center', position: 'relative', zIndex: 2, marginTop: isTablet ? '-220px' : '-180px' }}>
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
             <h2 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: 'clamp(2rem, 7vw, 2.8rem)', fontWeight: 700, lineHeight: 1.05, marginBottom: '28px', whiteSpace: 'nowrap' }}>
-              Ready to get curious?
+              Curious?
             </h2>
             <CheckAreaButton onClick={goCheck} />
           </div>
@@ -557,7 +546,7 @@ export default function LandingPage() {
 
         <footer style={{ backgroundColor: '#1a2744', padding: '20px 24px', textAlign: 'center', position: 'relative', zIndex: 2 }}>
           <p style={{ color: '#eddbc3', opacity: 0.45, fontSize: '0.75rem', letterSpacing: '0.06em', margin: 0 }}>
-            © {new Date().getFullYear()} The Curious Library · Dubai · hello@bonkers.ae
+            © {new Date().getFullYear()} The Curious Library · Dubai · hello@curiouslibrary.ae
           </p>
         </footer>
 

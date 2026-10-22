@@ -1,8 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { fillPlaceholders, templateByKey } from '@/lib/message-templates'
 
-// Capacity — "how is Bonkers doing operationally, and am I comfortable opening more places?"
+// Capacity — "how is The Curious Library doing operationally, and am I comfortable opening more places?"
 // Only the caps + pauses are enforced (at signup). Everything else is information.
 
 type Zone = { id: string; code: string; name: string; bonkers_day: string | null; membership_cap: number | null; is_paused: boolean; active: number }
@@ -28,10 +29,16 @@ const STATUS_STYLES: Record<string, [string, string]> = {
 
 const daysAgo = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000))
 
+// wording comes from Admin → Messages ("Waitlist invite"); the original is used until any edit has loaded
+let inviteTemplate = templateByKey('waitlist_invite')!.body
+if (typeof window !== 'undefined') fetch('/api/admin/messages').then(r => r.json()).then(b => {
+  const m = b.messages?.find((x: { key: string }) => x.key === 'waitlist_invite')
+  if (m?.body) inviteTemplate = m.body
+}).catch(() => {})
+
 function inviteMessage(e: WaitlistEntry) {
   const first = (e.name ?? '').trim().split(' ')[0] || 'there'
-  const link = `${window.location.origin}/signup`
-  return `Hi ${first}! Good news — a Bonkers membership place has opened up in your area 🎉 You can join here: ${link}\n\nPlaces are limited, so we'd love to welcome you soon!`
+  return fillPlaceholders(inviteTemplate, { parent_name: first, link: `${window.location.origin}/signup` })
 }
 
 // UAE mobile 05XXXXXXXX → 9715XXXXXXXX for WhatsApp links
@@ -52,7 +59,7 @@ function WaitlistTable({ entries, onAction }: { entries: WaitlistEntry[]; onActi
     const msg = inviteMessage(e)
     const url = via === 'whatsapp'
       ? `https://wa.me/${whatsappNumber(e.phone ?? '')}?text=${encodeURIComponent(msg)}`
-      : `mailto:${e.email}?subject=${encodeURIComponent('A Bonkers place is ready for you!')}&body=${encodeURIComponent(msg)}`
+      : `mailto:${e.email}?subject=${encodeURIComponent('A Curious Library place is ready for you!')}&body=${encodeURIComponent(msg)}`
     window.open(url, '_blank')
     if (confirm(`Did you send the invite to ${e.name ?? e.email}? Press OK to mark them as Invited.`)) await onAction(e.id, 'invite')
   }

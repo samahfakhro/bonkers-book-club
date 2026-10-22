@@ -7,6 +7,11 @@ import { getPublicSettings, cutoffWeekday } from '@/lib/public-settings'
 import { fetchAvailableBookIds } from '@/lib/availability'
 import { householdDeliveryDay } from '@/lib/delivery-day'
 import { useTapOnly } from '@/hooks/useTapOnly'
+import CuriousLogo from '@/components/CuriousLogo'
+import ChildBottomNav from '@/components/ChildBottomNav'
+import ReviewSheet from '@/components/ReviewSheet'
+import WishCameTrue from '@/components/WishCameTrue'
+import { nextDeliverySpace, openFullDelivery, returnsNeededMessage } from '@/lib/next-delivery'
 
 function TapButton({ onTap, style, children }: { onTap: () => void; style?: React.CSSProperties; children: React.ReactNode }) {
   const handlers = useTapOnly(onTap)
@@ -22,14 +27,6 @@ const AVATARS = [
   { id: 'bunny', emoji: '🐰', bg: '#F9A8D4' },
   { id: 'tiger', emoji: '🐯', bg: '#FDE68A' },
   { id: 'penguin', emoji: '🐧', bg: '#BAE6FD' },
-]
-
-const REVIEW_CATEGORIES = [
-  { key: 'laugh_level', label: 'Laugh Level' },
-  { key: 'weirdness', label: 'Weirdness' },
-  { key: 'scariness', label: 'Scariness' },
-  { key: 'adventure', label: 'Adventure' },
-  { key: 'feelings', label: 'Feelings' },
 ]
 
 const ACHIEVEMENTS = [
@@ -234,6 +231,7 @@ export default function ChildProfilePage() {
   const [reviewingBook, setReviewingBook] = useState<ReadBook | null>(null)
   const [reviewStars, setReviewStars] = useState(0)
   const [reviewCategories, setReviewCategories] = useState<Record<string, number>>({})
+  const [reviewBookCats, setReviewBookCats] = useState<{ id: string; label: string; name: string }[]>([])
   const [reviewText, setReviewText] = useState('')
   const [reviewSaving, setReviewSaving] = useState(false)
 
@@ -326,7 +324,7 @@ export default function ChildProfilePage() {
         if (notifData) setNotifyingBookIds(new Set(notifData.map((n: any) => n.book_id)))
       } catch {}
 
-      // Bonkers Picks: books in same categories as most borrowed, not already read, within age group
+      // Curious Picks: books in same categories as most borrowed, not already read, within age group
       try {
         const age = childData.date_of_birth ? Math.floor((Date.now() - new Date(childData.date_of_birth).getTime()) / (1000 * 60 * 60 * 24 * 365.25)) : null
         const readBookIds = read.map(r => r.book.id)
@@ -441,7 +439,9 @@ export default function ChildProfilePage() {
   const toggleReturn = async (loanId: string) => {
     const nowReturning = !returnMarked.has(loanId)
     setReturnMarked(prev => { const n = new Set(prev); nowReturning ? n.add(loanId) : n.delete(loanId); return n })
-    await supabase.from('loans').update({ return_requested: nowReturning }).eq('id', loanId)
+    const { error } = await supabase.from('loans').update({ return_requested: nowReturning }).eq('id', loanId)
+    const blocked = returnsNeededMessage(error, true)
+    if (blocked) { setReturnMarked(prev => new Set(prev).add(loanId)); alert(blocked) }
   }
 
   const removeFromWishlist = async (wishlistItemId: string) => {
@@ -450,6 +450,9 @@ export default function ChildProfilePage() {
   }
 
   const quickAddToDelivery = async (bookId: string, bookTitle: string, coverUrl: string | null) => {
+    const markAdded = () => setDraftItems(prev => prev.some(d => d.book.id === bookId) ? prev : [...prev, { book: { id: bookId, title: bookTitle, cover_url: coverUrl, author: null } }])
+    // no free space in the next delivery → help them make room instead
+    if (await nextDeliverySpace(childId) <= 0) { openFullDelivery({ childId, book: { id: bookId, title: bookTitle, cover_image_url: coverUrl }, forChild: true, onAdded: markAdded }); return }
     let reqId = draftSwapRequestId
     if (!reqId && householdId) {
       const { data: newReq, error: reqErr } = await supabase.from('swap_requests').insert({ household_id: householdId, child_id: childId, status: 'draft' }).select('id').single()
@@ -464,6 +467,7 @@ export default function ChildProfilePage() {
     }
     const { error: itemErr } = await supabase.from('swap_request_items').insert({ swap_request_id: reqId, book_id: bookId, child_id: childId })
     if (itemErr?.message.includes('NEW_BOOKS_ON_HOLD')) { alert('New books are on hold for now — the extra books at home need to go back first.'); return }
+    if (itemErr?.message.includes('NEXT_DELIVERY_FULL')) { openFullDelivery({ childId, book: { id: bookId, title: bookTitle, cover_image_url: coverUrl }, forChild: true, onAdded: markAdded }); return }
     if (itemErr && itemErr.code !== '23505') { console.error('swap_request_items insert failed:', itemErr); return }
     setDraftItems(prev => {
       if (prev.some(d => d.book.id === bookId)) return prev
@@ -476,6 +480,8 @@ export default function ChildProfilePage() {
     const { error } = await supabase.from('swap_requests').update({ status: 'child_confirmed' }).eq('id', draftSwapRequestId)
     if (error) { alert(error.message.includes('NEW_BOOKS_ON_HOLD') ? 'New books are on hold for now — ask a grown-up to send back the extra books first.' : 'Something went wrong — please try again.'); return }
     setSwapRequestStatus('child_confirmed')
+    // let the parent know (once per Curious Day)
+    supabase.auth.getSession().then(({ data }) => fetch('/api/notify/child-sent', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {}) }, body: JSON.stringify({ childId }) })).catch(() => {})
   }
 
   const takeBack = async () => {
@@ -512,6 +518,11 @@ export default function ChildProfilePage() {
     setReviewStars(rb.rating ?? 0)
     setReviewCategories({})
     setReviewText('')
+    setReviewBookCats([])
+    // the book's own categories (e.g. Laugh Level, Magic Level) — keyed by category id so the book page can average them
+    supabase.from('book_categories').select('categories ( id, name, review_label )').eq('book_id', rb.book.id).then(({ data: bc }) => {
+      setReviewBookCats((bc ?? []).map((x: any) => x.categories).filter((c: any) => c?.review_label).map((c: any) => ({ id: c.id, label: c.review_label, name: c.name })))
+    })
     const { data } = await supabase.from('book_reviews').select('star_rating, review_text, category_ratings').eq('child_id', childId).eq('book_id', rb.book.id).maybeSingle()
     if (data) {
       setReviewStars(data.star_rating ?? 0)
@@ -522,9 +533,9 @@ export default function ChildProfilePage() {
   }
 
   const saveReview = async () => {
-    if (!reviewingBook) return
+    if (!reviewingBook || !reviewStars) return  // a star rating is required; categories and words are optional
     setReviewSaving(true)
-    const payload = { child_id: childId, book_id: reviewingBook.book.id, star_rating: reviewStars || null, review_text: reviewText || null, category_ratings: Object.keys(reviewCategories).length ? reviewCategories : null }
+    const payload = { child_id: childId, book_id: reviewingBook.book.id, star_rating: reviewStars || null, review_text: reviewText.trim() || null, moderation_status: reviewText.trim() ? 'pending' : 'approved', category_ratings: (() => { const given = Object.fromEntries(Object.entries(reviewCategories).filter(([, v]) => v > 0)); return Object.keys(given).length ? given : null })() }
     const { data: existing } = await supabase.from('book_reviews').select('id').eq('child_id', childId).eq('book_id', reviewingBook.book.id).maybeSingle()
     if (existing) {
       await supabase.from('book_reviews').update(payload).eq('id', existing.id)
@@ -624,8 +635,7 @@ export default function ChildProfilePage() {
       {/* ── TOP BAR ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 0', position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
         <div style={{ lineHeight: 1 }}>
-          <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '2.4rem', color: '#eddbc3', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
-          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.45rem', color: '#eddbc3', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0' }}>THE CHILDREN&apos;S LIBRARY</p>
+          <CuriousLogo height={60} light />
         </div>
         <button onClick={() => setShowSwitcher(o => !o)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
           <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: avatar?.bg || 'rgba(237,219,195,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.7rem', flexShrink: 0, border: '2px solid rgba(237,219,195,0.25)' }}>
@@ -785,6 +795,9 @@ export default function ChildProfilePage() {
 
       <div className="universe-content" style={{ padding: '32px 20px 7rem', backgroundColor: '#fefaf2' }}>
 
+        {/* books this child asked for that are now in the library */}
+        <WishCameTrue childId={childId} onOpen={id => router.push(`/dashboard/library/${id}?from=child&childId=${childId}`)} />
+
         {/* ── HELLO + NEXT BONKERS DAY ── */}
         <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '2.8rem', fontWeight: 700, lineHeight: 1, marginTop: '24px', marginBottom: '16px', textAlign: 'center' }}>Hello, {childName}!</h1>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
@@ -902,7 +915,7 @@ export default function ChildProfilePage() {
               {draftItems.length > 0 && effectiveStatus === 'submitted' && child?.swap_permission !== 'prepare_only' && (
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '20px', backgroundColor: 'rgba(80,200,120,0.12)', border: '1px solid rgba(80,200,120,0.35)' }}>
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#50c878" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#50c878', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em' }}>Submitted</span>
+                  <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#50c878', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em' }}>Confirmed</span>
                 </div>
               )}
             </div>
@@ -942,7 +955,7 @@ export default function ChildProfilePage() {
                     onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
                     onTouchStart={e => (e.currentTarget.style.transform = 'scale(0.96)')}
                     onTouchEnd={e => (e.currentTarget.style.transform = 'scale(1)')}>
-                    Send to Parent
+                    Send to my grown-up
                   </button>
                   <img src="/spines/whiskers_right_yellow.png" alt="" className="action-whisker" style={{ width: 'auto', flexShrink: 0, marginLeft: '8px', pointerEvents: 'none' }} />
                 </div>
@@ -991,12 +1004,12 @@ export default function ChildProfilePage() {
               <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                 {child?.swap_permission === 'independent_submit' && (effectiveStatus === 'draft' || !effectiveStatus) && draftItems.length > 0 && (
                   <button onClick={submitSwap} style={{ width: '100%', padding: '11px', borderRadius: '12px', backgroundColor: '#1a2f51', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.72rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#f9d174' }}>
-                    Submit
+                    Confirm my books
                   </button>
                 )}
                 {child?.swap_permission === 'independent_submit' && effectiveStatus === 'submitted' && (
                   <button onClick={unsubmitSwap} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.65rem', color: 'rgba(26,47,81,0.45)', textDecoration: 'underline', padding: '4px 0' }}>
-                    Un-submit
+                    Change my books
                   </button>
                 )}
               </div>
@@ -1072,7 +1085,7 @@ export default function ChildProfilePage() {
           </div>
         </section>
 
-        {/* TODO: Add "Bonkers' Picks" personalised recommendations section here post-launch */}
+        {/* TODO: Add "Curious Picks" personalised recommendations section here post-launch */}
 
         {/* ── BOOKS I'VE READ ── */}
         <section style={{ marginBottom: '16px' }}>
@@ -1139,90 +1152,13 @@ export default function ChildProfilePage() {
       </div>
 
       {/* ── BOTTOM NAV ── */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#1a2f51', borderTop: 'none', zIndex: 55 }}>
-        <div style={{ maxWidth: '576px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '8px 8px', paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
-          {[
-            { label: 'Home', icon: <svg className="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>, onClick: () => router.push(`/dashboard/children/${childId}`), active: pathname === `/dashboard/children/${childId}` },
-            { label: 'Library', icon: <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>, onClick: () => router.push(`/dashboard/library?from=child&childId=${childId}`), active: pathname.startsWith('/dashboard/library') },
-          ].map(item => (
-            <button key={item.label} onClick={item.onClick} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '4px 12px', background: 'none', border: 'none', cursor: 'pointer', color: item.active ? '#f9d174' : '#fefaf2', minWidth: '56px' }}>
-              {item.icon}
-              <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.6rem', letterSpacing: '0.06em', fontWeight: item.active ? 700 : 400 }}>{item.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+      <ChildBottomNav childId={childId} />
 
       {/* ── REVIEW CARD ── */}
       {reviewingBook && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(8,4,2,0.75)', zIndex: 60, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setReviewingBook(null)}>
-          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: '#1a1008', borderRadius: '24px 24px 0 0', border: '1px solid rgba(237,219,195,0.15)', width: '100%', maxWidth: '576px', maxHeight: '88vh', overflowY: 'auto', padding: '24px 20px 40px', position: 'relative' }}>
-
-            {/* X button */}
-            <button onClick={() => setReviewingBook(null)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(237,219,195,0.1)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#eddbc3', fontSize: '1rem' }}>✕</button>
-
-            {/* Book header */}
-            <div style={{ display: 'flex', gap: '14px', marginBottom: '22px', paddingRight: '36px' }}>
-              {reviewingBook.book.cover_url && (
-                <img src={reviewingBook.book.cover_url} alt="" style={{ width: '64px', height: '86px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0 }} />
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '1.15rem', color: '#eddbc3', margin: '0 0 3px', lineHeight: 1.3 }}>{reviewingBook.book.title}</p>
-                {reviewingBook.book.author && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.65rem', color: 'rgba(237,219,195,0.5)', margin: '0 0 8px' }}>{reviewingBook.book.author}</p>}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#4ade80', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                  </div>
-                  <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.6rem', color: 'rgba(237,219,195,0.45)', margin: 0, letterSpacing: '0.06em' }}>READ</p>
-                </div>
-              </div>
-            </div>
-
-            {/* What did you think */}
-            <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '1.6rem', color: '#eddbc3', margin: '0 0 12px', letterSpacing: '0.04em' }}>What did you think?</p>
-
-            {/* Overall stars */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '22px' }}>
-              {[1,2,3,4,5].map(s => (
-                <button key={s} onClick={() => setReviewStars(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill={s <= reviewStars ? '#f9d174' : 'none'} stroke={s <= reviewStars ? '#f9d174' : 'rgba(237,219,195,0.35)'} strokeWidth="1.6"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                </button>
-              ))}
-            </div>
-
-            {/* Category ratings */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '22px' }}>
-              {REVIEW_CATEGORIES.map(cat => (
-                <div key={cat.key} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.68rem', color: 'rgba(237,219,195,0.7)', letterSpacing: '0.06em', width: '84px', flexShrink: 0, margin: 0 }}>{cat.label}</p>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    {[1,2,3,4,5].map(v => (
-                      <button key={v} onClick={() => setReviewCategories(prev => ({ ...prev, [cat.key]: prev[cat.key] === v ? 0 : v }))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                        <div style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: v <= (reviewCategories[cat.key] ?? 0) ? '#eddbc3' : 'transparent', border: '1.5px solid rgba(237,219,195,0.35)', transition: 'background-color 0.15s' }} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Text box */}
-            <textarea
-              value={reviewText}
-              onChange={e => setReviewText(e.target.value)}
-              placeholder="Anything else you want to say about this book..."
-              style={{ width: '100%', minHeight: '80px', backgroundColor: 'rgba(237,219,195,0.05)', border: '1px solid rgba(237,219,195,0.2)', borderRadius: '12px', padding: '12px', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#eddbc3', resize: 'none', outline: 'none', boxSizing: 'border-box', marginBottom: '16px' }}
-            />
-
-            {/* Save button */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={saveReview} disabled={reviewSaving} style={{ backgroundColor: '#f9d174', color: '#080402', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '10px 22px', borderRadius: '20px', border: 'none', cursor: 'pointer', opacity: reviewSaving ? 0.6 : 1 }}>
-                {reviewSaving ? 'Saving…' : 'Save Review'}
-              </button>
-            </div>
-
-          </div>
-        </div>
+        <ReviewSheet book={reviewingBook.book} stars={reviewStars} setStars={setReviewStars} cats={reviewBookCats}
+          catRatings={reviewCategories} setCatRatings={setReviewCategories} text={reviewText} setText={setReviewText}
+          saving={reviewSaving} onSave={saveReview} onClose={() => setReviewingBook(null)} />
       )}
 
       {/* ── PROFILE SWITCHER DROPDOWN ── */}

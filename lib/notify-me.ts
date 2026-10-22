@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { notifyHousehold } from '@/lib/notify'
 import { appUrl } from '@/lib/messaging'
+import { renderMessage } from '@/lib/messages'
 
 // "Notify Me" (the bell on unavailable books). Called when returns staff press "Finished inspecting"
 // and when a new copy is added in admin Books. Everyone on the book's list gets one message per batch;
@@ -34,10 +35,11 @@ export async function sendBackOnShelfAlerts(bookIds: string[]) {
     if (!householdId) continue
     const t = title.get(r.book_id) || 'A book you wanted'
     const who = r.child_id && kidName.get(r.child_id) ? `${kidName.get(r.child_id)}’s` : 'your'
+    const back = await renderMessage('back_in_stock', { book_title: t, whose: who })
     await notifyHousehold({
       householdId, type: 'notify_me', childId: r.child_id,
-      title: `📚 ${t} is back!`,
-      message: `Good news! ${t} is back on the Bonkers shelf. It’s first come, first served — add it to ${who} next swap before someone else does!`,
+      title: back.title,
+      message: back.body,
       link: `/dashboard/library/${r.book_id}?from=parent`,
       extraLink: { label: 'Stop alerts for this book', url: `${appUrl()}/stop-alerts/${r.stop_token}` },
     })

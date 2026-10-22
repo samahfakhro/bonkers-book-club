@@ -4,6 +4,9 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useParams, useSearchParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { fetchAvailableBookIds } from '@/lib/availability'
+import CuriousLogo from '@/components/CuriousLogo'
+import ParentBottomNav from '@/components/ParentBottomNav'
+import ChildBottomNav from '@/components/ChildBottomNav'
 
 type SeriesInfo = {
   id: string
@@ -243,15 +246,6 @@ function SeriesPage() {
     router.push(url)
   }
 
-  const navItems = isChildMode ? [
-    { label: 'Home', path: `/dashboard/children/${childIdParam}`, exact: true, onClick: () => router.push(`/dashboard/children/${childIdParam}`), icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg> },
-    { label: 'Library', path: '/dashboard/library', exact: false, onClick: () => router.push(`/dashboard/library?from=child&childId=${childIdParam}`), icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> },
-  ] : [
-    { label: 'Home', path: '/dashboard', exact: true, onClick: () => router.push('/dashboard'), icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg> },
-    { label: 'Library', path: '/dashboard/library', exact: false, onClick: () => router.push('/dashboard/library'), icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> },
-    { label: 'Settings', path: '/dashboard/settings', exact: false, onClick: () => router.push('/dashboard/settings'), icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> },
-    { label: 'Support', path: '/dashboard/support', exact: false, onClick: () => router.push('/dashboard/support'), icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> },
-  ]
 
   if (loading) return (
     <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#fefaf2' }}>
@@ -278,8 +272,7 @@ function SeriesPage() {
       <div style={{ position: 'sticky', top: 0, zIndex: 40, backgroundColor: '#fefaf2', padding: '24px 20px 2px', paddingTop: 'max(24px, env(safe-area-inset-top))' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ lineHeight: 1 }}>
-            <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#1a2f51', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.5rem', color: '#1a2f51', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0' }}>THE CHILDREN&apos;S LIBRARY</p>
+            <CuriousLogo height={72} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '36px' }}>
             {/* Basket */}
@@ -412,20 +405,7 @@ function SeriesPage() {
       )}
 
       {/* ── Bottom nav ── */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 55, backgroundColor: '#1a2f51', borderTop: 'none' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '8px 8px', paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
-          {navItems.map((item, i) => {
-            const active = item.exact ? pathname === item.path : pathname.startsWith(item.path)
-            return (
-              <button key={i} onClick={item.onClick}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, background: 'none', border: 'none', cursor: 'pointer', color: active ? '#f9d174' : '#fefaf2', minWidth: '56px', padding: 0 }}>
-                {item.icon()}
-                <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.6rem', letterSpacing: '0.06em', fontWeight: active ? 700 : 400 }}>{item.label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      {isChildMode ? <ChildBottomNav childId={childIdParam!} /> : <ParentBottomNav />}
 
       {/* ── Basket dropdown ── */}
       {basketOpen && (

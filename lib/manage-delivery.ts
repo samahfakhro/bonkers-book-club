@@ -3,7 +3,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { FAILED_DELIVERY, manageLinkOpen } from '@/lib/driver/server'
 
-const RESPONSES = ['retry_today', 'neighbour', 'concierge', 'safe_drop', 'next_bonkers_day'] as const
+const RESPONSES = ['retry_today', 'concierge', 'safe_drop', 'next_bonkers_day'] as const  // no neighbour: old books are collected as new ones are handed over
 const SELECT = 'id, outcome, status, family_response, family_response_details, family_responded_at, household_id, routes(status, route_date), households(user_id, first_name, property_type, safe_spot_description, neighbour_details)'
 
 export async function stopByToken(token: string) {

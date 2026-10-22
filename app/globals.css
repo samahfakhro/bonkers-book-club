@@ -150,6 +150,8 @@ h1, h2, h3 {
 .admin-root h1, .admin-root h2, .admin-root h3 {
   font-family: inherit;
 }
+/* ...and dark text — the app's default cream text is for the navy family screens */
+.admin-root { color: #1a1a1a; }
 
 /* Google Places autocomplete dropdown */
 .pac-container {

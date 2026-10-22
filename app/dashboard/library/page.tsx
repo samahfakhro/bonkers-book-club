@@ -4,6 +4,12 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { fetchAvailableBookIds } from '@/lib/availability'
+import CuriousLogo from '@/components/CuriousLogo'
+import ParentBottomNav from '@/components/ParentBottomNav'
+import ChildBottomNav from '@/components/ChildBottomNav'
+import NoReaderSheet from '@/components/NoReaderSheet'
+import BookRequestSheet from '@/components/BookRequestSheet'
+import { nextDeliverySpace, openFullDelivery } from '@/lib/next-delivery'
 
 type Book = { id: string; title: string; author: string; cover_image_url: string | null; series_number?: number | null; series_label?: string | null }
 type Category = { id: string; name: string; image_url: string | null }
@@ -81,6 +87,7 @@ function LibraryPageInner() {
   const [availabilityOpen, setAvailabilityOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [requestOpen, setRequestOpen] = useState(false)  // "Ask us to add a book"
   const [searchResults, setSearchResults] = useState<Book[] | null>(null)
   const [searchLoading, setSearchLoading] = useState(false)
   const [phIdx, setPhIdx] = useState(0)
@@ -132,7 +139,7 @@ function LibraryPageInner() {
       const catList = cats || []; const levelList = levels || []
       setCategories(catList); setReadingLevels(levelList)
       const copiesList = allCopies || []
-      const inCirculationIds = new Set(copiesList.map((c: any) => c.book_id))
+      const inCirculationIds = new Set<string>(copiesList.map((c: any) => c.book_id))
       // Books not yet in circulation show as available; books with copies but none available show bell
       setAvailableBookIds(availableIds)
       setInCirculationIds(inCirculationIds)
@@ -220,20 +227,6 @@ function LibraryPageInner() {
             }
           }
 
-          if (childIdParam) {
-            const child = childList.find(c => c.id === childIdParam)
-            if (child) {
-              if (child.reading_level) {
-                const ml = levelList.find(l => l.name.toLowerCase() === child.reading_level!.toLowerCase())
-                if (ml) setActiveLevels([ml])
-              }
-              if (child.interests) {
-                const names = child.interests.split(',').map((s: string) => s.trim().toLowerCase())
-                const mc = catList.filter(c => names.some(i => c.name.toLowerCase().includes(i) || i.includes(c.name.toLowerCase())))
-                if (mc.length > 0) setSelectedCategoryIds(mc.map(c => c.id))
-              }
-            }
-          }
         }
       }
       setLoading(false)
@@ -403,6 +396,10 @@ function LibraryPageInner() {
   }
 
   async function confirmBasket(book: Book, child: Child, triggerEl?: HTMLElement, x = 0, y = 0) {
+    const markAdded = () => { setAddedBooks(prev => new Map(prev).set(book.id, child.id)); setAddedBookObjects(prev => new Map(prev).set(book.id, book)) }
+    const showFull = () => openFullDelivery({ childId: child.id, book: { id: book.id, title: book.title, cover_image_url: book.cover_image_url }, forChild: isChildMode, onAdded: markAdded })
+    // no free space in the next delivery → help them make room instead
+    if (await nextDeliverySpace(child.id) <= 0) { setPendingBook(null); setPendingAction(null); showFull(); return }
     setAddedBooks(prev => new Map(prev).set(book.id, child.id))
     setAddedBookObjects(prev => new Map(prev).set(book.id, book))
     setPendingBook(null); setPendingAction(null)
@@ -422,6 +419,11 @@ function LibraryPageInner() {
     if (reqId) {
       const { error: itemErr } = await supabase.from('swap_request_items').insert({ swap_request_id: reqId, book_id: book.id, child_id: child.id })
       if (itemErr?.message.includes('NEW_BOOKS_ON_HOLD')) { alert('New books are on hold until your extra books come back. Mark them as Returning for your next Curious Day — you can choose again once they’re back.'); window.location.reload(); return }
+      if (itemErr?.message.includes('NEXT_DELIVERY_FULL')) {
+        setAddedBooks(prev => { const n = new Map(prev); n.delete(book.id); return n })
+        setAddedBookObjects(prev => { const n = new Map(prev); n.delete(book.id); return n })
+        showFull(); return
+      }
       if (itemErr && itemErr.code !== '23505') console.error('swap_request_items insert failed:', itemErr)
     }
   }
@@ -449,21 +451,6 @@ function LibraryPageInner() {
 
   const activeFilters = activeLevels.length > 0 || selectedCategoryIds.length > 0 || showAvailableOnly
 
-  const NAV_ITEMS = isChildMode ? [
-    { label: 'Home', path: `/dashboard/children/${childIdParam}`, exact: true, onClick: () => router.push(`/dashboard/children/${childIdParam}`),
-      icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg> },
-    { label: 'Library', path: '/dashboard/library', exact: false, onClick: () => router.push(`/dashboard/library?from=child&childId=${childIdParam}`),
-      icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> },
-  ] : [
-    { label: 'Home', path: '/dashboard', exact: true, onClick: () => router.push('/dashboard'),
-      icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg> },
-    { label: 'Library', path: '/dashboard/library', exact: false, onClick: () => router.push('/dashboard/library'),
-      icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> },
-    { label: 'Settings', path: '/dashboard/settings', exact: false, onClick: () => router.push('/dashboard/settings'),
-      icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> },
-    { label: 'Support', path: '/dashboard/support', exact: false, onClick: () => router.push('/dashboard/support'),
-      icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> },
-  ]
 
   function ReadPill({ bookId }: { bookId: string }) {
     if (isChildMode) {
@@ -613,6 +600,14 @@ function LibraryPageInner() {
                 ))}
               </div>
             )}
+            {/* can't find it? → ask us to add it */}
+            {!searchLoading && searchResults && (
+              <div style={{ marginTop: searchResults.length ? '28px' : '4px', textAlign: 'center', padding: '22px 16px', borderRadius: '16px', border: '2px dashed #e8e0d4', backgroundColor: '#fffef9' }}>
+                <p style={{ fontFamily: 'var(--font-patrick-hand)', color: '#1a2f51', fontSize: '1.4rem', margin: '0 0 4px' }}>{searchResults.length ? 'Not the one you’re looking for?' : 'Can’t find it?'}</p>
+                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.92rem', margin: '0 0 14px' }}>Tell us and we’ll try to add it to the library.</p>
+                <button onClick={() => setRequestOpen(true)} style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.8rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', backgroundColor: '#1a2f51', border: 'none', borderRadius: '999px', padding: '12px 26px', cursor: 'pointer' }}>Ask us to add it</button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -621,8 +616,7 @@ function LibraryPageInner() {
       <div style={{ position: 'sticky', top: 0, zIndex: 40, backgroundColor: '#fefaf2', padding: '24px 20px 2px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ lineHeight: 1 }}>
-            <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#1a2f51', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.5rem', color: '#1a2f51', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0' }}>THE CHILDREN'S LIBRARY</p>
+            <CuriousLogo height={72} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '36px' }}>
             {/* Basket icon */}
@@ -1002,46 +996,20 @@ function LibraryPageInner() {
       )}
 
       {/* Fixed bottom: nav only */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 55, backgroundColor: '#1a2f51', borderTop: 'none' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '8px 8px', paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
-          {NAV_ITEMS.map((item, i) => {
-            const active = item.exact ? pathname === item.path : pathname.startsWith(item.path)
-            return (
-              <button key={i} onClick={item.onClick}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, background: 'none', border: 'none', cursor: 'pointer', color: active ? '#f9d174' : '#fefaf2', opacity: 1, minWidth: '56px', padding: 0 }}>
-                {item.icon()}
-                <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.6rem', letterSpacing: '0.06em', fontWeight: active ? 700 : 400 }}>{item.label}</span>
-              </button>
-            )
-          })}
-        </div>
+      <div style={{ textAlign: 'center', padding: '56px 16px 32px' }}>
+        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.92rem', margin: '0 0 10px' }}>{isChildMode ? 'Is there a book you wish we had in our library?' : 'Is there a book or series you’d love us to add to our library?'}</p>
+        <button onClick={() => setRequestOpen(true)} style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.8rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', backgroundColor: '#1a2f51', border: 'none', borderRadius: '999px', padding: '12px 26px', cursor: 'pointer' }}>Suggest a book</button>
       </div>
 
-      {/* No-children gate — shown when heart/basket tapped with no profiles */}
-      {showChildGate && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-          onClick={() => setShowChildGate(false)}>
-          <div onClick={e => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: '576px', backgroundColor: '#130d09', borderRadius: '20px 20px 0 0', padding: '32px 24px 40px', border: '1px solid rgba(237,219,195,0.15)', textAlign: 'center' }}>
-            <img src="/bonky_family.png" alt="" style={{ height: '72px', width: 'auto', marginBottom: '16px' }} />
-            <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.4rem', fontWeight: 700, margin: '0 0 8px' }}>Tiny problem. No tiny humans.</p>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: 'rgba(237,219,195,0.6)', fontSize: '0.8rem', lineHeight: 1.6, margin: '0 0 4px' }}>We need at least one child profile before the book choosing can begin.</p>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: 'rgba(237,219,195,0.6)', fontSize: '0.8rem', lineHeight: 1.6, margin: '0 0 24px' }}>Add your reader and we'll take it from there.</p>
-            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-              <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', left: '-32px', height: '44px', width: 'auto', pointerEvents: 'none', zIndex: 1, filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
-              <button onClick={() => router.push('/dashboard/children/new')}
-                style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#080402', backgroundColor: '#eddbc3', border: 'none', borderRadius: '999px', padding: '12px 28px', cursor: 'pointer' }}>
-                Add a child
-              </button>
-              <img src="/whiskers_right.png" alt="" style={{ position: 'absolute', right: '-32px', height: '44px', width: 'auto', pointerEvents: 'none', zIndex: 1, filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
-            </div>
-            <button onClick={() => setShowChildGate(false)}
-              style={{ display: 'block', margin: '16px auto 0', background: 'none', border: 'none', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: 'rgba(237,219,195,0.45)', cursor: 'pointer' }}>
-              I'll do it later
-            </button>
-          </div>
-        </div>
+      {requestOpen && (
+        <BookRequestSheet initialTitle={searchQuery} childId={isChildMode ? childIdParam : null}
+          readers={children.map(c => ({ id: c.id, name: c.name }))} onClose={() => setRequestOpen(false)} />
       )}
+
+      {isChildMode ? <ChildBottomNav childId={childIdParam!} /> : <ParentBottomNav />}
+
+      {/* No-children gate — shown when heart/basket tapped with no profiles */}
+      {showChildGate && <NoReaderSheet onAdd={() => router.push('/dashboard/children/new')} onClose={() => setShowChildGate(false)} />}
 
       {/* Child selector modal — shared for heart and basket */}
       {pendingBook && pendingAction && (

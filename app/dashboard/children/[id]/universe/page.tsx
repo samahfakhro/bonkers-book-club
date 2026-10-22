@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import CuriousLogo from '@/components/CuriousLogo'
 
 const BOOK_SLOTS = [
   {l:'0.0%',t:'17.2%',h:'16.7%'},{l:'1.1%',t:'18.1%',h:'16.4%'},{l:'3.0%',t:'18.7%',h:'16.2%'},
@@ -140,8 +141,7 @@ export default function UniversePage() {
 
       {/* Top left: logo */}
       <div style={{ position: 'absolute', top: '24px', left: '16px', zIndex: 20, lineHeight: 1 }}>
-        <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '2.4rem', color: '#eddbc3', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
-        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.45rem', color: '#eddbc3', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0' }}>THE CHILDREN&apos;S LIBRARY</p>
+        <CuriousLogo height={60} light />
       </div>
 
       {/* Bottom right: back button */}

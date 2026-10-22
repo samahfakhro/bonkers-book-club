@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
     userText += `Book Type: ${b.book_type || 'Not specified'}\n`
     userText += `Age Range: ${b.age_min ?? '?'}–${b.age_max ?? '?'}\n`
     if (seriesName) userText += `Series: ${seriesName}\n`
-    if (categoryNames.length) userText += `Bonkers Categories: ${categoryNames.join(', ')}\n`
+    if (categoryNames.length) userText += `Curious Library Categories: ${categoryNames.join(', ')}\n`
     if (b.description) userText += `\nDescription:\n${b.description}\n`
     if (b.cover_image_url) userText += `\nThe book cover image is included above for visual context.\n`
 
@@ -169,14 +169,14 @@ export async function POST(req: NextRequest) {
     if (mode === 'retry') {
       userText += `\nIMPORTANT: The previous concept was REJECTED. You must create a SUBSTANTIALLY DIFFERENT concept for the same book. Do not repeat themes, object types, or visual approaches from your previous attempt. Think differently about what makes this book special.\n`
     } else if (mode === 'revise' && feedback) {
-      userText += `\nFEEDBACK ON PREVIOUS CONCEPT:\n"${feedback}"\n\nPlease incorporate this feedback in your revised concept and image. The creative direction above comes from the Bonkers team — follow it precisely.\n`
+      userText += `\nFEEDBACK ON PREVIOUS CONCEPT:\n"${feedback}"\n\nPlease incorporate this feedback in your revised concept and image. The creative direction above comes from The Curious Library team — follow it precisely.\n`
     }
 
     if (customPrompt && customPrompt.trim()) {
       userText += `\nADMIN DIRECTION:\n"${customPrompt.trim()}"\n`
     }
 
-    userText += `\nNow apply the Bonkers Collectible Bible. Think carefully about the best concept, then output your JSON metadata block, then call the image_generation tool.`
+    userText += `\nNow apply the Curious Collectible Bible. Think carefully about the best concept, then output your JSON metadata block, then call the image_generation tool.`
 
     // ── Build the input messages ───────────────────────────────────────
     const contentParts: any[] = [

@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import EnvelopeScanner from '@/components/driver/EnvelopeScanner'
 import { navy, yellow, Big, Card, Choice, Screen } from '../../ui'
+import { PREFERENCE_LABEL, preferencesOf } from '@/lib/delivery-preferences'
 
 // Route View (stops in order) + Stop Detail (?stop=…): verify the family, scan every child's envelope,
 // record what happened, move on to the next stop. One stop at a time; no customer-service decisions.
@@ -11,7 +12,7 @@ import { navy, yellow, Big, Card, Choice, Screen } from '../../ui'
 type Household = {
   first_name: string | null; last_name: string | null; villa_flat: string | null; building: string | null; street: string | null
   sub_community: string | null; area: string | null; property_type: string | null; mobile_phone: string | null; whatsapp_number: string | null
-  delivery_preference: string | null; safe_spot_description: string | null; delivery_container_type: string | null
+  delivery_preference: string | null; delivery_preferences: string[] | null; safe_spot_description: string | null; delivery_container_type: string | null
   delivery_container_location_notes: string | null; neighbour_permission_enabled: boolean | null; neighbour_details: string | null
 }
 type Child = { childId: string; number: number; envelopeCode: string; name: string; lastName: string; bookCount: number }
@@ -23,10 +24,6 @@ type Stop = {
 }
 type DriverRoute = { id: string; route_date: string; status: string; zones: { code: string; name: string } | null; stops: Stop[] }
 
-const PREFERENCE: Record<string, string> = {
-  leave_at_door: 'Leave at the door (contactless)', leave_safe_spot: 'Leave in their safe spot', ring_bell: 'Ring the bell — someone is home',
-  call_no_bell: 'Call them — don’t ring the bell', leave_with_reception: 'Leave with reception / concierge',
-}
 const FAILED = new Set(['delivery_failed', 'collection_failed', 'no_access', 'no_answer', 'partial_issue', 'books_not_returned'])
 const REPLY: Record<string, string> = {
   retry_today: 'Please try again today', neighbour: 'Leave with a neighbour', concierge: 'Leave with reception / concierge',
@@ -254,11 +251,15 @@ function StopDetail({ route, stop, onBack, onDone }: { route: DriverRoute; stop:
       )}
       {/* instructions */}
       <Card style={{ background: '#fffbea', border: `1px solid ${yellow}` }}>
-        <p style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: navy }}>{PREFERENCE[h?.delivery_preference || ''] || 'No delivery preference given'}</p>
-        {h?.delivery_preference === 'leave_safe_spot' && h.safe_spot_description && <p style={{ margin: '6px 0 0', fontSize: '15px', color: navy }}>Safe spot: <strong>{h.safe_spot_description}</strong></p>}
+        {preferencesOf(h).length ? (
+          <>
+            <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: 700, color: navy, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Delivery & collection — try in this order</p>
+            {preferencesOf(h).map((p, i) => <p key={p} style={{ margin: '2px 0 0', fontSize: '16px', fontWeight: i === 0 ? 800 : 600, color: navy }}>{i + 1}. {PREFERENCE_LABEL[p] || p}</p>)}
+          </>
+        ) : <p style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: navy }}>No delivery preference given</p>}
+        {preferencesOf(h).includes('leave_safe_spot') && h?.safe_spot_description && <p style={{ margin: '6px 0 0', fontSize: '15px', color: navy }}>Safe spot: <strong>{h.safe_spot_description}</strong></p>}
         {h?.delivery_container_type && <p style={{ margin: '6px 0 0', fontSize: '15px', color: navy }}>Their {h.delivery_container_type}{h.delivery_container_location_notes ? `: ${h.delivery_container_location_notes}` : ''}</p>}
         {stop.delivery_notes && <p style={{ margin: '6px 0 0', fontSize: '15px', color: navy }}>Notes: <strong>{stop.delivery_notes}</strong></p>}
-        {h?.neighbour_permission_enabled && h.neighbour_details && <p style={{ margin: '6px 0 0', fontSize: '15px', color: navy }}>Neighbour allowed: {h.neighbour_details}</p>}
       </Card>
 
       {isDone ? (
@@ -331,7 +332,7 @@ function StopDetail({ route, stop, onBack, onDone }: { route: DriverRoute; stop:
               {stop.allowed.includes('handed_over') && <Choice selected={delivery === 'handed_over'} onClick={() => setDelivery('handed_over')}>Delivered</Choice>}
               {stop.allowed.includes('concierge') && <Choice selected={delivery === 'concierge'} onClick={() => setDelivery('concierge')}>Left with concierge</Choice>}
               {stop.allowed.includes('neighbour') && <Choice selected={delivery === 'neighbour'} onClick={() => setDelivery('neighbour')}>Left with neighbour</Choice>}
-              {stop.allowed.includes('safe_drop') && <Choice selected={delivery === 'safe_drop'} onClick={() => setDelivery('safe_drop')}>Safe drop (photo needed)</Choice>}
+              {stop.allowed.includes('safe_drop') && <Choice selected={delivery === 'safe_drop'} onClick={() => setDelivery('safe_drop')}>Left at door / safe spot (photo needed)</Choice>}
               <Choice selected={delivery === 'failed'} onClick={() => setDelivery('failed')}>Couldn’t deliver</Choice>
 
               {delivery === 'neighbour' && (

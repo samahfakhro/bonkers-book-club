@@ -219,9 +219,11 @@ Amount in AED — leave blank for the suggested amount:`, '')
                 <span style={{ color: '#4a4a4a' }}> · {c.kind === 'lost' ? 'Lost' : 'Damaged'}: {c.title}</span> <span style={{ color: '#9b9b9b' }}>{c.internalId}</span>
                 <span style={{ fontWeight: 700 }}> · AED {c.amount}</span>
                 {c.status === 'disputed' && <span style={{ color: '#b45309', fontWeight: 700 }}> · DISPUTED</span>}
+                {c.status === 'draft' && <span style={{ color: '#1a56b0', fontWeight: 700 }}> · NOT SENT YET</span>}
               </span></span>
               <span style={{ display: 'flex', gap: '6px' }}>
-                <Btn onClick={() => setCharge(c, 'paid')}>Paid</Btn>
+                {c.status === 'draft' && <Btn onClick={async () => { if (!confirm(`Send this AED ${c.amount} payment request to ${c.family}?`)) return; await post({ action: 'send_charge', chargeId: c.id }); await load() }}>Send to family</Btn>}
+                <Btn variant={c.status === 'draft' ? 'secondary' : undefined} onClick={() => setCharge(c, 'paid')}>Paid</Btn>
                 <Btn variant="secondary" onClick={() => editAmount(c)}>Edit amount</Btn>
                 <Btn variant="secondary" onClick={() => setCharge(c, 'waived')}>Waive</Btn>
                 {c.status !== 'disputed' && <Btn variant="secondary" onClick={() => setCharge(c, 'disputed')}>Disputed</Btn>}

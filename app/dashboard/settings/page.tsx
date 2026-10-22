@@ -5,6 +5,10 @@ import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import SignupMap, { type Zone, type MapResult } from '@/components/SignupMap'
 import AddressFields, { validateAddress, type AddressValue, type AddressField } from '@/components/AddressFields'
+import CuriousLogo from '@/components/CuriousLogo'
+import { DELIVERY_OPTIONS, togglePreference, preferenceColumns, preferencesOf } from '@/lib/delivery-preferences'
+import ParentBottomNav from '@/components/ParentBottomNav'
+import PlanSettings from '@/components/PlanSettings'
 
 type Child = {
   id: string
@@ -93,7 +97,7 @@ export default function SettingsPage() {
   const [savedSection, setSavedSection] = useState<string | null>(null)
 
   const [account, setAccount] = useState({ firstName: '', lastName: '', email: '', mobile: '', whatsapp: '', whatsappCountryCode: '+971', samePhone: false, avatarId: '' })
-  const [delivery, setDelivery] = useState({ deliveryPreference: '', safeSpot: '', deliveryNotes: '', backupSafeDrop: false, backupNeighbour: false, neighbourDetails: '', backupConcierge: false })
+  const [delivery, setDelivery] = useState({ deliveryPreferences: [] as string[], safeSpot: '', deliveryNotes: '', backupSafeDrop: false, backupNeighbour: false, neighbourDetails: '', backupConcierge: false })
   const [deliveryError, setDeliveryError] = useState('')
   // Address change uses the same pin → confirm → written-address flow as signup
   type AddrMode = 'view' | 'pin' | 'fields' | 'outside' | 'waitlisted'
@@ -133,7 +137,7 @@ export default function SettingsPage() {
       const whatsappCountryCode = whatsappRaw.startsWith('+') ? whatsappRaw.slice(0, 4) : '+971'
       const whatsappNum = whatsappRaw.startsWith('+') ? whatsappRaw.slice(4) : whatsappRaw
       setAccount({ firstName: hh.first_name || '', lastName: hh.last_name || '', email: user.email || '', mobile: hh.mobile_phone || '', whatsapp: whatsappNum, whatsappCountryCode, samePhone: false, avatarId: hh.avatar_id || '' })
-      setDelivery({ deliveryPreference: hh.delivery_preference || '', safeSpot: hh.safe_spot_description || '', deliveryNotes: hh.delivery_notes || '', backupSafeDrop: !!hh.backup_safe_drop, backupNeighbour: !!hh.neighbour_permission_enabled, neighbourDetails: hh.neighbour_details || '', backupConcierge: !!hh.backup_concierge })
+      setDelivery({ deliveryPreferences: preferencesOf(hh as any), safeSpot: hh.safe_spot_description || '', deliveryNotes: hh.delivery_notes || '', backupSafeDrop: !!hh.backup_safe_drop, backupNeighbour: !!hh.neighbour_permission_enabled, neighbourDetails: hh.neighbour_details || '', backupConcierge: !!hh.backup_concierge })
       setNotifications({ whatsapp: hh.notify_whatsapp ?? true, email: hh.notify_email ?? true, marketing: hh.agreed_to_marketing ?? false })
       setChildNotifyEnabled((hh as any).child_notify_enabled ?? true)
       const { data: sub } = await supabase.from('subscriptions').select('subscription_plans(name, book_count, price_monthly)').eq('household_id', hh.id).eq('status', 'active').maybeSingle()
@@ -248,14 +252,14 @@ export default function SettingsPage() {
   ].filter(Boolean).join(', ')
 
   async function saveDelivery() {
-    const needsSpot = delivery.deliveryPreference === 'leave_safe_spot' || delivery.backupSafeDrop
+    if (!delivery.deliveryPreferences.length) { setDeliveryError('Please choose at least one delivery & collection option.'); return }
+    const needsSpot = delivery.deliveryPreferences.includes('leave_safe_spot')
     if (needsSpot && !delivery.safeSpot.trim()) { setDeliveryError('Please describe your safe spot so our driver can find it.'); return }
-    if (delivery.backupNeighbour && !delivery.neighbourDetails.trim()) { setDeliveryError('Please add your neighbour’s name and villa/flat number.'); return }
     setDeliveryError('')
     await saveSection('delivery', {
-      delivery_preference: delivery.deliveryPreference, safe_spot_description: delivery.safeSpot || null, delivery_notes: delivery.deliveryNotes || null,
-      backup_safe_drop: delivery.backupSafeDrop, neighbour_permission_enabled: delivery.backupNeighbour,
-      neighbour_details: delivery.backupNeighbour ? delivery.neighbourDetails.trim() : null, backup_concierge: delivery.backupConcierge,
+      ...preferenceColumns(delivery.deliveryPreferences), safe_spot_description: delivery.safeSpot || null, delivery_notes: delivery.deliveryNotes || null,
+      neighbour_permission_enabled: false,
+      neighbour_details: null,
     })
   }
 
@@ -331,8 +335,7 @@ export default function SettingsPage() {
   return (
     <main className="min-h-screen" style={{ position: 'relative', backgroundColor: '#fefaf2' }}>
       <div style={{ position: 'absolute', top: '24px', left: '20px', lineHeight: 1 }}>
-        <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#1a2f51', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
-        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.5rem', color: '#1a2f51', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0' }}>THE CHILDREN'S LIBRARY</p>
+        <CuriousLogo height={72} />
       </div>
 
       <div className="settings-content" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
@@ -490,58 +493,34 @@ export default function SettingsPage() {
 
               {/* How to deliver */}
               <div style={{ marginTop: '20px', marginBottom: '4px' }}>
-                <label style={{ ...labelStyle, marginBottom: '10px', display: 'block' }}>How should we deliver?</label>
+                <label style={{ ...labelStyle, marginBottom: '4px', display: 'block' }}>Delivery & collection</label>
+                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#1a2f51', opacity: 0.8, margin: '0 0 10px', lineHeight: 1.5 }}>
+                  We drop off and pick up in the same visit. Tap as many as suit you, in order of preference — your driver will try 1 first, then 2, and so on.
+                </p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  {[
-                    { value: 'leave_at_door', label: 'At the door', sub: 'Contactless' },
-                    { value: 'leave_safe_spot', label: 'Safe spot', sub: 'Contactless' },
-                    { value: 'ring_bell', label: 'Ring the bell', sub: "Someone's home" },
-                    { value: 'call_no_bell', label: 'Call me', sub: "Don't ring bell" },
-                    { value: 'leave_with_reception', label: 'Reception', sub: 'Concierge' },
-                  ].map(opt => (
-                    <button key={opt.value} type="button" onClick={() => setDelivery(d => ({ ...d, deliveryPreference: opt.value }))}
-                      style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', textAlign: 'left', padding: '14px 16px', borderRadius: '14px', border: delivery.deliveryPreference === opt.value ? '4px solid #fee297' : '2px solid #e8e0d4', backgroundColor: delivery.deliveryPreference === opt.value ? '#fffef9' : 'transparent', cursor: 'pointer', transition: 'all 0.15s' }}>
-                      <img src={delivery.deliveryPreference === opt.value ? '/star_yellow.png' : '/star_cream.png'} alt="" style={{ width: delivery.deliveryPreference === opt.value ? '32px' : '28px', height: delivery.deliveryPreference === opt.value ? '32px' : '28px', objectFit: 'contain', flexShrink: 0 }} />
+                  {DELIVERY_OPTIONS.map(opt => {
+                    const rank = delivery.deliveryPreferences.indexOf(opt.value) + 1
+                    return (
+                    <button key={opt.value} type="button" onClick={() => { setDelivery(d => ({ ...d, deliveryPreferences: togglePreference(d.deliveryPreferences, opt.value) })); setDeliveryError('') }}
+                      style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', textAlign: 'left', padding: '14px 16px', borderRadius: '14px', border: rank ? '4px solid #fee297' : '2px solid #e8e0d4', backgroundColor: rank ? '#fffef9' : 'transparent', cursor: 'pointer', transition: 'all 0.15s' }}>
+                      <span style={{ width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.95rem', color: '#fff', backgroundColor: rank ? '#1a2f51' : 'transparent', border: rank ? 'none' : '2px solid #ddd6cc', boxSizing: 'border-box' }}>{rank || ''}</span>
                       <div>
                         <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 600, display: 'block' }}>{opt.label}</span>
                         <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.72rem', display: 'block', marginTop: '1px' }}>{opt.sub}</span>
                       </div>
                     </button>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 
-              {(delivery.deliveryPreference === 'leave_safe_spot' || delivery.backupSafeDrop) && (
+              {delivery.deliveryPreferences.includes('leave_safe_spot') && (
                 <div style={{ marginTop: '14px' }}>
                   <label style={labelStyle}>Describe the safe spot</label>
                   <input type="text" placeholder="e.g. behind the gate, under the mat…" value={delivery.safeSpot} onChange={e => setDelivery(d => ({ ...d, safeSpot: e.target.value }))} className={inputClass} />
                 </div>
               )}
 
-              {/* Backups if nobody answers — so we (almost) never miss you */}
-              <div style={{ marginTop: '24px' }}>
-                <label style={{ ...labelStyle, display: 'block', marginBottom: '4px' }}>If we can’t reach you, we’re happy for you to…</label>
-                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#1a2f51', opacity: 0.8, margin: '0 0 10px', lineHeight: 1.5 }}>
-                  Tick any that suit you. It means our driver can leave your books safely without needing to call — fewer missed deliveries and no waiting for your next Curious Day.
-                </p>
-                {[
-                  { key: 'backupSafeDrop' as const, label: 'Leave them in my safe spot', show: delivery.deliveryPreference !== 'leave_safe_spot' },
-                  { key: 'backupNeighbour' as const, label: 'Leave them with a neighbour', show: true },
-                  { key: 'backupConcierge' as const, label: 'Leave them with reception / concierge', show: delivery.deliveryPreference !== 'leave_with_reception' },
-                ].filter(o => o.show).map(o => (
-                  <button key={o.key} type="button" onClick={() => { setDelivery(d => ({ ...d, [o.key]: !d[o.key] })); setDeliveryError('') }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', padding: '12px 14px', marginBottom: '8px', borderRadius: '14px', cursor: 'pointer', border: delivery[o.key] ? '4px solid #fee297' : '2px solid #e8e0d4', backgroundColor: delivery[o.key] ? '#fffef9' : 'transparent' }}>
-                    <img src={delivery[o.key] ? '/star_yellow.png' : '/star_cream.png'} alt="" style={{ width: '24px', height: '24px', objectFit: 'contain', flexShrink: 0 }} />
-                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 600 }}>{o.label}</span>
-                  </button>
-                ))}
-                {delivery.backupNeighbour && (
-                  <div style={{ marginTop: '6px' }}>
-                    <label style={labelStyle}>Neighbour’s name and villa / flat</label>
-                    <input type="text" placeholder="e.g. Sarah, Villa 31" value={delivery.neighbourDetails} onChange={e => { setDelivery(d => ({ ...d, neighbourDetails: e.target.value })); setDeliveryError('') }} className={inputClass} />
-                  </div>
-                )}
-              </div>
               {deliveryError && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#e05c3a', fontSize: '0.85rem', marginTop: '10px' }}>{deliveryError}</p>}
 
               <SaveButton onClick={saveDelivery} loading={savingSection === 'delivery'} saved={savedSection === 'delivery'} />
@@ -552,27 +531,11 @@ export default function SettingsPage() {
           <section style={sectionBorder}>
             <button type="button" onClick={() => toggleSection('plan')} className="flex items-center justify-between w-full"
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '16px 0' }}>
-              <p style={sectionHeading}>Your Plan</p>
+              <p style={sectionHeading}>Plan</p>
               {chevron('plan')}
             </button>
             {expandedSection === 'plan' && <div style={{ paddingBottom: '20px', paddingTop: '16px' }}>
-              <div style={{ borderRadius: '16px', padding: '20px', backgroundColor: '#fffef9', border: '2px solid #e8e0d4' }}>
-                {plan ? (
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1.5rem', fontWeight: 700, margin: '0 0 2px' }}>{plan.name}</p>
-                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.78rem', opacity: 0.7, margin: 0 }}>{plan.book_count} books / month · AED {plan.price_monthly}/mo</p>
-                    </div>
-                    <span style={{ backgroundColor: 'rgba(46,92,58,0.1)', color: '#2e5c3a', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '4px 12px', borderRadius: '999px' }}>Active</span>
-                  </div>
-                ) : (
-                  <p style={{ color: '#1a2f51', opacity: 0.6, fontFamily: 'var(--font-montserrat), sans-serif', margin: 0 }}>No active plan found.</p>
-                )}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
-                <button style={{ width: '100%', backgroundColor: '#1a2f51', border: 'none', borderRadius: '999px', cursor: 'pointer', padding: '14px 24px', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.8rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#fff' }}>Change Plan</button>
-                <button style={{ width: '100%', backgroundColor: 'transparent', border: '1.5px solid rgba(26,47,81,0.3)', borderRadius: '999px', cursor: 'pointer', padding: '13px 24px', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.8rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#1a2f51', opacity: 0.7 }}>Pause or Cancel</button>
-              </div>
+              <PlanSettings />
             </div>}
           </section>
 
@@ -599,7 +562,7 @@ export default function SettingsPage() {
                             <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1.2rem', fontWeight: 700 }}>{child.name}</p>
                             <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.75rem', opacity: 0.6 }}>
                               {edit?.swapPermission === 'independent_submit' ? 'Fly Solo' : 'Fly with the Flock'}
-                              {edit?.bookSlots != null ? ` · ${edit.bookSlots} book${edit.bookSlots !== 1 ? 's' : ''}/swap` : ''}
+                              {edit?.bookSlots != null ? ` · ${edit.bookSlots} book${edit.bookSlots !== 1 ? 's' : ''} at a time` : ''}
                             </p>
                           </div>
                         </div>
@@ -701,7 +664,7 @@ export default function SettingsPage() {
                                 const age = child.date_of_birth ? Math.floor((Date.now() - new Date(child.date_of_birth).getTime()) / (1000*60*60*24*365.25)) : null
                                 return [
                                   { value: 'first_name', label: `${child.name}${age !== null ? `, Age ${age}` : ''}` },
-                                  { value: 'anonymous', label: `Bonkers reader${age !== null ? `, Age ${age}` : ''}` },
+                                  { value: 'anonymous', label: `Curious reader${age !== null ? `, Age ${age}` : ''}` },
                                 ].map(opt => (
                                   <button key={opt.value} type="button"
                                     onClick={() => setChildEdits(prev => ({ ...prev, [child.id]: { ...prev[child.id], reviewDisplay: opt.value } }))}
@@ -777,7 +740,7 @@ export default function SettingsPage() {
                 {/* Marketing */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ flex: 1, paddingRight: '16px' }}>
-                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.85rem', fontWeight: 600, display: 'block' }}>Bonkers news &amp; recommendations</span>
+                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.85rem', fontWeight: 600, display: 'block' }}>Curious Library news &amp; recommendations</span>
                     <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.75rem', opacity: 0.7, display: 'block', marginTop: '2px' }}>Book picks, updates and other brilliant nonsense</span>
                   </div>
                   <button type="button" onClick={() => toggleNotif('marketing')}
@@ -848,25 +811,7 @@ export default function SettingsPage() {
       )}
 
       {/* ── BOTTOM NAV ── */}
-      <div className="fixed bottom-0 left-0 right-0" style={{ backgroundColor: '#1a2f51', zIndex: 40 }}>
-        <div className="max-w-xl mx-auto flex items-center justify-around px-2" style={{ paddingTop: '8px', paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
-          {[
-            { label: 'Home', path: '/dashboard', exact: true, icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>, onClick: () => router.push('/dashboard') },
-            { label: 'Library', path: '/dashboard/library', exact: false, icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>, onClick: () => router.push('/dashboard/library') },
-            { label: 'Settings', path: '/dashboard/settings', exact: false, icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>, onClick: () => router.push('/dashboard/settings') },
-            { label: 'Support', path: '/dashboard/support', exact: false, icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>, onClick: () => router.push('/dashboard/support') },
-          ].map((item, i) => {
-            const active = item.exact ? pathname === item.path : pathname.startsWith(item.path)
-            return (
-              <button key={i} onClick={item.onClick} className="flex flex-col items-center gap-1 flex-1"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: active ? '#f9d174' : '#fefaf2', opacity: 1, padding: '6px 0' }}>
-                {item.icon()}
-                <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.58rem', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700 }}>{item.label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      <ParentBottomNav />
     </main>
   )
 }

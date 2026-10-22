@@ -16,7 +16,7 @@ export default function OperationsPage() {
         <button onClick={() => router.push('/admin/operations/packing')}
           style={{ padding: '24px', borderRadius: '10px', border: '1px solid #e5e5e5', backgroundColor: '#fff', cursor: 'pointer', textAlign: 'left' }}>
           <p style={{ margin: '0 0 6px', fontSize: '14px', fontWeight: 700, color: '#1a1a1a' }}>📦 Packing</p>
-          <p style={{ margin: 0, fontSize: '12px', color: '#9b9b9b' }}>Scan and confirm books for locked swap requests</p>
+          <p style={{ margin: 0, fontSize: '12px', color: '#9b9b9b' }}>Scan and confirm books for locked deliveries</p>
         </button>
         <button onClick={() => router.push('/admin/operations/returns')}
           style={{ padding: '24px', borderRadius: '10px', border: '1px solid #e5e5e5', backgroundColor: '#fff', cursor: 'pointer', textAlign: 'left' }}>

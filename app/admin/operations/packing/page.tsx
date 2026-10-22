@@ -103,7 +103,7 @@ function buildLabelHtml(labels: Label[]) {
   ${labels.map((l, i) => `
   <div class="label">
     <div class="top">
-      <div class="brand">Bonkers — The Children's Library</div>
+      <div class="brand">The Curious Library</div>
       <div class="stop"><div class="stop-ref">${esc(l.stopRef)}</div><div class="stop-box">Box ${esc(l.box)}</div></div>
     </div>
     <div class="child-name">${esc(l.childName)}</div>

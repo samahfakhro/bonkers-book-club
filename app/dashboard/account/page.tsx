@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import CuriousLogo from '@/components/CuriousLogo'
+import ParentBottomNav from '@/components/ParentBottomNav'
 
 const AVATARS = [
   { id: 'lion', emoji: '🦁', bg: '#FCD34D' },
@@ -57,8 +59,7 @@ export default function AccountPage() {
   return (
     <main className="min-h-screen pb-32" style={{ backgroundColor: '#080402' }}>
       <div style={{ position: 'absolute', top: '24px', left: '20px', lineHeight: 1, zIndex: 10 }}>
-        <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#eddbc3', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
-        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.5rem', color: '#eddbc3', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0' }}>THE CHILDREN'S LIBRARY</p>
+        <CuriousLogo height={72} light />
       </div>
 
       <div className="max-w-lg mx-auto px-5" style={{ paddingTop: '100px' }}>
@@ -118,26 +119,7 @@ export default function AccountPage() {
       </div>
 
       {/* ── BOTTOM NAV ── */}
-      <div className="fixed bottom-0 left-0 right-0" style={{ backgroundColor: 'rgb(8,4,2)', borderTop: '1px solid rgba(237,219,195,0.12)', zIndex: 40 }}>
-        <div className="max-w-xl mx-auto flex items-center justify-around px-2 py-2">
-          {[
-            { label: 'Home', path: '/dashboard', exact: true, icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>, onClick: () => router.push('/dashboard') },
-            { label: 'Library', path: '/dashboard/library', exact: false, icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>, onClick: () => router.push('/dashboard/library') },
-            { label: 'Account', path: '/dashboard/account', exact: false, icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>, onClick: () => router.push('/dashboard/account') },
-            { label: 'Settings', path: '/dashboard/settings', exact: false, icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>, onClick: () => router.push('/dashboard/settings') },
-          ].map(item => {
-            const active = isActive(item.path, item.exact)
-            return (
-              <button key={item.label} onClick={item.onClick}
-                className="flex flex-col items-center gap-0.5 px-3 py-1"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: active ? '#f9d174' : 'rgba(237,219,195,0.4)', minWidth: '56px' }}>
-                {item.icon}
-                <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.6rem', letterSpacing: '0.06em', fontWeight: active ? 700 : 400 }}>{item.label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      <ParentBottomNav />
     </main>
   )
 }

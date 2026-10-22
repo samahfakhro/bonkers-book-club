@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { recheckAllowance } from '@/lib/returns/finish'
+import { changePlan } from '@/lib/membership/plan'
 
 // A family moves up to the bigger plan (e.g. to keep extra books). If that brings them back within
-// their plan, new books are unblocked straight away. Billing follows once Stripe is connected.
+// their plan, new books are unblocked straight away.
 export async function POST(req: NextRequest) {
   const token = req.headers.get('authorization')?.replace(/^Bearer /, '')
   const { data: { user } } = token ? await supabaseAdmin.auth.getUser(token) : { data: { user: null } }
@@ -20,7 +20,8 @@ export async function POST(req: NextRequest) {
   const bigger = (plans || []).find(p => Number(p.book_count) > current)
   if (!bigger) return NextResponse.json({ error: 'You’re already on our biggest plan' }, { status: 400 })
 
-  await supabaseAdmin.from('subscriptions').update({ plan_id: bigger.id }).eq('id', sub.id)
-  await recheckAllowance(hh.id)
+  // same rules and billing as Settings → Plan (immediate, part-month charge, re-checks the allowance)
+  const result = await changePlan(hh.id, bigger.id)
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 })
   return NextResponse.json({ ok: true, plan: bigger.name, books: bigger.book_count })
 }

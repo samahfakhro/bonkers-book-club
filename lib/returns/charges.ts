@@ -1,11 +1,13 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { notifyHousehold } from '@/lib/notify'
+import { renderMessage } from '@/lib/messages'
 
 // Payment requests for lost or damaged books.
+// A request starts as a DRAFT the family can't see; staff check the amount and press "Send to family" (sendChargeToFamily).
 // A LOST book keeps counting as "at home" until its request is Paid or Waived — then the family
 // is re-checked and unblocked if they're back within their plan.
 
-export type ChargeStatus = 'requested' | 'paid' | 'waived' | 'disputed'
+export type ChargeStatus = 'draft' | 'requested' | 'paid' | 'waived' | 'disputed'
 
 async function settings() {
   const { data } = await supabaseAdmin.from('system_settings').select('key, value')
@@ -25,20 +27,23 @@ export async function requestPayment(opts: { householdId: string; copyId: string
   const amount = opts.amount != null && opts.amount >= 0 ? opts.amount : await suggestedAmount(opts.copyId, opts.kind)
   const { data: charge, error } = await supabaseAdmin.from('damage_charges').insert({
     household_id: opts.householdId, book_copy_id: opts.copyId, kind: opts.kind, loan_id: opts.loanId ?? null,
-    inspection_id: opts.inspectionId ?? null, charge_amount_aed: amount, status: 'requested', notes: opts.notes ?? null,
+    inspection_id: opts.inspectionId ?? null, charge_amount_aed: amount, status: 'draft', notes: opts.notes ?? null,
   }).select('id').single()
   if (error) return { error: error.message }
-  const { data: copy } = await supabaseAdmin.from('book_copies').select('books(title)').eq('id', opts.copyId).single()
-  const title = (copy?.books as any)?.title || 'a book'
-  await notifyHousehold({
-    householdId: opts.householdId, type: 'damage_charge',
-    title: opts.kind === 'lost' ? 'A lost book' : 'A damaged book',
-    message: opts.kind === 'lost'
-      ? `We’ve marked ${title} as lost. The replacement cost is AED ${amount}. We’ll be in touch about payment — once it’s settled, you’re all clear.`
-      : `${title} came back damaged. The repair/replacement cost is AED ${amount}. We’ll be in touch about payment.`,
-    link: '/dashboard',
-  })
   return { ok: true, chargeId: charge?.id, amount }
+}
+
+// Staff have checked it — now the family is told (in the app + their chosen email / WhatsApp)
+export async function sendChargeToFamily(chargeId: string) {
+  const { data: ch } = await supabaseAdmin.from('damage_charges').select('id, household_id, kind, charge_amount_aed, status, book_copies ( books ( title ) )').eq('id', chargeId).single()
+  if (!ch) return { error: 'Payment request not found' }
+  if (ch.status !== 'draft') return { error: 'This payment request has already been sent' }
+  const title = (ch.book_copies as any)?.books?.title || 'a book'
+  const amount = Number(ch.charge_amount_aed)
+  await supabaseAdmin.from('damage_charges').update({ status: 'requested' }).eq('id', chargeId)
+  const pay = await renderMessage(ch.kind === 'lost' ? 'payment_lost' : 'payment_damaged', { book_title: title, amount })
+  await notifyHousehold({ householdId: ch.household_id, type: 'damage_charge', title: pay.title, message: pay.body, link: '/dashboard' })
+  return { ok: true }
 }
 
 // Damage request straight from a checked-in book on the Returns screen
@@ -80,7 +85,7 @@ export async function chargesOverview() {
   const s = await settings()
   const { data: charges } = await supabaseAdmin.from('damage_charges')
     .select('id, household_id, kind, charge_amount_aed, status, notes, created_at, book_copies(internal_id, books(title, cover_image_url)), households(first_name, last_name, name, whatsapp_number, mobile_phone)')
-    .in('status', ['requested', 'disputed']).order('created_at', { ascending: false })
+    .in('status', ['draft', 'requested', 'disputed']).order('created_at', { ascending: false })
   const { data: damaged } = await supabaseAdmin.from('return_inspections').select('household_id').or('notes.like.damaged_ok%,notes.like.withdrawn%')
   const damageCount = new Map<string, number>()
   ;(damaged || []).forEach(d => d.household_id && damageCount.set(d.household_id, (damageCount.get(d.household_id) || 0) + 1))

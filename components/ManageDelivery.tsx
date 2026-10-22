@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import CuriousLogo from '@/components/CuriousLogo'
 
 // Manage Delivery — after a missed visit the parent tells us what to do; the driver sees it straight away.
 // Used by the no-login WhatsApp/email link (/m/<token>) and the signed-in dashboard page.
@@ -17,7 +18,6 @@ type Info = {
 
 const OPTIONS: { value: string; label: string; sub: string; needs?: 'neighbour' | 'safe_drop'; apartmentOnly?: boolean }[] = [
   { value: 'retry_today', label: 'Please try again today', sub: 'We’ll do our very best to come back — but we can’t promise it today.' },
-  { value: 'neighbour', label: 'Leave them with a neighbour', sub: 'Just this once — tell us who.', needs: 'neighbour' },
   { value: 'concierge', label: 'Leave them with reception / concierge', sub: 'Just this once.', apartmentOnly: true },
   { value: 'safe_drop', label: 'Leave them in a safe spot', sub: 'Just this once — tell us where.', needs: 'safe_drop' },
   { value: 'next_bonkers_day', label: 'Wait for my next Curious Day', sub: 'Your books stay reserved — you’ll just need to confirm them again.' },
@@ -67,7 +67,7 @@ export default function ManageDelivery({ apiPath, headers, footer }: { apiPath: 
 
   return (
     <main style={{ minHeight: '100vh', padding: '28px 20px 80px', background: '#fefaf2' }}>
-      <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '2.4rem', color: '#1a2744', margin: 0, lineHeight: 1 }}>BONKERS</p>
+      <CuriousLogo height={60} />
       <p style={{ ...body, fontSize: '0.55rem', fontWeight: 600, letterSpacing: '0.18em', margin: '2px 0 0' }}>THE CHILDREN’S LIBRARY</p>
 
       {error && !info && <p style={{ ...body, marginTop: '28px', color: '#e05c3a' }}>{error}</p>}
@@ -76,7 +76,7 @@ export default function ManageDelivery({ apiPath, headers, footer }: { apiPath: 
       {info && (
         <>
           <h1 style={{ ...heading, fontSize: '2.4rem', margin: '26px 0 10px' }}>
-            {info.deliveredAfterAll ? 'All sorted! 🎉' : info.noReturn ? 'We couldn’t swap your books' : info.missedDelivery ? 'We missed you today!' : 'We couldn’t collect your books'}
+            {info.deliveredAfterAll ? 'All sorted! 🎉' : info.noReturn ? 'We couldn’t deliver your new books' : info.missedDelivery ? 'We missed you today!' : 'We couldn’t collect your books'}
           </h1>
 
           {info.deliveredAfterAll ? (

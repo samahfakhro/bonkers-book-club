@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import ParentBottomNav from '@/components/ParentBottomNav'
 
 type Message = { id: string; title: string | null; message: string | null; action_link: string | null; read_at: string | null; created_at: string }
 
@@ -78,7 +79,7 @@ export default function MessagesPage() {
               <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: m.read_at ? 'transparent' : '#3f9a63', flexShrink: 0, marginTop: '6px' }} />
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'baseline' }}>
-                  <span style={{ fontFamily: montserrat, fontWeight: m.read_at ? 600 : 700, fontSize: '0.88rem', color: navy }}>{m.title || 'Message from Bonkers'}</span>
+                  <span style={{ fontFamily: montserrat, fontWeight: m.read_at ? 600 : 700, fontSize: '0.88rem', color: navy }}>{m.title || 'Message from The Curious Library'}</span>
                   <span style={{ fontFamily: montserrat, fontSize: '0.68rem', color: navy, opacity: 0.55, whiteSpace: 'nowrap' }}>{timeAgo(m.created_at)}</span>
                 </span>
                 {m.message && <span style={{ display: 'block', fontFamily: montserrat, fontSize: '0.8rem', color: navy, opacity: 0.8, lineHeight: 1.5, marginTop: '4px' }}>{m.message}</span>}
@@ -88,6 +89,7 @@ export default function MessagesPage() {
           ))}
         </div>
       </div>
+      <ParentBottomNav />
     </main>
   )
 }

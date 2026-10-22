@@ -9,11 +9,14 @@ import { getFirstTouch } from '@/lib/first-touch'
 import { Suspense } from 'react'
 import SignupMap, { type Zone, type MapResult } from '@/components/SignupMap'
 import AddressFields, { validateAddress } from '@/components/AddressFields'
+import CuriousLogo from '@/components/CuriousLogo'
+import BrandSelect from '@/components/BrandSelect'
+import { DELIVERY_OPTIONS, togglePreference, preferenceColumns } from '@/lib/delivery-preferences'
 
 // Fallbacks until the admin Settings load (plans and options are edited in admin → Settings)
 const PLANS = [
-  { id: 'mid', label: 'A Little Bonkers', price: 149, badge: null, books: 16, swapBooks: 4 },
-  { id: 'full', label: 'Quite Bonkers', price: 199, badge: null, books: 24, swapBooks: 6 },
+  { id: 'mid', label: 'A Little Curious', price: 149, badge: null, books: 16, swapBooks: 4 },
+  { id: 'full', label: 'Quite Curious', price: 199, badge: null, books: 24, swapBooks: 6 },
 ]
 
 const COUNTRY_CODES = [
@@ -214,7 +217,7 @@ const COUNTRY_CODES = [
 
 const HOW_OPTIONS = [
   { value: 'friend', label: 'Family/Friends', followUp: null },
-  { value: 'instagram', label: 'Instagram/TikTok', followUp: null },
+  { value: 'instagram', label: 'Our social media', followUp: null },
   { value: 'school', label: "My child's school", followUp: 'Which school?' },
   { value: 'influencer', label: 'Influencer/Blogger', followUp: null },
   { value: 'flyer', label: 'Flyer', followUp: null },
@@ -228,7 +231,7 @@ const STEP_CONFIG = [
   { num: 2, label: 'Details' },
   { num: 3, label: 'Delivery' },
   { num: 4, label: 'Preferences' },
-  { num: 5, label: 'Payment' },
+  { num: 5, label: 'Confirm' },
 ]
 
 type CheckStep = 'map' | 'waitlist' | 'waitlist-done' | 'signup' | 'confirm-email'
@@ -264,12 +267,22 @@ function SignupForm() {
     villaFlat: '', building: '', floor: '', street: '',
     subCommunity: '', area: '', community: communityParam,
     houseType: typeParam, city: 'Dubai', planId: 'mid',
-    deliveryPreference: '', hearAboutUs: '', hearDetail: '',
+    deliveryPreferences: [] as string[], hearAboutUs: '', hearDetail: '',
     agreedToTerms: false, agreedToMarketing: false,
     deliveryNotes: '', safeSpotDescription: '',
   })
 
   const set = (field: string, value: unknown) => setForm(f => ({ ...f, [field]: value }))
+
+  useEffect(() => {
+    const token = params.get('resume')
+    if (!token) return
+    fetch(`/api/signup-lead?token=${encodeURIComponent(token)}`).then(r => r.json()).then(({ lead }) => {
+      if (!lead) return
+      setForm(f => ({ ...f, email: lead.email || f.email, firstName: lead.firstName || f.firstName, lastName: lead.lastName || f.lastName, phone: lead.phone || f.phone, planId: lead.planId || f.planId }))
+      setCurrentStep(2)
+    }).catch(() => {})
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [plans, setPlans] = useState(PLANS)
   const [howOptions, setHowOptions] = useState(HOW_OPTIONS)
   useEffect(() => {
@@ -374,11 +387,17 @@ function SignupForm() {
       errs.mapPin = 'Please confirm your location on the map before continuing.'
     }
     if (currentStep === 3 && pinConfirmed) Object.assign(errs, validateAddress(form))
-    if (currentStep === 4 && !form.deliveryPreference) {
-      errs.deliveryPreference = 'Please choose a delivery option'
+    if (currentStep === 4 && !form.deliveryPreferences.length) {
+      errs.deliveryPreference = 'Please choose at least one option'
+    }
+    if (currentStep === 4 && form.deliveryPreferences.includes('leave_safe_spot') && !form.safeSpotDescription.trim()) {
+      errs.safeSpot = 'Please describe your safe spot so our driver can find it'
     }
     setStepErrors(errs)
     if (Object.keys(errs).length > 0) return
+    if (currentStep === 2) {
+      fetch('/api/signup-lead', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: form.email, firstName: form.firstName, lastName: form.lastName, phone: form.phone, planId: form.planId }) }).catch(() => {})
+    }
     setCurrentStep(s => (s + 1) as 1|2|3|4|5)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -426,7 +445,7 @@ function SignupForm() {
         community_id: form.community || null, property_type: form.houseType || null,
         building: form.building || null, villa_flat: form.villaFlat || null,
         street: form.street || null, sub_community: form.subCommunity || null,
-        area: form.area || null, delivery_preference: form.deliveryPreference || null,
+        area: form.area || null, ...preferenceColumns(form.deliveryPreferences),
         delivery_notes: form.deliveryNotes || null, safe_spot_description: form.safeSpotDescription || null,
         signup_source_category: form.hearAboutUs || null, signup_source_sub_detail: form.hearDetail || null,
         agreed_to_marketing: form.agreedToMarketing, terms_accepted_at: new Date().toISOString(),
@@ -457,25 +476,25 @@ function SignupForm() {
   }
 
   const cardInputClass = "w-full border border-[#ddd6cc] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white text-[#1a2744] font-[var(--font-montserrat)]"
-  const labelStyle: React.CSSProperties = { fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#1a2f51', marginBottom: '4px', display: 'block' }
+  const labelStyle: React.CSSProperties = { fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: isTablet ? '0.65rem' : '0.8rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#1a2f51', marginBottom: '4px', display: 'block' }
 
   const ContinueButton = ({ onClick, label = 'Continue', navy = false }: { onClick: () => void; label?: string; navy?: boolean }) => (
     <button type="button" onClick={onClick}
-      style={{ backgroundImage: navy ? 'none' : 'url(/button2.png)', backgroundSize: '300% 300%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: navy ? '#1a2f51' : 'transparent', border: 'none', borderRadius: '999px', padding: '18px 56px', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 500, fontSize: '0.9rem', letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '10px', minWidth: '220px', justifyContent: 'center', color: 'white' }}>
+      style={{ backgroundImage: navy ? 'none' : 'url(/button2.png)', backgroundSize: '300% 300%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: navy ? '#1a2f51' : 'transparent', border: 'none', borderRadius: '999px', padding: isTablet ? '18px 56px' : '13px 40px', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 500, fontSize: '0.9rem', letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '10px', minWidth: isTablet ? '220px' : '170px', justifyContent: 'center', color: 'white' }}>
       {label}
     </button>
   )
 
   const BackButton = ({ onClick }: { onClick: () => void }) => (
     <button type="button" onClick={onClick}
-      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1a2f51', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '12px' }}>
+      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1a2f51', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.8rem' : '0.95rem', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '12px' }}>
       ← Back
     </button>
   )
 
   const SectionHeading = ({ title, subtitle }: { stepNum?: number; title: string; subtitle: string }) => (
     <div style={{ marginBottom: '28px' }}>
-      <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2.8rem' : '2rem', fontWeight: 800, lineHeight: 1.05, margin: '0 0 8px' }}>{title}</h1>
+      <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2.2rem' : '2.05rem', fontWeight: 800, lineHeight: 1.05, margin: '0 0 8px' }}>{title}</h1>
       {subtitle && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.9rem', margin: 0 }}>{subtitle}</p>}
     </div>
   )
@@ -486,35 +505,17 @@ function SignupForm() {
 
       {/* Header */}
       <div style={{ padding: isTablet ? '24px 32px 6px' : '24px 20px 0', position: 'relative', zIndex: 2, lineHeight: 1 }}>
-        <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#1a2744', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
-        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.58rem', color: '#1a2744', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0', lineHeight: 1.4 }}>THE CHILDREN'S LIBRARY</p>
+        <CuriousLogo height={72} />
       </div>
 
       {/* Step progress bar â€" only shown in signup flow */}
       {step === 'signup' && (
-        <div style={{ padding: `0 ${isTablet ? '60px' : '16px'}`, maxWidth: isTablet ? '680px' : '440px', margin: `${isTablet ? '64px' : '24px'} auto ${isTablet ? '16px' : '10px'}`, marginLeft: isTablet ? 'auto' : '24px', position: 'relative', zIndex: 2 }}>
+        <div style={{ padding: `0 ${isTablet ? '60px' : '32px'}`, maxWidth: isTablet ? '680px' : '440px', margin: `${isTablet ? '64px' : '24px'} auto ${isTablet ? '16px' : '10px'}`, position: 'relative', zIndex: 2 }}>
           {/* Circles + lines row */}
           <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
-            {currentStep < 5 && (
-              <img
-                src="/book_walking.png"
-                alt=""
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: currentStep === 1 ? (isTablet ? '9%' : '11%') : currentStep === 2 ? (isTablet ? '34%' : '36%') : currentStep === 3 ? (isTablet ? '57%' : '59%') : (isTablet ? '80%' : '82%'),
-                  transform: 'translate(-15%, -90%)',
-                  width: isTablet ? '100px' : '38px',
-                  height: 'auto',
-                  pointerEvents: 'none',
-                  zIndex: 3,
-                  transition: 'left 0.4s ease',
-                }}
-              />
-            )}
             {STEP_CONFIG.map((s, i) => (
               <div key={s.num} style={{ display: 'flex', alignItems: 'center', flex: i < 4 ? 1 : 'none' }}>
-                <div onClick={currentStep > s.num ? () => setCurrentStep(s.num) : undefined} style={{ width: isTablet ? '42px' : '32px', height: isTablet ? '42px' : '32px', borderRadius: '50%', border: '2px solid #1a2f51', backgroundColor: currentStep >= s.num ? '#1a2f51' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s', cursor: currentStep > s.num ? 'pointer' : 'default' }}>
+                <div onClick={currentStep > s.num ? () => setCurrentStep(s.num as 1|2|3|4|5) : undefined} style={{ width: isTablet ? '42px' : '32px', height: isTablet ? '42px' : '32px', borderRadius: '50%', border: '2px solid #1a2f51', backgroundColor: currentStep >= s.num ? '#1a2f51' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s', cursor: currentStep > s.num ? 'pointer' : 'default' }}>
                   {currentStep > s.num ? (
                     <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5L4 7.5L10 1" stroke="#fefaf2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   ) : (
@@ -532,7 +533,7 @@ function SignupForm() {
             {STEP_CONFIG.map((s, i) => (
               <div key={s.num} style={{ display: 'flex', alignItems: 'flex-start', flex: i < 4 ? 1 : 'none' }}>
                 <div style={{ width: isTablet ? '42px' : '32px', flexShrink: 0, position: 'relative', height: isTablet ? '28px' : '24px' }}>
-                  <span style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: isTablet ? '64px' : '50px', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.6rem' : '0.5rem', fontWeight: currentStep === s.num ? 700 : 400, color: '#1a2f51', textAlign: 'center', whiteSpace: 'normal', letterSpacing: '0.02em', lineHeight: 1.2 }}>{s.label}</span>
+                  <span style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: isTablet ? '64px' : '66px', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.6rem' : '0.62rem', fontWeight: currentStep === s.num ? 700 : 400, color: '#1a2f51', textAlign: 'center', whiteSpace: 'normal', letterSpacing: '0.02em', lineHeight: 1.2 }}>{s.label}</span>
                 </div>
                 {i < 4 && <div style={{ flex: 1 }} />}
               </div>
@@ -546,7 +547,7 @@ function SignupForm() {
       {step === 'waitlist' && (
         <div style={{ maxWidth: '480px', margin: '0 auto', padding: '0 24px 60px', textAlign: 'center' }}>
           <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '2.2rem', fontWeight: 700, lineHeight: 1.1 }}>Memberships in your area are currently full</h1>
-          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.9rem', opacity: 0.85, lineHeight: 1.6, margin: '12px 0 24px' }}>We keep Bonkers memberships limited so every family gets a brilliant selection of books and a reliable Curious Day. Join the waitlist and we&apos;ll let you know as soon as we increase our capacity. We promise it won&apos;t be long!</p>
+          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.9rem', opacity: 0.85, lineHeight: 1.6, margin: '12px 0 24px' }}>We keep Curious Library memberships limited so every family gets a brilliant selection of books and a reliable Curious Day. Join the waitlist and we&apos;ll let you know as soon as we increase our capacity. We promise it won&apos;t be long!</p>
           <img src="/map_bonkers.png" alt="" style={{ width: '100%', height: 'auto', marginBottom: '24px' }} />
           {waitlistError && (
             <p style={{ color: '#e05c3a', fontSize: '0.82rem', marginBottom: '12px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{waitlistError}</p>
@@ -582,15 +583,15 @@ function SignupForm() {
             We&apos;ve sent a confirmation link to <span style={{ color: '#f9d174', fontWeight: 600 }}>{form.email}</span>.
           </p>
           <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.85rem', opacity: 0.55, lineHeight: 1.6 }}>
-            Click the link to activate your account and you&apos;ll land straight in your Bonkers dashboard. Check your spam folder if it doesn&apos;t arrive within a minute.
+            Click the link to activate your account and you&apos;ll land straight in your Curious Library dashboard. Check your spam folder if it doesn&apos;t arrive within a minute.
           </p>
         </div>
       )}
 
       {/* â"€â"€ 5-STEP SIGNUP CARD â"€â"€ */}
       {step === 'signup' && (
-        <div style={{ padding: isTablet ? '32px 8px 60px' : '6px 0 60px', position: 'relative', zIndex: isTablet ? 2 : currentStep === 3 ? undefined : 2 }}>
-          <div style={{ maxWidth: isTablet ? '900px' : '100%', margin: '0 auto', padding: isTablet ? '24px 52px 52px' : '8px 12px 40px', position: 'relative' }}>
+        <div style={{ padding: isTablet ? '16px 8px 60px' : '0 0 60px', position: 'relative', zIndex: isTablet ? 2 : currentStep === 3 ? undefined : 2 }}>
+          <div style={{ maxWidth: isTablet ? '900px' : '100%', margin: '0 auto', padding: isTablet ? '12px 52px 52px' : '0 12px 40px', position: 'relative' }}>
 
             {error && (
               <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: '12px', padding: '12px 16px', fontSize: '0.875rem', marginBottom: '20px', fontFamily: 'var(--font-montserrat), sans-serif' }}>
@@ -601,40 +602,44 @@ function SignupForm() {
             {/* â"€â"€ STEP 1: YOUR PLAN â"€â"€ */}
             {currentStep === 1 && (
               <div>
-                <SectionHeading title="Choose your Bonkers membership" subtitle="" />
+                <SectionHeading title="Choose Your Family Plan" subtitle="" />
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: isTablet ? '16px' : '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: isTablet ? '16px' : '8px' }}>
                   {plans.map((plan) => {
                     const selected = form.planId === plan.id
                     return (
                       <div key={plan.id} onClick={() => set('planId', plan.id)}
-                        style={{ width: '100%', backgroundColor: selected ? '#fffef9' : 'transparent', border: `${selected ? '4px' : '2px'} solid ${selected ? '#fee297' : '#e8e0d4'}`, borderRadius: '16px', padding: isTablet ? '20px 16px 24px' : '14px 8px 18px', cursor: 'pointer', textAlign: 'center', position: 'relative', transition: 'all 0.15s', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflow: 'hidden', zoom: 0.9 }}>
+                        style={{ width: '100%', backgroundColor: selected ? '#fffef9' : 'transparent', border: `${selected ? '4px' : '2px'} solid ${selected ? '#fee297' : '#e8e0d4'}`, borderRadius: '16px', padding: isTablet ? '20px 16px 24px' : '14px 4px 18px', cursor: 'pointer', textAlign: 'center', position: 'relative', transition: 'all 0.15s', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflow: 'hidden', zoom: 0.9 }}>
                         {plan.badge && (
                           <span style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#f5c047', color: '#1a2744', fontSize: isTablet ? '0.62rem' : '0.55rem', fontWeight: 700, padding: '2px 10px', borderRadius: '999px', fontFamily: 'var(--font-montserrat), sans-serif', whiteSpace: 'nowrap', letterSpacing: '0.04em' }}>MOST POPULAR</span>
                         )}
-                        <img src={selected ? '/star_yellow.png' : '/star_cream.png'} alt="" style={{ position: 'absolute', bottom: '8px', left: '8px', width: selected ? (isTablet ? '64px' : '32px') : (isTablet ? '46px' : '24px'), height: 'auto', objectFit: 'contain', pointerEvents: 'none' }} />
-<p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2rem' : '1.5rem', fontWeight: 700, margin: '0 0 10px', lineHeight: 1 }}>{plan.label}</p>
-                        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '1rem' : '0.85rem', fontWeight: 500, margin: '8px 0 12px', lineHeight: 1 }}>{plan.swapBooks} books at a time</p>
-                        <div style={{ borderTop: '1px solid #e8e0d4', paddingTop: '12px' }}>
+<p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2rem' : '2.1rem', fontWeight: 700, margin: '0 0 8px', lineHeight: 1 }}>{isTablet ? plan.label : (() => { const i = plan.label.lastIndexOf(' '); return i > 0 ? <>{plan.label.slice(0, i)}<br />{plan.label.slice(i + 1)}</> : plan.label })()}</p>
+                        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '0.9rem' : '0.95rem', margin: '0 0 12px', lineHeight: 1.3 }}>up to {plan.books} books a month*</p>
+                                                <div style={{ borderTop: '1px solid #e8e0d4', paddingTop: '12px' }}>
                           <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2.4rem' : '1.9rem', fontWeight: 800, margin: 0, lineHeight: 1 }}>
                             <span style={{ fontSize: isTablet ? '1.6rem' : '1.3rem', fontWeight: 600 }}>AED </span>{plan.price}
                           </p>
-                          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '0.85rem' : '0.75rem', margin: '2px 0 0' }}>/ month</p>
-                        </div>
-                        <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'center' }}>
-                          {['Weekly deliveries', 'No late fees', 'Cancel anytime'].map(item => (
-                            <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5L4 7.5L10 1" stroke="#1a2f51" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                              <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.85rem' : '0.72rem', color: '#1a2f51', fontWeight: 500 }}>{item}</span>
-                            </div>
-                          ))}
+                          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '0.85rem' : '0.95rem', margin: '2px 0 0' }}>/ month</p>
+                          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '1rem' : '1.05rem', fontWeight: 600, margin: '12px 0 0', lineHeight: 1 }}>{plan.swapBooks} books at a time</p>
                         </div>
                       </div>
                     )
                   })}
                 </div>
+                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', opacity: 0.7, fontSize: isTablet ? '0.8rem' : '0.9rem', textAlign: 'center', margin: '10px 0 0' }}>*Based on getting new books every week</p>
+                <div style={{ marginTop: isTablet ? '32px' : '26px', textAlign: 'center' }}>
+                  <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '0.8rem' : '0.92rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 12px' }}>Every plan includes</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px', width: 'fit-content', margin: '0 auto', textAlign: 'left' }}>
+                    {['Free weekly delivery / collection', 'No due dates', 'No late fees', 'Unlimited child profiles', 'Cancel anytime'].map(item => (
+                      <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                        <img src="/sparklestar_yellow.png" alt="" style={{ flexShrink: 0, width: isTablet ? '26px' : '16px', height: isTablet ? '26px' : '16px', marginTop: isTablet ? '2px' : '3px' }} />
+                        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.9rem' : '1.05rem', color: '#1a2f51', fontWeight: 500, lineHeight: 1.35 }}>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-                <div style={{ marginTop: '28px', textAlign: 'center' }}>
+                <div style={{ marginTop: '48px', textAlign: 'center' }}>
                   <ContinueButton onClick={validateAndNext} label="Next" navy />
                 </div>
 
@@ -687,7 +692,7 @@ function SignupForm() {
                     {stepErrors.phone && <p style={{ color: '#e05c3a', fontSize: '0.72rem', margin: '4px 0 0', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.phone}</p>}
                   </div>
                   <div>
-                    <label style={labelStyle}>WhatsApp Number <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.6 }}>(if different)</span></label>
+                    <label style={labelStyle}>WhatsApp <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.6 }}>(if different)</span></label>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
                       <div ref={countryDropdownRef} style={{ position: 'relative', width: '120px', flexShrink: 0 }}>
                         <button type="button" onClick={() => { setCountryDropdownOpen(o => !o); setCountrySearch('') }} className={cardInputClass}
@@ -715,6 +720,9 @@ function SignupForm() {
                   </div>
                   </div>
                 </div>
+                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.8rem' : '0.85rem', margin: '18px 0 0', lineHeight: 1.5 }}>
+                  We’ll save your details so you can pick up where you left off.
+                </p>
 
                 <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <ContinueButton onClick={validateAndNext} label="Next" navy />
@@ -733,9 +741,9 @@ function SignupForm() {
                   {/* Map pin */}
                   {/* Phase 1: map + confirm */}
                   <div style={{ marginBottom: pinConfirmed ? '24px' : '0' }}>
-                    <label style={labelStyle}>Pin your home on the map</label>
-                    <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', color: '#1a2f51', opacity: 0.65, margin: '0 0 10px' }}>
-                      Drag the pin to your exact door, tap the map, or search to move it.
+                    <label style={{ ...labelStyle, fontSize: isTablet ? '0.75rem' : '0.9rem' }}>Pin your home on the map</label>
+                    <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.88rem' : '0.92rem', color: '#1a2f51', opacity: 0.75, margin: '0 0 10px' }}>
+                      Drag the star pin to your exact door, tap the map, or search to move it.
                     </p>
                     <SignupMap zones={zones} onProceed={handleMapProceed} />
 
@@ -811,44 +819,36 @@ function SignupForm() {
             {/* â"€â"€ STEP 4: HOW TO DELIVER â"€â"€ */}
             {currentStep === 4 && (
               <div>
-                <SectionHeading stepNum={4} title={'How should we deliver?'} subtitle={'Tell us your preference.'} />
+                <SectionHeading stepNum={4} title={'Collection & Delivery Preferences'} subtitle={''} />
+                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.9rem' : '0.95rem', lineHeight: 1.55, margin: '-16px 0 20px' }}>
+                  We drop off your new books and pick up the old ones in the same visit. Tap as many options as suit you, in order of preference — your driver will try 1 first, then 2, and so on.
+                </p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  {[
-                    { value: 'leave_at_door', label: 'At the door', sub: 'Contactless' },
-                    { value: 'leave_safe_spot', label: 'Safe spot', sub: 'Contactless' },
-                    { value: 'ring_bell', label: 'Ring the bell', sub: "Someone's home" },
-                    { value: 'call_no_bell', label: 'Call me', sub: "Don't ring bell" },
-                    { value: 'leave_with_reception', label: 'Reception', sub: 'Concierge' },
-                  ].map(opt => (
-                    <button key={opt.value} type="button" onClick={() => { set('deliveryPreference', opt.value); setStepErrors(p => ({ ...p, deliveryPreference: '' })) }}
-                      style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', textAlign: 'left', padding: '14px 16px', borderRadius: '14px', border: (form.deliveryPreference === opt.value ? '4px solid #fee297' : '2px solid #e8e0d4'), backgroundColor: form.deliveryPreference === opt.value ? '#fffef9' : 'transparent', cursor: 'pointer', transition: 'all 0.15s' }}>
-                      <img src={form.deliveryPreference === opt.value ? '/star_yellow.png' : '/star_cream.png'} alt="" style={{ width: form.deliveryPreference === opt.value ? '32px' : '28px', height: form.deliveryPreference === opt.value ? '32px' : '28px', objectFit: 'contain', flexShrink: 0 }} />
+                  {DELIVERY_OPTIONS.map(opt => {
+                    const rank = form.deliveryPreferences.indexOf(opt.value) + 1
+                    return (
+                    <button key={opt.value} type="button" onClick={() => { set('deliveryPreferences', togglePreference(form.deliveryPreferences, opt.value)); setStepErrors(p => ({ ...p, deliveryPreference: '' })) }}
+                      style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', textAlign: 'left', padding: '14px 16px', borderRadius: '14px', border: (rank ? '4px solid #fee297' : '2px solid #e8e0d4'), backgroundColor: rank ? '#fffef9' : 'transparent', cursor: 'pointer', transition: 'all 0.15s' }}>
+                      <span style={{ width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.95rem', color: '#fff', backgroundColor: rank ? '#1a2f51' : 'transparent', border: rank ? 'none' : '2px solid #ddd6cc', boxSizing: 'border-box' }}>{rank || ''}</span>
                       <div>
-                        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 600, display: 'block' }}>{opt.label}</span>
-                        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.72rem', display: 'block', marginTop: '1px' }}>{opt.sub}</span>
+                        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '0.85rem' : '1rem', fontWeight: 600, display: 'block' }}>{opt.label}</span>
+                        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.72rem' : '0.85rem', display: 'block', marginTop: '1px' }}>{opt.sub}</span>
                       </div>
                     </button>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 {stepErrors.deliveryPreference && <p style={{ color: '#e05c3a', fontSize: '0.78rem', marginTop: '8px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.deliveryPreference}</p>}
 
-                {form.deliveryPreference === 'leave_safe_spot' && (
+                {form.deliveryPreferences.includes('leave_safe_spot') && (
                   <div style={{ marginTop: '14px' }}>
-                    <label style={labelStyle}>Describe the safe spot</label>
-                    <input type="text" placeholder="e.g. behind the gate, under the mat..." value={form.safeSpotDescription} onChange={e => set('safeSpotDescription', e.target.value)} className={cardInputClass} />
+                    <label style={labelStyle}>Describe the safe spot <span style={{ color: '#e05c3a' }}>*</span></label>
+                    <input type="text" placeholder="e.g. behind the gate, under the mat..." value={form.safeSpotDescription} onChange={e => { set('safeSpotDescription', e.target.value); setStepErrors(p => ({ ...p, safeSpot: '' })) }} className={cardInputClass} />
+                    {stepErrors.safeSpot && <p style={{ color: '#e05c3a', fontSize: '0.78rem', margin: '4px 0 0', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.safeSpot}</p>}
                   </div>
                 )}
-
-                <div style={{ marginTop: '24px' }}>
-                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={form.agreedToMarketing} onChange={e => set('agreedToMarketing', e.target.checked)} style={{ marginTop: '3px', accentColor: '#e05c3a', width: '16px', height: '16px', flexShrink: 0 }} />
-                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.82rem', color: '#1a2f51', lineHeight: 1.5 }}>
-                      Send me Bonkers news, book recommendations and other brilliant nonsense. <span style={{ opacity: 0.55 }}>(optional)</span>
-                    </span>
-                  </label>
-                </div>
 
                 <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <ContinueButton onClick={validateAndNext} label="Next" navy />
@@ -861,23 +861,12 @@ function SignupForm() {
             {/* â"€â"€ STEP 5: PAYMENT â"€â"€ */}
             {currentStep === 5 && (
               <div style={{ position: 'relative', zIndex: 1 }}>
-                <SectionHeading stepNum={5} title="Almost done!" subtitle="Complete your membership." />
+                <SectionHeading stepNum={5} title="Almost done!" subtitle="" />
 
                 {/* How did you hear */}
                 <div style={{ marginBottom: '24px' }}>
-                  <label style={{ ...labelStyle, marginBottom: '10px', fontSize: isTablet ? '0.65rem' : '13px' }}>How did you hear about Bonkers?</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                    {howOptions.map(opt => {
-                      const selected = form.hearAboutUs === opt.value
-                      return (
-                        <button key={opt.value} type="button"
-                          onClick={() => { set('hearAboutUs', opt.value); set('hearDetail', '') }}
-                          style={{ display: 'inline-flex', flexDirection: 'row', alignItems: 'center', padding: isTablet ? '12px 16px' : '6px 10px', borderRadius: '14px', border: selected ? '4px solid #1a2f51' : '2px solid #e8e0d4', backgroundColor: selected ? '#1a2f51' : 'transparent', cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '20px' : '11px', fontWeight: selected ? 600 : 400, color: selected ? '#fefaf2' : '#1a2744', whiteSpace: 'nowrap' }}>
-                          {opt.label}
-                        </button>
-                      )
-                    })}
-                  </div>
+                  <label style={labelStyle}>How did you hear about us? <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.6 }}>(optional)</span></label>
+                  <BrandSelect value={form.hearAboutUs} options={howOptions} onChange={v => { set('hearAboutUs', v); set('hearDetail', '') }} fontSize={isTablet ? '0.95rem' : '1rem'} />
                   {selectedHowOption?.followUp && (
                     <div style={{ marginTop: '10px' }}>
                       <input type="text" placeholder={selectedHowOption.followUp} value={form.hearDetail} onChange={e => set('hearDetail', e.target.value)} className={cardInputClass} />
@@ -885,27 +874,34 @@ function SignupForm() {
                   )}
                 </div>
 
-                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#1a2f51', margin: '0 0 16px' }}>Your membership renews monthly. Cancel anytime.</p>
+                <label style={{ ...labelStyle, marginBottom: '8px' }}>The small print</label>
+                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.78rem' : '0.92rem', color: '#1a2f51', margin: '0 0 16px' }}>Your membership renews monthly. You can cancel anytime.</p>
 
                 {/* Terms */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
                   <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
                     <input type="checkbox" checked={form.agreedToTerms} onChange={e => { set('agreedToTerms', e.target.checked); setStepErrors(p => ({ ...p, terms: '' })) }} style={{ marginTop: '2px', accentColor: '#e05c3a', width: '16px', height: '16px', flexShrink: 0 }} />
-                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.82rem', color: '#1a2f51', lineHeight: 1.5 }}>
-                      I agree to the Bonkers{' '}
+                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.82rem' : '0.95rem', color: '#1a2f51', lineHeight: 1.5 }}>
+                      I agree to The Curious Library{' '}
                       <span style={{ color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer' }}>Membership Rules</span>,{' '}
                       <span style={{ color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer' }}>Terms &amp; Conditions</span>{' '}and{' '}
                       <span style={{ color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer' }}>Privacy Policy</span>.
                     </span>
                   </label>
                   {stepErrors.terms && <p style={{ color: '#e05c3a', fontSize: '0.78rem', margin: '-4px 0 0 28px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{stepErrors.terms}</p>}
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={form.agreedToMarketing} onChange={e => set('agreedToMarketing', e.target.checked)} style={{ marginTop: '3px', accentColor: '#e05c3a', width: '16px', height: '16px', flexShrink: 0 }} />
+                  <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.82rem' : '0.95rem', color: '#1a2f51', lineHeight: 1.5 }}>
+                    Send me Curious Library news, book recommendations and other brilliant nonsense. <span style={{ opacity: 0.55 }}>(optional)</span>
+                  </span>
+                </label>
                 </div>
 
                 {/* Submit */}
                 <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <button type="button" onClick={handleFinalSubmit} disabled={loading}
                     style={{ backgroundColor: loading ? '#ccc' : '#1a2f51', color: 'white', border: 'none', borderRadius: '999px', padding: '18px 56px', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.9rem', letterSpacing: '0.15em', textTransform: 'uppercase', cursor: loading ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '10px', minWidth: '220px', justifyContent: 'center', transition: 'background-color 0.2s' }}>
-                    {loading ? 'Setting up...' : <>Join Bonkers <img src="/magicwand.png" alt="" style={{ height: '18px', width: 'auto' }} /></>}
+                    {loading ? 'Setting up...' : 'Continue to payment'}
                   </button>
                   <BackButton onClick={goBack} />
                 </div>

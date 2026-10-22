@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import CuriousLogo from '@/components/CuriousLogo'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -48,13 +49,12 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-start px-4 py-12" style={{ backgroundColor: '#fefaf2', paddingTop: 'max(3rem, env(safe-area-inset-top))', position: 'relative' }}>
       <div style={{ position: 'absolute', top: '24px', left: '20px', lineHeight: 1, zIndex: 10 }}>
-        <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#1a2f51', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
-        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.5rem', color: '#1a2f51', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0' }}>THE CHILDREN'S LIBRARY</p>
+        <CuriousLogo height={72} />
       </div>
       <div className="w-full max-w-sm px-6" style={{ paddingTop: '48px' }}>
         <div style={{ marginBottom: '24px', marginTop: '60px' }}>
           <h1 style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '2.2rem', color: '#1a2f51', margin: 0, lineHeight: 1.1 }}>
-            Log in to Bonkers
+            Log in to The Curious Library
           </h1>
         </div>
 
@@ -115,7 +115,7 @@ export default function LoginPage() {
         <p className="text-center" style={{ marginTop: '16px', fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.8rem' }}>
           New here?{' '}
           <button onClick={() => router.push('/signup')} style={{ textDecoration: 'underline', color: '#1a2f51', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem' }}>
-            Join Bonkers
+            Join The Curious Library
           </button>
         </p>
       </div>

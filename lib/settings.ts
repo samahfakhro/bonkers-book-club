@@ -49,7 +49,7 @@ export async function publicSettings() {
   return {
     cutoffDaysBefore: Number(s.cutoff_days_before) || 2,
     contactWhatsapp: s.contact_whatsapp || '',
-    contactEmail: s.contact_email || 'hello@bonkers.ae',
+    contactEmail: s.contact_email || 'hello@curiouslibrary.ae',
     howHeard: parseHowOptions(s.how_heard_options),
     defaultNotifyWhatsapp: s.default_notify_whatsapp !== 'false',
     defaultNotifyEmail: s.default_notify_email !== 'false',

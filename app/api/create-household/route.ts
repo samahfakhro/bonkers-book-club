@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { checkAvailability } from '@/lib/membership/availability'
 import { getSettingValues } from '@/lib/settings'
+import { notifyHousehold } from '@/lib/notify'
+import { renderMessage } from '@/lib/messages'
+import { markLeadCompleted } from '@/lib/signup-leads'
 
 // where the visitor first came from (lib/first-touch.ts), stored with the family
 function firstTouchColumns(ft: any) {
@@ -101,6 +104,11 @@ export async function POST(request: NextRequest) {
     }
 
     await markWaitlistJoined(authUser.user.email, householdFields.mobile_phone, household.id)
+    if (authUser.user.email) await markLeadCompleted(authUser.user.email)   // no 'nearly there' reminder now they've joined
+
+    // welcome — in the app and by their chosen email / WhatsApp
+    const welcome = await renderMessage('welcome', { parent_name: householdFields.first_name || 'there' })
+    await notifyHousehold({ householdId: household.id, type: 'general', title: welcome.title, message: welcome.body, link: '/dashboard' }).catch(() => {})
 
     return NextResponse.json({ householdId: household.id })
   } catch (err) {

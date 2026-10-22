@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import ComingNextEditor from '@/components/admin/ComingNextEditor'
+import { DELIVERY_OPTIONS, togglePreference, preferenceColumns, preferencesOf } from '@/lib/delivery-preferences'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -37,6 +38,7 @@ type Household = {
   sub_community: string | null
   area: string | null
   delivery_preference: string | null
+  delivery_preferences: string[] | null
   delivery_notes: string | null
   account_status: string | null
   signup_zone_id: string | null
@@ -171,7 +173,7 @@ export default function MembersPage() {
         .select(`
           id, user_id, first_name, last_name, mobile_phone, whatsapp_number,
           property_type, building, floor, street, sub_community, area,
-          delivery_preference, delivery_notes, account_status, signup_zone_id, bonkers_day, created_at,
+          delivery_preference, delivery_preferences, delivery_notes, account_status, signup_zone_id, bonkers_day, created_at,
           notify_whatsapp, notify_email, agreed_to_marketing,
           subscriptions(id, status, start_date, plan_id),
           child_profiles(id, name, nickname, date_of_birth, book_slot_allocation, swap_permission, books_read_count)
@@ -203,7 +205,7 @@ export default function MembersPage() {
       street: hh.street ?? '',
       sub_community: hh.sub_community ?? '',
       area: hh.area ?? '',
-      delivery_preference: hh.delivery_preference ?? '',
+      delivery_preferences: preferencesOf(hh),
       delivery_notes: hh.delivery_notes ?? '',
       account_status: hh.account_status ?? 'active',
       plan_id: sub?.plan_id ?? '',
@@ -246,9 +248,9 @@ export default function MembersPage() {
     setSaving(true)
     setSaveMsg('')
 
-    const { plan_id, sub_id, sub_status, ...hhFields } = editHH
+    const { plan_id, sub_id, sub_status, delivery_preferences, ...hhFields } = editHH
 
-    await supabase.from('households').update(hhFields).eq('id', selected.id)
+    await supabase.from('households').update({ ...hhFields, ...preferenceColumns(delivery_preferences ?? []) }).eq('id', selected.id)
 
     if (sub_id) {
       const update: Record<string, string | null> = { status: sub_status ?? 'active' }
@@ -488,13 +490,18 @@ export default function MembersPage() {
                   <input style={inp} value={editHH.area ?? ''} onChange={e => setEditHH(p => ({ ...p, area: e.target.value }))} />
                 </div>
                 <div>
-                  <label style={lbl}>Delivery preference</label>
-                  <select style={inp} value={editHH.delivery_preference ?? ''} onChange={e => setEditHH(p => ({ ...p, delivery_preference: e.target.value }))}>
-                    <option value="">—</option>
-                    {['leave_at_door','leave_safe_spot','ring_bell','call_no_bell','leave_with_reception'].map(v => (
-                      <option key={v} value={v}>{v.replace(/_/g, ' ')}</option>
-                    ))}
-                  </select>
+                  <label style={lbl}>Delivery & collection (tap in order)</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {DELIVERY_OPTIONS.map(o => {
+                      const rank = (editHH.delivery_preferences ?? []).indexOf(o.value) + 1
+                      return (
+                        <button key={o.value} type="button" onClick={() => setEditHH(p => ({ ...p, delivery_preferences: togglePreference(p.delivery_preferences ?? [], o.value) }))}
+                          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 10px', borderRadius: '999px', fontSize: '13px', cursor: 'pointer', border: rank ? '2px solid #1a2f51' : '1px solid #ddd', background: rank ? '#eef1f8' : '#fff', color: '#1a1a1a' }}>
+                          {rank > 0 && <strong>{rank}</strong>}{o.label}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
                 <div>
                   <label style={lbl}>Delivery notes</label>
@@ -530,7 +537,7 @@ export default function MembersPage() {
                           />
                         </div>
                         <div>
-                          <label style={lbl}>Swap permission</label>
+                          <label style={lbl}>Choosing permission</label>
                           <select
                             style={inp}
                             value={child.swap_permission ?? ''}
@@ -555,7 +562,7 @@ export default function MembersPage() {
             <ComingNextEditor householdId={selected.id} />
           </CollapsibleSection>
 
-          <CollapsibleSection title="Swap History">
+          <CollapsibleSection title="Delivery History">
             <div>
             {loadingHistory ? (
               <p style={{ fontSize: '13px', color: '#9b9b9b' }}>Loading…</p>

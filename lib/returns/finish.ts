@@ -3,6 +3,7 @@ import { notifyHousehold } from '@/lib/notify'
 import { sendBackOnShelfAlerts } from '@/lib/notify-me'
 import { dubaiToday } from '@/lib/routes/server'
 import { requestPayment } from '@/lib/returns/charges'
+import { renderMessage } from '@/lib/messages'
 
 // "Finished inspecting" on the Returns screen:
 //  1. "Back on the shelf" alerts for every book checked in as lendable in this batch
@@ -71,15 +72,15 @@ export async function finishInspecting() {
       // no grace period: new books are on hold straight away; choices for next time go back to the saved list
       await supabaseAdmin.from('households').update({ over_allowance_since: today, over_allowance_grace_until: today, over_allowance_response: null, over_allowance_responded_at: null }).eq('id', householdId)
       await clearChoices(householdId)
-      await notifyHousehold({ householdId, type: 'general', title: 'Some books didn’t come back',
-        message: `You have ${n} books at home, but your plan is for ${plan}. New books are on hold until ${books(extra)} ${extra === 1 ? 'comes' : 'come'} back — mark ${extra === 1 ? 'it' : 'them'} as Returning for your next Curious Day. Anything you’d chosen is safe on your saved list.`,
-        link: '/dashboard' })
+      const over = await renderMessage('over_new', { books_at_home: n, plan_books: plan, extra_books: books(extra) })
+      await notifyHousehold({ householdId, type: 'general', title: over.title, message: over.body, link: '/dashboard' })
       result.newlyOver++
     } else if (visited.has(householdId)) {
-      const title = 'New books are on hold'
+      const reminder = await renderMessage('over_reminder', { extra_books: books(extra) })
+      const title = reminder.title
       if (await alreadyToldToday(householdId, title)) continue
       await notifyHousehold({ householdId, type: 'general', title,
-        message: `We still need ${books(extra)} back before we can send new ones. Mark ${extra === 1 ? 'it' : 'them'} as Returning for your next Curious Day — you can choose books again as soon as ${extra === 1 ? 'it’s' : 'they’re'} back.`,
+        message: reminder.body,
         link: '/dashboard' })
       result.onHold++
     }
@@ -110,7 +111,8 @@ async function clearChoices(householdId: string) {
 
 export async function clearOverAllowance(householdId: string) {
   await supabaseAdmin.from('households').update({ over_allowance_since: null, over_allowance_grace_until: null, over_allowance_response: null, over_allowance_responded_at: null }).eq('id', householdId)
-  await notifyHousehold({ householdId, type: 'general', title: 'All sorted — thank you!', message: 'Everything’s back within your plan, so you can choose new books again. Happy reading!', link: '/dashboard' })
+  const sorted = await renderMessage('all_sorted')
+  await notifyHousehold({ householdId, type: 'general', title: sorted.title, message: sorted.body, link: '/dashboard' })
 }
 
 // ── Admin actions for families over their allowance ──

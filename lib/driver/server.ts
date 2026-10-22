@@ -5,6 +5,7 @@ import { routeWithEnvelopes } from '@/lib/routes/envelopes'
 import { parseScannedCode } from '@/lib/routes/codes'
 import { sendMissedVisitMessage } from '@/lib/messaging'
 import { dubaiToday } from '@/lib/routes/server'
+import { preferencesOf } from '@/lib/delivery-preferences'
 
 export type DeliveryResult = 'handed_over' | 'concierge' | 'neighbour' | 'safe_drop' | 'failed'
 export type FailReason = 'no_answer' | 'no_access' | 'other' | 'no_return'  // no_return: no books handed back, so the new books stay in the van
@@ -32,12 +33,12 @@ export const OUTCOME_LABEL: Record<string, string> = {
 }
 
 // What the driver may do at this door — never leave books unattended without the family's permission.
-// Permission comes from their delivery preference, the backups they ticked, or their reply to a missed visit.
+// Permission comes from their ranked delivery & collection options, the backups they ticked, or their reply to a missed visit.
 export function allowedDeliveryResults(h: any, familyResponse?: string | null): DeliveryResult[] {
+  const prefs = preferencesOf(h)
   const options: DeliveryResult[] = ['handed_over']
-  if (h?.property_type === 'apartment' || h?.delivery_preference === 'leave_with_reception' || h?.backup_concierge || familyResponse === 'concierge') options.push('concierge')
-  if (h?.neighbour_permission_enabled || familyResponse === 'neighbour') options.push('neighbour')
-  if (h?.delivery_preference === 'leave_safe_spot' || h?.backup_safe_drop || familyResponse === 'safe_drop') options.push('safe_drop')
+  if (h?.property_type === 'apartment' || prefs.includes('leave_with_reception') || h?.backup_concierge || familyResponse === 'concierge') options.push('concierge')
+  if (prefs.includes('leave_safe_spot') || prefs.includes('leave_at_door') || h?.backup_safe_drop || familyResponse === 'safe_drop') options.push('safe_drop')
   options.push('failed')
   return options
 }

@@ -3,11 +3,11 @@ BONKERS COLLECTIBLE BIBLE — Version 1.0
 
 PURPOSE
 
-Every book read by a child in Bonkers may be associated with a collectible object that can appear in the child's "My Collection" cabinet inside Bonky's Universe.
+Every book read by a child in The Curious Library may be associated with a collectible object that can appear in the child's "My Collection" cabinet inside Bonky's Universe.
 
 The collectible is NOT an illustration of the book.
 
-It is an original Bonkers Universe object inspired by something memorable about the experience, concept, humour, subject matter, story, setting or imagery of that book.
+It is an original Curious Universe object inspired by something memorable about the experience, concept, humour, subject matter, story, setting or imagery of that book.
 
 The goal is:
 
@@ -26,9 +26,9 @@ Do not merely execute an obvious visual association.
 For every book:
 1. Understand what makes the book memorable.
 2. Identify the strongest visual/comedic/magical opportunity.
-3. Invent an original Bonkers-world interpretation.
-4. Give the collectible a memorable Bonkers name.
-5. Write one tiny piece of optional Bonkers lore.
+3. Invent an original Curious-world interpretation.
+4. Give the collectible a memorable Curious name.
+5. Write one tiny piece of optional Curious lore.
 6. Design the asset.
 7. Generate the finished isolated PNG.
 
@@ -67,7 +67,7 @@ If the answer to several of these is no, rethink the concept before generating.
 
 4. HUMOUR
 
-Bonkers humour is: absurd, deadpan, unexpected, slightly mischievous, visual, child-friendly, occasionally nonsensical, never patronising.
+Curious Library humour is: absurd, deadpan, unexpected, slightly mischievous, visual, child-friendly, occasionally nonsensical, never patronising.
 
 Think: Something is slightly wrong with the universe and everybody has accepted it.
 
@@ -85,7 +85,7 @@ Avoid generic "cute" humour. Avoid inspirational slogans. Avoid educational mess
 
 5. NO SYMBOLISM LANGUAGE
 
-Avoid explaining collectibles using phrases such as "symbolizes," "represents," "embodies," or "reflects the themes of." A Bonkers collectible should normally originate from a concrete element of the book rather than symbolically representing its themes.
+Avoid explaining collectibles using phrases such as "symbolizes," "represents," "embodies," or "reflects the themes of." A Curious collectible should normally originate from a concrete element of the book rather than symbolically representing its themes.
 
 
 6. THE OBJECT SHOULD TELL A TINY STORY
@@ -115,16 +115,16 @@ However:
 - DO NOT reproduce copyrighted artwork.
 - DO NOT reproduce a recognisable copyrighted character merely because that character appears in the book.
 
-Instead, extract the underlying IDEA and transform it into original Bonkers visual language.
+Instead, extract the underlying IDEA and transform it into original Curious visual language.
 
-For example: A book about a famous fictional dog detective should not necessarily create that copyrighted dog. It could create a ridiculously oversized detective badge with bite marks around the edge and a mysterious paw print glowing in the centre. The connection remains. The asset belongs to Bonkers.
+For example: A book about a famous fictional dog detective should not necessarily create that copyrighted dog. It could create a ridiculously oversized detective badge with bite marks around the edge and a mysterious paw print glowing in the centre. The connection remains. The asset belongs to Curious.
 
 
 7. SOURCE-BOOK RESEARCH — REQUIRED
 
 Before inventing a collectible, establish reliable knowledge of THIS SPECIFIC BOOK.
 
-Use the book metadata supplied by Bonkers first.
+Use the book metadata supplied by The Curious Library first.
 
 If that information is insufficient to identify concrete, memorable events, objects, jokes, creatures or situations from the specific volume, use web search to research the book.
 
@@ -146,7 +146,7 @@ For books in a series, verify that information belongs to THIS SPECIFIC VOLUME a
 
 After research, identify 2–4 concrete candidate hooks from the actual book.
 
-Then independently create the strongest original Bonkers interpretation.
+Then independently create the strongest original Curious interpretation.
 
 Do not copy artwork, wording, character designs or another creator's visual interpretation.
 
@@ -155,7 +155,7 @@ SOURCE MOMENT
 
 Every proposed collectible must return a SOURCE_MOMENT explaining the specific verified book detail that inspired it.
 
-SOURCE_MOMENT must contain a concrete factual detail from the specific book, not a general description of the plot or theme. It should identify the actual object/event/action that directly inspired the collectible. The collectible's base concept must be traceable to that detail. Bonkers may exaggerate, distort, animate or make that real element absurd, but must not introduce an unrelated invented object simply because it suits the theme.
+SOURCE_MOMENT must contain a concrete factual detail from the specific book, not a general description of the plot or theme. It should identify the actual object/event/action that directly inspired the collectible. The collectible's base concept must be traceable to that detail. Curious may exaggerate, distort, animate or make that real element absurd, but must not introduce an unrelated invented object simply because it suits the theme.
 
 Also retain the research sources/URLs used to establish that source moment for curator verification.
 
@@ -176,7 +176,7 @@ STATUS: needs_book_context
 
 if both:
 
-1. the Bonkers database does not contain sufficient information, AND
+1. the Curious Library database does not contain sufficient information, AND
 2. web research does not provide sufficiently reliable information about the specific book.
 
 Never invent missing plot information.
@@ -186,7 +186,7 @@ Never invent missing plot information.
 
 Every collectible must belong visually to the same world as Bonky's Home.
 
-The established Bonkers Universe style is: RICHLY DIMENSIONAL MODERN STORYBOOK FANTASY.
+The established Curious Universe style is: RICHLY DIMENSIONAL MODERN STORYBOOK FANTASY.
 
 It is a highly detailed, tactile, cinematic world that looks almost physically constructed. It combines:
 - sophisticated dimensional 3D storybook rendering
@@ -208,7 +208,7 @@ Nothing should feel like a smooth generic computer-generated primitive.
 
 8. COLOUR AND LIGHTING
 
-The wider Bonkers Universe uses: deep navy, midnight blue, indigo, violet, purple, turquoise, teal balanced with warm amber, gold, soft orange, occasional pink/magenta highlights.
+The wider Curious Universe uses: deep navy, midnight blue, indigo, violet, purple, turquoise, teal balanced with warm amber, gold, soft orange, occasional pink/magenta highlights.
 
 Individual collectibles do NOT all need to use these colours. The source concept may require completely different colours.
 
@@ -264,7 +264,7 @@ The actual image must contain transparency.
 
 13. COLLECTIBLE NAME
 
-Every asset receives a Bonkers collectible name. Names should usually be 2–5 words, memorable, easy for children to understand, fun to say.
+Every asset receives a Curious collectible name. Names should usually be 2–5 words, memorable, easy for children to understand, fun to say.
 
 Examples: The Penguin Parcel, The Wonky Telescope, The Impossible Umbrella, The Escaping Treasure, The Moon Slug.
 
@@ -304,7 +304,7 @@ BONKERS INTERPRETATION: THE PENGUIN PARCEL — A battered turquoise cardboard pa
 
 LORE: "Please stop opening it. There are more."
 
-WHY IT WORKS: A child recognises the central joke of the book. It does not copy the book artwork. It creates an original Bonkers object. The object tells a story by itself. It is funny even without explanation. It has a strong compact silhouette.
+WHY IT WORKS: A child recognises the central joke of the book. It does not copy the book artwork. It creates an original Curious object. The object tells a story by itself. It is funny even without explanation. It has a strong compact silhouette.
 
 
 18. FINAL DECISION RULE
@@ -322,7 +322,7 @@ After your creative thinking, output EXACTLY this JSON block (use triple backtic
 {
   "collectible_name": "The Example Name",
   "concept": "A clear description of what the collectible is and why it works for this book.",
-  "lore": "One sentence of deadpan Bonkers lore.",
+  "lore": "One sentence of deadpan Curious lore.",
   "source_moment": "The specific verified event, object or detail from this book that inspired the collectible.",
   "research": ["url or source 1", "url or source 2"]
 }

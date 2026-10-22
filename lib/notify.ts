@@ -1,11 +1,17 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendEmail, appUrl } from '@/lib/messaging'
+import { emailHtml } from '@/lib/email-layout'
 
 // Server-only — the one place that sends a message to a family.
 // Always: in-app (envelope on the dashboard). Also email, if the family has email switched on in Settings
 // (sends nothing until RESEND_API_KEY is set — see lib/messaging.ts). WhatsApp later.
 
 export type NotificationType = 'notify_me' | 'damage_charge' | 'waitlist_invite' | 'swap_reminder' | 'missed_visit' | 'general'
+
+// Messages that only make sense while choosing books is possible — skipped while a membership is paused, ending or ended.
+// (Payment requests and anything else still go out.) Any new automated reminder about choosing, cutoffs or collections
+// should use one of these types so it's skipped automatically.
+const NEEDS_ACTIVE_MEMBERSHIP: NotificationType[] = ['notify_me', 'swap_reminder']
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
@@ -18,6 +24,10 @@ export async function notifyHousehold(n: {
   childId?: string | null
   extraLink?: { label: string; url: string } | null  // e.g. a one-tap "Stop alerts for this book" (email only)
 }) {
+  if (NEEDS_ACTIVE_MEMBERSHIP.includes(n.type)) {
+    const { data: inactive } = await supabaseAdmin.rpc('membership_inactive', { p_household: n.householdId })
+    if (inactive) return
+  }
   const { error } = await supabaseAdmin.from('notifications').insert({
     household_id: n.householdId,
     child_id: n.childId ?? null,
@@ -45,12 +55,8 @@ async function emailHousehold(n: { householdId: string; title: string; message: 
   const link = n.link ? (n.link.startsWith('http') ? n.link : `${appUrl()}${n.link}`) : `${appUrl()}/dashboard/notifications`
   const hi = `Hi ${hh.first_name || 'there'},`
   const extraText = n.extraLink ? `\n\n${n.extraLink.label}: ${n.extraLink.url}` : ''
-  const text = `${hi}\n\n${n.message}\n\n${link}${extraText}\n\nThe Bonkers team`
-  const html = `<div style="font-family:Arial,sans-serif;color:#1a2f51;font-size:16px;line-height:1.5;max-width:480px">
-    <p>${esc(hi)}</p><p>${esc(n.message)}</p>
-    <p><a href="${link}" style="display:inline-block;background:#1a2f51;color:#fff;text-decoration:none;padding:14px 26px;border-radius:999px;font-weight:bold">Open Bonkers</a></p>
-    ${n.extraLink ? `<p style="font-size:13px"><a href="${n.extraLink.url}" style="color:#888">${esc(n.extraLink.label)}</a></p>` : ''}
-    <p style="color:#888;font-size:13px">The Bonkers team</p></div>`
+  const text = `${hi}\n\n${n.message}\n\n${link}${extraText}\n\nThe Curious Library team`
+  const html = emailHtml({ greeting: hi, title: n.title, paragraphs: [n.message], button: { label: 'Open the app', url: link }, extraLink: n.extraLink, settingsUrl: `${appUrl()}/dashboard/settings` })
   const r = await sendEmail(to, n.title, text, html)
   if (r.status === 'failed') console.error('notifyHousehold email:', r.detail)
 }

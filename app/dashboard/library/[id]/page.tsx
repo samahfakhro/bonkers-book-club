@@ -4,6 +4,12 @@ import { useState, useEffect, useRef, Fragment } from 'react'
 import { useRouter, useParams, useSearchParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { fetchAvailableBookIds } from '@/lib/availability'
+import CuriousLogo from '@/components/CuriousLogo'
+import ParentBottomNav from '@/components/ParentBottomNav'
+import ChildBottomNav from '@/components/ChildBottomNav'
+import BlobRating from '@/components/BlobRating'
+import { getCategoryBlob } from '@/lib/category-blobs'
+import { nextDeliverySpace, openFullDelivery } from '@/lib/next-delivery'
 
 type Child = {
   id: string
@@ -37,6 +43,7 @@ type Review = {
   id: string
   rating: number | null
   written_review: string | null
+  category_ratings: Record<string, number> | null
   child: { nickname: string; avatar_url: string | null } | null
 }
 
@@ -62,27 +69,14 @@ const PARENT_AVATARS = [
   { id: 'tiger', emoji: '🐯', bg: '#FDE68A' }, { id: 'penguin', emoji: '🐧', bg: '#BAE6FD' },
 ]
 
-function getCategoryBlob(name: string): string | null {
-  const n = name.toLowerCase()
-  if (n.includes('adventure')) return '/blob_adventure.png'
-  if (n.includes('magic') || n.includes('mayhem')) return '/blob_magic.png'
-  if (n.includes('heart')) return '/blob_heart.png'
-  if (n.includes('laugh')) return '/blob_laugh.png'
-  if (n.includes('weird')) return '/blob_weird.png'
-  if (n.includes('true') || n.includes('bonkers')) return '/blob_true.png'
-  if (n.includes('hero') || n.includes('legend')) return '/blob_hero.png'
-  if (n.includes('mystery') || n.includes('mischief')) return '/blob_mystery.png'
-  if (n.includes('spooky') || n.includes('scary')) return '/blob_spooky.png'
-  return null
-}
 
-function CategoryBlob({ cat, size = 40, labelSize = '0.5rem', showLabel = true, onClick }: { cat: { id: string; name: string }; size?: number; labelSize?: string; showLabel?: boolean; onClick?: () => void }) {
+function CategoryBlob({ cat, size = 40, labelSize = '0.5rem', showLabel = true }: { cat: { id: string; name: string }; size?: number; labelSize?: string; showLabel?: boolean }) {
   const blob = getCategoryBlob(cat.name)
   if (!blob) return null
   const n = cat.name.toLowerCase()
   const shortName = n.startsWith('heartwarming') ? 'Heart' : n.startsWith('amazing') ? 'Adventure' : n.startsWith('magical') ? 'Magic' : cat.name.split(' ')[0]
   return (
-    <button onClick={onClick} style={{ background: 'none', border: 'none', cursor: onClick ? 'pointer' : 'default', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: showLabel ? '8px' : 0, width: `${size + 14}px` }}>
+    <div style={{ padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: showLabel ? '8px' : 0, width: `${size + 14}px` }}>
       <div style={{ display: 'flex', position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
         <img src={blob} alt={cat.name} style={{ width: `${size}px`, height: `${size}px`, objectFit: 'contain', display: 'block', flexShrink: 0 }} />
         {n.includes('adventure') && <img src="/symbol_rocket.png" alt="" style={{ position: 'absolute', inset: 0, width: '60%', height: '60%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto' }} />}
@@ -96,7 +90,7 @@ function CategoryBlob({ cat, size = 40, labelSize = '0.5rem', showLabel = true, 
         {(n.includes('magic') || n.includes('mayhem')) && <img src="/symbol_magichat.png" alt="" style={{ position: 'absolute', inset: 0, width: '75%', height: '75%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)' }} />}
       </div>
       {showLabel && <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: labelSize, fontWeight: 700, color: '#1a2f51', letterSpacing: '0.06em', textTransform: 'uppercase', textAlign: 'center', lineHeight: 1 }}>{shortName}</span>}
-    </button>
+    </div>
   )
 }
 
@@ -303,11 +297,11 @@ export default function BookDetailPage() {
       }
 
       const { data: reviewData } = await supabase
-        .from('book_reviews').select('id, star_rating, review_text, child_profiles ( nickname, avatars ( image_url ) )')
+        .from('book_reviews').select('id, star_rating, review_text, moderation_status, category_ratings, child_profiles ( nickname, avatars ( image_url ) )')
         .eq('book_id', bookId).order('created_at', { ascending: false }).limit(10)
 
       if (reviewData) {
-        setReviews(reviewData.map((r: any) => ({ id: r.id, rating: r.star_rating, written_review: r.review_text, child: r.child_profiles ? { nickname: r.child_profiles.nickname, avatar_url: r.child_profiles.avatars?.image_url ?? null } : null })))
+        setReviews(reviewData.map((r: any) => ({ id: r.id, rating: r.star_rating, written_review: r.moderation_status === 'approved' ? r.review_text : null, category_ratings: r.category_ratings ?? null, child: r.child_profiles ? { nickname: r.child_profiles.nickname, avatar_url: r.child_profiles.avatars?.image_url ?? null } : null })))
       }
 
       const { data: defaultAvatar } = await supabase.from('avatars').select('image_url').eq('is_default', true).limit(1).single()
@@ -485,6 +479,10 @@ export default function BookDetailPage() {
   }
 
   async function handleSwapForChild(childId: string) {
+    const markAdded = () => { setSwapChildId(childId); setAddedBooks(prev => new Map(prev).set(bookId, childId)); if (book) setAddedBookObjects(prev => new Map(prev).set(bookId, { id: book.id, title: book.title, author: book.author, cover_image_url: book.cover_image_url })) }
+    const showFull = () => book && openFullDelivery({ childId, book: { id: book.id, title: book.title, cover_image_url: book.cover_image_url }, forChild: isChildMode, onAdded: markAdded })
+    // no free space in the next delivery → help them make room instead
+    if (await nextDeliverySpace(childId) <= 0) { setSwapDropdownOpen(false); showFull(); return }
     setSwapChildId(childId)
     setSwapDropdownOpen(false)
     if (!householdId) return
@@ -497,6 +495,7 @@ export default function BookDetailPage() {
     if (reqId) {
       const { error: itemErr } = await supabase.from('swap_request_items').insert({ swap_request_id: reqId, book_id: bookId, child_id: childId })
       if (itemErr?.message.includes('NEW_BOOKS_ON_HOLD')) { alert('New books are on hold until your extra books come back. Mark them as Returning for your next Curious Day — you can choose again once they’re back.'); return }
+      if (itemErr?.message.includes('NEXT_DELIVERY_FULL')) { setSwapChildId(null); showFull(); return }
       if (itemErr && itemErr.code !== '23505') { console.error('swap_request_items insert failed:', itemErr); return }
       setAddedBooks(prev => new Map(prev).set(bookId, childId))
       if (book) setAddedBookObjects(prev => new Map(prev).set(bookId, { id: book.id, title: book.title, author: book.author, cover_image_url: book.cover_image_url }))
@@ -537,41 +536,8 @@ export default function BookDetailPage() {
     }
   }
 
-  function renderBlobRating(blobSrc: string, catName: string, rating: number, size = 18) {
-    const n = catName.toLowerCase()
-    const symbolSrc = n.includes('adventure') ? '/symbol_rocket.png'
-      : (n.includes('spooky') || n.includes('scary')) ? '/symbol_spooky1.png'
-      : (n.includes('hero') || n.includes('legend')) ? '/symbol_hero.png'
-      : (n.includes('mystery') || n.includes('mischief')) ? '/symbol_mystery.png'
-      : (n.includes('true') || n.includes('bonkers')) ? '/symbol_true.png'
-      : n.includes('laugh') ? '/symbol_laugh.png'
-      : n.includes('weird') ? '/symbol_weird.png'
-      : n.includes('heart') ? '/symbol_heart.png'
-      : (n.includes('magic') || n.includes('mayhem')) ? '/symbol_magichat.png'
-      : null
-    const symbolSize = (n.includes('magic') || n.includes('mayhem')) ? '75%' : n.includes('true') || n.includes('bonkers') ? '48%' : n.includes('heart') ? '45%' : '60%'
-    return (
-      <div className="review-blob-rating" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-        {[1, 2, 3, 4, 5].map(i => {
-          const filled = rating >= i
-          const half = !filled && rating >= i - 0.5
-          return (
-            <div key={i} className="review-blob-item" style={{ width: `${size}px`, height: `${size}px`, position: 'relative', flexShrink: 0 }}>
-              {/* faded base blob */}
-              <img src={blobSrc} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: 0.25 }} />
-              {/* filled blob with clip */}
-              {(filled || half) && (
-                <div style={{ position: 'absolute', inset: 0, width: half ? '50%' : '100%', overflow: 'hidden' }}>
-                  <img src={blobSrc} alt="" style={{ width: `${size}px`, height: `${size}px`, objectFit: 'contain' }} />
-                </div>
-              )}
-              {/* symbol always centred over full blob */}
-              {symbolSrc && <img src={symbolSrc} alt="" style={{ position: 'absolute', inset: 0, width: symbolSize, height: symbolSize, objectFit: 'contain', margin: 'auto', filter: 'brightness(0)', opacity: filled ? 1 : half ? 0.5 : 0.15, pointerEvents: 'none' }} />}
-            </div>
-          )
-        })}
-      </div>
-    )
+  function renderBlobRating(_blobSrc: string, catName: string, rating: number, size = 18) {
+    return <BlobRating name={catName} rating={rating} size={size} className="review-blob-rating" />
   }
 
   function renderStars(rating: number | null, size = 14) {
@@ -617,15 +583,15 @@ export default function BookDetailPage() {
     </main>
   )
 
-  const navItems = isChildMode ? [
-    { label: 'Home', path: `/dashboard/children/${childIdParam}`, exact: true, onClick: () => router.push(`/dashboard/children/${childIdParam}`), icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg> },
-    { label: 'Library', path: '/dashboard/library', exact: false, onClick: () => router.push(`/dashboard/library?from=child&childId=${childIdParam}`), icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> },
-  ] : [
-    { label: 'Home', path: '/dashboard', exact: true, onClick: () => router.push('/dashboard'), icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg> },
-    { label: 'Library', path: '/dashboard/library', exact: false, onClick: () => router.push('/dashboard/library'), icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> },
-    { label: 'Settings', path: '/dashboard/settings', exact: false, onClick: () => router.push('/dashboard/settings'), icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> },
-    { label: 'Support', path: '/dashboard/support', exact: false, onClick: () => router.push('/dashboard/support'), icon: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> },
-  ]
+
+  // each category shows the average of the ratings kids gave that category (rating it is optional)
+  const ratedCategories = book.categories
+    .filter(cat => getCategoryBlob(cat.name) && cat.review_label)
+    .map(cat => {
+      const given = reviews.map(r => r.category_ratings?.[cat.id] ?? 0).filter(v => v > 0)
+      return { cat, avg: given.length ? given.reduce((a, b) => a + b, 0) / given.length : 0 }
+    })
+    .filter(c => c.avg > 0)
 
   return (
     <main className="min-h-screen" style={{ paddingBottom: '100px', backgroundColor: '#fefaf2' }}>
@@ -640,7 +606,7 @@ export default function BookDetailPage() {
           .wishlist-heart { width: 28px !important; height: 28px !important; }
           .review-stats-row { width: fit-content !important; gap: 24px !important; }
           .review-stats-row > div { flex: none !important; }
-          .review-section-wrapper { flex-direction: row !important; align-items: flex-start !important; gap: 48px !important; }
+          .review-section-wrapper { gap: 28px !important; }
           .meta-in-column { display: flex !important; }
           .meta-below { display: none !important; }
           .book-cover-col { width: 28% !important; }
@@ -661,8 +627,7 @@ export default function BookDetailPage() {
       <div style={{ position: 'sticky', top: 0, zIndex: 40, backgroundColor: '#fefaf2', padding: '24px 20px 2px', paddingTop: 'max(24px, env(safe-area-inset-top))' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ lineHeight: 1 }}>
-            <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, fontSize: '3rem', color: '#1a2f51', letterSpacing: '0.04em', margin: 0 }}>BONKERS</p>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.5rem', color: '#1a2f51', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '2px 0 0' }}>THE CHILDREN&apos;S LIBRARY</p>
+            <CuriousLogo height={72} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '36px' }}>
             {/* Basket icon */}
@@ -781,12 +746,12 @@ export default function BookDetailPage() {
             <>
               <div className="flex md:hidden flex-wrap justify-start" style={{ gap: '4px', marginTop: '6px', marginBottom: '10px' }}>
                 {book.categories.filter(cat => getCategoryBlob(cat.name)).map(cat => (
-                  <CategoryBlob key={cat.id} cat={cat} size={44} labelSize='0.6rem' onClick={() => router.push(`/dashboard/library/category/${cat.id}`)} />
+                  <CategoryBlob key={cat.id} cat={cat} size={44} labelSize='0.6rem' />
                 ))}
               </div>
               <div className="hidden md:flex flex-wrap justify-start" style={{ gap: '4px', marginTop: '14px', marginBottom: '10px' }}>
                 {book.categories.filter(cat => getCategoryBlob(cat.name)).map(cat => (
-                  <CategoryBlob key={cat.id} cat={cat} size={78} onClick={() => router.push(`/dashboard/library/category/${cat.id}`)} />
+                  <CategoryBlob key={cat.id} cat={cat} size={78} />
                 ))}
               </div>
             </>
@@ -914,11 +879,11 @@ export default function BookDetailPage() {
         )}
       </div>
 
-      {/* ── What Bonkers kids think ── */}
+      {/* ── What Curious kids think ── */}
       <section style={{ padding: '24px 0 28px' }}>
           <div className="book-detail-wide" style={{ display: 'flex', alignItems: 'center', padding: '0 16px', marginBottom: '14px', gap: '6px' }}>
-            <h2 style={{ fontFamily: 'var(--font-amatic)', fontSize: '1.9rem', fontWeight: 700, color: '#1a2f51', margin: 0, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
-              What Bonkers kids think
+            <h2 style={{ fontFamily: 'var(--font-patrick-hand)', fontSize: '1.5rem', fontWeight: 400, color: '#1a2f51', margin: 0, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
+              What Curious kids think
             </h2>
             <img src="/spines/whiskers_right_yellow.png" alt="" style={{ height: '52px', width: 'auto', pointerEvents: 'none', flexShrink: 0 }} />
           </div>
@@ -926,8 +891,14 @@ export default function BookDetailPage() {
           {/* stats + review cards wrapper */}
           <div className="book-detail-wide review-section-wrapper" style={{ display: 'flex', flexDirection: 'column', padding: '0 16px', gap: '20px' }}>
 
+          {reviews.length === 0 && (
+            <p style={{ fontFamily: 'var(--font-patrick-hand)', fontSize: '1.25rem', color: '#1a2f51', lineHeight: 1.35, margin: 0 }}>
+              No reviews yet — be the first to tell us what you think!
+            </p>
+          )}
+
           {/* 2-column stats row */}
-          <div className="review-stats-row" style={{ display: 'flex', alignItems: 'flex-start', width: 'fit-content', gap: '16px', flexShrink: 0 }}>
+          {reviews.length > 0 && <div className="review-stats-row" style={{ display: 'flex', alignItems: 'flex-start', width: 'fit-content', gap: '16px', flexShrink: 0 }}>
 
             {/* Col 1: overall rating */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
@@ -942,31 +913,27 @@ export default function BookDetailPage() {
               </p>
             </div>
 
+            {ratedCategories.length > 0 && <>
             {/* Divider */}
             <div style={{ width: '1.5px', height: '70px', backgroundColor: 'rgba(26,47,81,0.15)', borderRadius: '2px', flexShrink: 0, alignSelf: 'center' }} />
 
             {/* Col 2: per-category ratings */}
             <div className="review-cat-rows" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '28px' }}>
-              {book.categories.length > 0 ? book.categories.filter(cat => getCategoryBlob(cat.name) && cat.review_label).map(cat => (
+              {ratedCategories.length > 0 ? ratedCategories.map(({ cat, avg }) => (
                 <div key={cat.id} className="review-category-blob" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <span className="review-cat-label" style={{ fontFamily: 'var(--font-patrick-hand)', fontSize: '1rem', fontWeight: 700, color: '#1a2f51', letterSpacing: '0.08em', lineHeight: 1 }}>{cat.review_label}</span>
-                    {reviews.length > 0 && (() => {
-                      const blobSrc = getCategoryBlob(cat.name)
-                      const avg = reviews.reduce((sum, r) => sum + (r.rating ?? 0), 0) / reviews.length
-                      return blobSrc ? renderBlobRating(blobSrc, cat.name, avg, 36) : null
-                    })()}
+                    {renderBlobRating(getCategoryBlob(cat.name)!, cat.name, avg, 36)}
                   </div>
                 </div>
-              )) : (
-                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.65rem', color: 'rgba(26,47,81,0.4)', textAlign: 'center', margin: 0 }}>No categories</p>
-              )}
+              )) : null}
             </div>
-          </div>
+            </>}
+          </div>}
 
           {/* Review cards — horizontal scroll strip */}
           {reviews.length > 0 && (
-            <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+            <div style={{ position: 'relative', width: '100%', minWidth: 0 }}>
             <div
               ref={reviewScrollRef}
               onScroll={e => { const el = e.currentTarget; setShowReviewArrow(el.scrollLeft + el.clientWidth < el.scrollWidth - 8) }}
@@ -978,13 +945,13 @@ export default function BookDetailPage() {
                   )}
                   <div className="review-card" style={{ flexShrink: 0, width: '220px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{ width: '64px', height: '64px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, backgroundColor: 'rgba(26,47,81,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, backgroundColor: 'rgba(26,47,81,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {review.child?.avatar_url || defaultAvatarUrl
                           ? <img src={review.child?.avatar_url ?? defaultAvatarUrl!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           : <span style={{ color: '#1a2f51', fontSize: '1.2rem' }}>★</span>}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                        <p style={{ fontFamily: 'var(--font-patrick-hand)', color: '#1a2f51', fontSize: '1.1rem', fontWeight: 700, margin: 0, lineHeight: 1, letterSpacing: '0.04em' }}>{review.child?.nickname ?? 'Bonkers reader'}</p>
+                        <p style={{ fontFamily: 'var(--font-patrick-hand)', color: '#1a2f51', fontSize: '1.1rem', fontWeight: 700, margin: 0, lineHeight: 1, letterSpacing: '0.04em' }}>{review.child?.nickname ?? 'Curious reader'}</p>
                         {review.rating && <div>{renderStars(review.rating, 13)}</div>}
                       </div>
                     </div>
@@ -998,7 +965,7 @@ export default function BookDetailPage() {
                             {`"${review.written_review}"`}
                           </p>
                           {!isExpanded && review.written_review.length > 90 && (
-                            <button onClick={() => setExpandedReviews(prev => { const next = new Set(prev); next.add(review.id); return next })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.6rem', color: 'rgba(26,47,81,0.45)', letterSpacing: '0.06em', marginTop: '2px' }}>
+                            <button onClick={() => setExpandedReviews(prev => { const next = new Set(prev); next.add(review.id); return next })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', fontWeight: 600, color: '#1a2f51', textDecoration: 'underline', textUnderlineOffset: '3px', letterSpacing: '0.02em', marginTop: '6px' }}>
                               read more
                             </button>
                           )}
@@ -1025,7 +992,7 @@ export default function BookDetailPage() {
       {/* ── More in this series ── */}
       {seriesBooks.length > 0 && (
         <section className="series-section" style={{ paddingBottom: '28px', marginTop: '40px' }}>
-          <button onClick={() => { const sid = book.series?.parent?.id ?? book.series?.id; if (sid) router.push(`/dashboard/library/series/${sid}${childIdParam ? `?childId=${childIdParam}` : ''}`) }} className="book-detail-wide" style={{ fontFamily: 'var(--font-amatic)', fontSize: '1.9rem', fontWeight: 700, color: '#1a2f51', margin: '0 0 14px', padding: '0 16px', letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+          <button onClick={() => { const sid = book.series?.parent?.id ?? book.series?.id; if (sid) router.push(`/dashboard/library/series/${sid}${childIdParam ? `?childId=${childIdParam}` : ''}`) }} className="book-detail-wide" style={{ fontFamily: 'var(--font-patrick-hand)', fontSize: '1.5rem', fontWeight: 400, color: '#1a2f51', margin: '0 0 14px', padding: '0 16px', letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
             More in the {book.series?.parent?.name ?? book.series?.name ?? ''} series
             <span style={{ fontSize: '1.9rem', lineHeight: 1, position: 'relative', top: '-0.15em', color: '#c48b00' }}>→</span>
           </button>
@@ -1038,7 +1005,7 @@ export default function BookDetailPage() {
       {/* ── More like this ── */}
       {moreLikeThis.length > 0 && (
         <section className="more-like-section series-section" style={{ paddingBottom: '28px' }}>
-          <h2 className="book-detail-wide" style={{ fontFamily: 'var(--font-amatic)', fontSize: '1.9rem', fontWeight: 700, color: '#1a2f51', margin: '0 0 14px', padding: '0 16px', letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h2 className="book-detail-wide" style={{ fontFamily: 'var(--font-patrick-hand)', fontSize: '1.5rem', fontWeight: 400, color: '#1a2f51', margin: '0 0 14px', padding: '0 16px', letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '8px' }}>
             More books like this
             <span style={{ fontSize: '1.9rem', lineHeight: 1, position: 'relative', top: '-0.15em', color: '#c48b00' }}>→</span>
           </h2>
@@ -1048,31 +1015,8 @@ export default function BookDetailPage() {
         </section>
       )}
 
-      {/* ── Slots full popup ── */}
-      {showSlotsPopup && (
-        <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '0 24px', backgroundColor: 'rgba(0,0,0,0.6)' }} onClick={() => setShowSlotsPopup(false)}>
-          <div style={{ borderRadius: '24px', padding: '24px', maxWidth: '320px', width: '100%', textAlign: 'center', backgroundColor: '#2a1a0e', border: '2px solid rgba(249,209,116,0.4)' }} onClick={e => e.stopPropagation()}>
-            <p style={{ fontFamily: 'var(--font-patrick-hand)', fontSize: '2rem', fontWeight: 700, color: '#f9d174', marginBottom: '16px', lineHeight: 1.2 }}>Oops! Swap nests are full! 🐦</p>
-            <button onClick={() => { setShowSlotsPopup(false); router.push('/dashboard') }} style={{ fontFamily: 'var(--font-patrick-hand)', fontSize: '1.4rem', fontWeight: 700, color: '#f9d174', background: 'none', border: '2px solid rgba(249,209,116,0.4)', borderRadius: '999px', padding: '8px 24px', cursor: 'pointer', letterSpacing: '0.03em' }}>Click here to manage</button>
-          </div>
-        </div>
-      )}
-
       {/* ── Bottom nav ── */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 55, backgroundColor: '#1a2f51', borderTop: 'none' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '8px 8px', paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
-          {navItems.map((item, i) => {
-            const active = item.exact ? pathname === item.path : pathname.startsWith(item.path)
-            return (
-              <button key={i} onClick={item.onClick}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, background: 'none', border: 'none', cursor: 'pointer', color: active ? '#f9d174' : '#fefaf2', opacity: 1, minWidth: '56px', padding: 0 }}>
-                {item.icon()}
-                <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.6rem', letterSpacing: '0.06em', fontWeight: active ? 700 : 400 }}>{item.label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      {isChildMode ? <ChildBottomNav childId={childIdParam!} /> : <ParentBottomNav />}
 
       {/* ── Basket dropdown ── */}
       {basketOpen && (

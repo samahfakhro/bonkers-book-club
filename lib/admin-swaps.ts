@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { notifyHousehold } from '@/lib/notify'
 import { allowanceByHousehold } from '@/lib/returns/finish'
+import { renderMessage } from '@/lib/messages'
 
 // Admin edits a child's "Coming next" books from the family's page in Members.
 // Allowed until packed. Only books with a free copy can be added. Every change is logged
@@ -70,7 +71,8 @@ export async function adminAddBook(admin: string, householdId: string, childId: 
   if (error) return { error: error.message }
   const { data: book } = await supabaseAdmin.from('books').select('title').eq('id', bookId).single()
   await supabaseAdmin.from('admin_audit_log').insert({ admin_email: admin, action: 'swap_add_book', household_id: householdId, detail: `${kid.name}: + ${book?.title}` })
-  await notifyHousehold({ householdId, childId, type: 'general', title: `We’ve updated ${kid.name}’s books`, message: `We’ve added ${book?.title} to ${kid.name}’s books for your next Curious Day.`, link: '/dashboard' })
+  const added = await renderMessage('swap_added', { child_name: kid.name, book_title: book?.title || 'a book' })
+  await notifyHousehold({ householdId, childId, type: 'general', title: added.title, message: added.body, link: '/dashboard' })
   return { ok: true }
 }
 
@@ -84,6 +86,7 @@ export async function adminRemoveBook(admin: string, householdId: string, itemId
   const { data: kid } = await supabaseAdmin.from('child_profiles').select('name').eq('id', item.child_id).single()
   const title = (item.books as any)?.title
   await supabaseAdmin.from('admin_audit_log').insert({ admin_email: admin, action: 'swap_remove_book', household_id: householdId, detail: `${kid?.name}: − ${title}` })
-  await notifyHousehold({ householdId, childId: item.child_id, type: 'general', title: `We’ve updated ${kid?.name}’s books`, message: `We’ve taken ${title} off ${kid?.name}’s books for your next Curious Day. Choose another any time before the deadline.`, link: '/dashboard' })
+  const removed = await renderMessage('swap_removed', { child_name: kid?.name || 'your child', book_title: title })
+  await notifyHousehold({ householdId, childId: item.child_id, type: 'general', title: removed.title, message: removed.body, link: '/dashboard' })
   return { ok: true }
 }

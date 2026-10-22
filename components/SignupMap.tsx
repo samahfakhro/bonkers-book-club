@@ -66,7 +66,7 @@ export default function SignupMap({ zones, onProceed }: Props) {
 
     async function init() {
       if (!mapsConfigured) {
-        setOptions({ key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || '', version: 'weekly' })
+        setOptions({ key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || '' })
         mapsConfigured = true
       }
       const { Map } = await importLibrary('maps') as google.maps.MapsLibrary
@@ -89,12 +89,9 @@ export default function SignupMap({ zones, onProceed }: Props) {
         draggable: true,
         map: null,
         icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 10,
-          fillColor: '#f59e0b',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2.5,
+          url: '/star_button_on.png',
+          scaledSize: new google.maps.Size(20, 20),
+          anchor: new google.maps.Point(10, 10),
         },
       })
       markerRef.current = marker
@@ -306,7 +303,7 @@ export default function SignupMap({ zones, onProceed }: Props) {
 
       {status === 'done' && areaStatus === 'conflict' && (
         <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', color: '#e05c3a', margin: 0, lineHeight: 1.5 }}>
-          We couldn&apos;t work out your delivery day for this spot. Please try moving the pin slightly, or contact us.
+          We couldn&apos;t work out your delivery day for this spot. Please try moving the star pin slightly, or contact us.
         </p>
       )}
     </div>

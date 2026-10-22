@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { navy, cream, yellow, Big, Card, Screen } from './ui'
+import CuriousLogo from '@/components/CuriousLogo'
 
 // Driver Home — today's routes (Dubai date). Other days can be picked for testing / planning.
 const dubaiToday = () => new Date(Date.now() + 4 * 3600_000).toISOString().slice(0, 10)
@@ -25,7 +26,7 @@ export default function DriverHome() {
 
   return (
     <Screen>
-      <p style={{ margin: 0, fontFamily: 'var(--font-amatic)', fontSize: '2.6rem', fontWeight: 700, color: navy, lineHeight: 1 }}>BONKERS</p>
+      <CuriousLogo height={60} />
       <p style={{ margin: '2px 0 22px', fontSize: '12px', fontWeight: 700, letterSpacing: '0.16em', color: navy, opacity: 0.7 }}>DRIVER</p>
 
       <h1 style={{ margin: '0 0 4px', fontSize: '26px', color: navy }}>{date === dubaiToday() ? 'Today' : 'Routes'}</h1>

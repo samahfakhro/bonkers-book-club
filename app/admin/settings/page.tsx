@@ -122,7 +122,7 @@ function BioLinks() {
   return (
     <div style={card}>
       <p style={h2}>Links for your bios and posts</p>
-      <p style={{ ...hint, margin: '0 0 10px' }}>Use these so we know where visitors came from. ChatGPT, Perplexity, Gemini, Claude and Google searches are recognised automatically. Once bonkers.ae is live these will start with https://bonkers.ae.</p>
+      <p style={{ ...hint, margin: '0 0 10px' }}>Use these so we know where visitors came from. ChatGPT, Perplexity, Gemini, Claude and Google searches are recognised automatically. Once curiouslibrary.ae is live these will start with https://curiouslibrary.ae.</p>
       {LINK_SOURCES.map(src => {
         const url = `${base}/?src=${src}`
         return (

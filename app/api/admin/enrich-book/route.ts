@@ -46,7 +46,7 @@ async function enrichWithClaude(book: ReturnType<typeof parseDoc> & { categoryNa
       max_tokens: 600,
       messages: [{
         role: 'user',
-        content: `You are cataloguing children's books for a library called Bonkers.
+        content: `You are cataloguing children's books for a library called The Curious Library.
 
 Book: "${book.title}" by ${book.author}
 ${book.description ? `Description: ${book.description.slice(0, 600)}` : ''}

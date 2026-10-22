@@ -61,7 +61,7 @@ const caveat = Caveat({
 
 export const metadata: Metadata = {
   title: "The Curious Library",
-  description: "Dubai's most magical children's book swap",
+  description: "Dubai's most magical children's library",
 };
 
 export const viewport: Viewport = {
