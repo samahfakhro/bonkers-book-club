@@ -1,5 +1,7 @@
 'use client'
 
+import { avatarRef } from '@/lib/avatars'
+import AvatarPicker, { AvatarFace } from '@/components/AvatarPicker'
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -54,16 +56,6 @@ type Child = {
   book_allocation?: number
 }
 
-const AVATARS = [
-  { id: 'lion', emoji: '🦁', bg: '#FCD34D' },
-  { id: 'elephant', emoji: '🐘', bg: '#93C5FD' },
-  { id: 'fox', emoji: '🦊', bg: '#FB923C' },
-  { id: 'owl', emoji: '🦉', bg: '#A78BFA' },
-  { id: 'bear', emoji: '🐻', bg: '#86EFAC' },
-  { id: 'bunny', emoji: '🐰', bg: '#F9A8D4' },
-  { id: 'tiger', emoji: '🐯', bg: '#FDE68A' },
-  { id: 'penguin', emoji: '🐧', bg: '#BAE6FD' },
-]
 
 type Member = {
   id: string
@@ -199,6 +191,7 @@ export default function DashboardPage() {
   })
   const activeCharacter = CHARACTERS[characterIndex]
   const [member, setMember] = useState<Member | null>(null)
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
   // set at the warehouse when there are more books at home than the plan allows
   const [overAllowance, setOverAllowance] = useState<{ graceUntil: string | null; response: string | null } | null>(null)
   const [biggerPlan, setBiggerPlan] = useState<{ name: string; books: number } | null>(null)
@@ -614,11 +607,11 @@ export default function DashboardPage() {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
           <NotificationBell />
           {(() => {
-            const av = AVATARS.find(a => a.id === member?.avatar_id)
+            const av = avatarRef(member?.avatar_id)
             return (
               <button onClick={() => setProfileMenuOpen(o => !o)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: av ? av.bg : 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: av ? '1.7rem' : '1.3rem', flexShrink: 0, border: '2px solid rgba(26,47,81,0.2)', fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51' }}>
-                  {av ? av.emoji : (member?.first_name?.[0]?.toUpperCase() || '?')}
+                <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0, border: '2px solid rgba(26,47,81,0.2)', fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51' }}>
+                  <AvatarFace id={av?.id} fallback={(member?.first_name?.[0]?.toUpperCase() || '?')} />
                 </div>
                 {member?.first_name && <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.55rem', color: '#1a2f51', letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1 }}>{member.first_name}</span>}
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1a2f51" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: profileMenuOpen ? 'rotate(180deg)' : 'none' }}><polyline points="6 9 12 15 18 9"/></svg>
@@ -747,9 +740,9 @@ export default function DashboardPage() {
                   return (
                     <div onClick={e => { e.stopPropagation(); toggleCollapse(child.id) }} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: isCollapsed ? 0 : '18px', cursor: 'pointer' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                      {(() => { const av = AVATARS.find(a => a.id === child.avatar_id); return (
-                      <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: av?.bg || 'rgba(26,47,81,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '2px solid rgba(26,47,81,0.1)', fontSize: av ? '1.7rem' : '1.3rem' }}>
-                        {av ? av.emoji : <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontWeight: 700 }}>{child.first_name[0]}</span>}
+                      {(() => { const av = avatarRef(child.avatar_id); return (
+                      <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: 'rgba(26,47,81,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '2px solid rgba(26,47,81,0.1)', fontSize: '1.3rem' }}>
+                        <AvatarFace id={av?.id} fallback={<span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontWeight: 700 }}>{child.first_name[0]}</span>} />
                       </div>) })()}
                       <div style={{ flex: 1 }}>
                         <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51', fontSize: '1.6rem', margin: 0, lineHeight: 1 }}>{child.first_name}</p>
@@ -954,10 +947,20 @@ export default function DashboardPage() {
       {/* ── BOTTOM NAV ── */}
       <ParentBottomNav />
 
+      {avatarPickerOpen && member && (
+        <AvatarPicker target={{ householdId: member.id }} currentId={member.avatar_id}
+          onClose={() => setAvatarPickerOpen(false)} onSaved={id => setMember(m => m ? { ...m, avatar_id: id } : m)} />
+      )}
+
       {/* Profile dropdown */}
       {profileMenuOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 60 }} onClick={() => setProfileMenuOpen(false)}>
           <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: '72px', right: '16px', width: 'min(260px, calc(100vw - 32px))', backgroundColor: '#fefaf2', borderRadius: '16px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', overflow: 'hidden', border: '1px solid rgba(26,47,81,0.1)' }}>
+            <button onClick={() => { setProfileMenuOpen(false); setAvatarPickerOpen(true) }}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'none', border: 'none', borderBottom: '1px solid rgba(26,47,81,0.1)', cursor: 'pointer', textAlign: 'left' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a2f51" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#1a2f51', margin: 0, fontWeight: 600 }}>Change avatar</p>
+            </button>
             {children.length > 0 && (
               <>
                 <div style={{ padding: '12px 16px 10px', borderBottom: '1px solid rgba(26,47,81,0.1)' }}>
@@ -968,9 +971,9 @@ export default function DashboardPage() {
                     <button key={child.id}
                       onClick={() => { setProfileMenuOpen(false); router.push(`/dashboard/children/${child.id}`) }}
                       style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                      {(() => { const av = AVATARS.find(a => a.id === child.avatar_id); return (
-                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: av?.bg || 'rgba(26,47,81,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1.5px solid rgba(26,47,81,0.12)', fontSize: av ? '1rem' : undefined }}>
-                        {av ? av.emoji : <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1rem', fontWeight: 700 }}>{child.first_name[0]}</span>}
+                      {(() => { const av = avatarRef(child.avatar_id); return (
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(26,47,81,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1.5px solid rgba(26,47,81,0.12)', fontSize: undefined }}>
+                        <AvatarFace id={av?.id} fallback={<span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1rem', fontWeight: 700 }}>{child.first_name[0]}</span>} />
                       </div>) })()}
                       <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '1.05rem', color: '#1a2f51', margin: 0 }}>{child.first_name}</p>
                     </button>

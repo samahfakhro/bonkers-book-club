@@ -1,5 +1,7 @@
 'use client'
 
+import { avatarRef } from '@/lib/avatars'
+import AvatarPicker, { AvatarFace } from '@/components/AvatarPicker'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -18,16 +20,6 @@ function TapButton({ onTap, style, children }: { onTap: () => void; style?: Reac
   return <button {...handlers} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', ...style }}>{children}</button>
 }
 
-const AVATARS = [
-  { id: 'lion', emoji: '🦁', bg: '#FCD34D' },
-  { id: 'elephant', emoji: '🐘', bg: '#93C5FD' },
-  { id: 'fox', emoji: '🦊', bg: '#FB923C' },
-  { id: 'owl', emoji: '🦉', bg: '#A78BFA' },
-  { id: 'bear', emoji: '🐻', bg: '#86EFAC' },
-  { id: 'bunny', emoji: '🐰', bg: '#F9A8D4' },
-  { id: 'tiger', emoji: '🐯', bg: '#FDE68A' },
-  { id: 'penguin', emoji: '🐧', bg: '#BAE6FD' },
-]
 
 const ACHIEVEMENTS = [
   { id: 'first_book', emoji: '🚀', title: 'First Launch', desc: 'Read 1 book', threshold: 1 },
@@ -207,7 +199,7 @@ export default function ChildProfilePage() {
   const [selectedSpine, setSelectedSpine] = useState<ReadBook | null>(null)
   const [showSwitcher, setShowSwitcher] = useState(false)
   const [parentPinHash, setParentPinHash] = useState<string | null>(null)
-  const [parentAvatar, setParentAvatar] = useState<{ emoji: string; bg: string } | null>(null)
+  const [parentAvatar, setParentAvatar] = useState<{ id: string } | null>(null)
   const [parentName, setParentName] = useState<string | null>(null)
   const [pinPromptTarget, setPinPromptTarget] = useState<string | null>(null)
   const [pinInput, setPinInput] = useState('')
@@ -227,6 +219,7 @@ export default function ChildProfilePage() {
   const [draftSwapRequestId, setDraftSwapRequestId] = useState<string | null>(null)
   const [swapRequestStatus, setSwapRequestStatus] = useState<string | null>(null)
   const [householdId, setHouseholdId] = useState<string | null>(null)
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [reviewingBook, setReviewingBook] = useState<ReadBook | null>(null)
   const [reviewStars, setReviewStars] = useState(0)
@@ -259,7 +252,7 @@ export default function ChildProfilePage() {
       setUserId(user.id)
       setHouseholdId(hh.id)
       setParentPinHash((hh as any).parent_pin_hash ?? null)
-      const av = AVATARS.find((a: { id: string; emoji: string; bg: string }) => a.id === (hh as any).avatar_id)
+      const av = avatarRef((hh as any).avatar_id)
       if (av) setParentAvatar(av)
       setParentName((hh as any).first_name ?? null)
 
@@ -548,7 +541,7 @@ export default function ChildProfilePage() {
   }
 
   const childName = child?.nickname || child?.name || '...'
-  const avatar = AVATARS.find(a => a.id === child?.avatar_id)
+  const avatar = avatarRef(child?.avatar_id)
   const booksRead = child?.books_read_count ?? 0
   const canPickBooks = child?.swap_permission === 'independent_submit' || child?.swap_permission === 'prepare_only'
   const canIndependentSwap = canPickBooks
@@ -638,8 +631,8 @@ export default function ChildProfilePage() {
           <CuriousLogo height={60} light />
         </div>
         <button onClick={() => setShowSwitcher(o => !o)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-          <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: avatar?.bg || 'rgba(237,219,195,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.7rem', flexShrink: 0, border: '2px solid rgba(237,219,195,0.25)' }}>
-            {avatar?.emoji || childName[0]}
+          <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: 'rgba(237,219,195,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.7rem', flexShrink: 0, border: '2px solid rgba(237,219,195,0.25)' }}>
+            <AvatarFace id={avatar?.id} fallback={childName[0]} />
           </div>
           <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.55rem', color: '#f9d174', letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1 }}>{childName}</span>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f9d174" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: showSwitcher ? 'rotate(180deg)' : 'none' }}><polyline points="6 9 12 15 18 9"/></svg>
@@ -1161,22 +1154,32 @@ export default function ChildProfilePage() {
           saving={reviewSaving} onSave={saveReview} onClose={() => setReviewingBook(null)} />
       )}
 
+      {avatarPickerOpen && child && (
+        <AvatarPicker target={{ childId }} currentId={child.avatar_id}
+          onClose={() => setAvatarPickerOpen(false)} onSaved={id => setChild(c => c ? { ...c, avatar_id: id } : c)} />
+      )}
+
       {/* ── PROFILE SWITCHER DROPDOWN ── */}
       {showSwitcher && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 60 }} onClick={() => setShowSwitcher(false)}>
           <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: '72px', right: '10px', width: 'min(260px, calc(100vw - 20px))', backgroundColor: '#fefaf2', borderRadius: '16px', boxShadow: '0 8px 32px rgba(0,0,0,0.55)', overflow: 'hidden' }}>
+            <button onClick={() => { setShowSwitcher(false); setAvatarPickerOpen(true) }}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'none', border: 'none', borderBottom: '1px solid rgba(26,47,81,0.1)', cursor: 'pointer', textAlign: 'left' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a2f51" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#1a2f51', margin: 0, fontWeight: 600 }}>Change avatar</p>
+            </button>
             <div style={{ padding: '12px 16px 10px', borderBottom: '1px solid rgba(26,47,81,0.1)' }}>
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#1a2f51', margin: 0 }}>Switch Profile</p>
             </div>
             <div style={{ padding: '6px 0' }}>
               {/* Siblings */}
               {siblings.map(sib => {
-                const sibAv = AVATARS.find(a => a.id === sib.avatar_id)
+                const sibAv = avatarRef(sib.avatar_id)
                 const sibName = sib.nickname || sib.name
                 return (
                   <button key={sib.id} onClick={() => { setShowSwitcher(false); router.push(`/dashboard/children/${sib.id}`) }}
                     style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: sibAv?.bg || 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>{sibAv?.emoji || sibName[0]}</div>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}><AvatarFace id={sibAv?.id} fallback={sibName[0]} /></div>
                     <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '1.05rem', color: '#1a2f51', margin: 0 }}>{sibName}</p>
                   </button>
                 )
@@ -1184,7 +1187,7 @@ export default function ChildProfilePage() {
               {/* Parent dashboard */}
               <button onClick={() => tryParentNav('/dashboard')}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: parentAvatar?.bg || 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: parentAvatar ? '1rem' : '1rem', flexShrink: 0, fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51' }}>{parentAvatar?.emoji || (parentName?.[0]?.toUpperCase() ?? '?')}</div>
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0, fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51' }}><AvatarFace id={parentAvatar?.id} fallback={(parentName?.[0]?.toUpperCase() ?? '?')} /></div>
                 <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '1.05rem', color: '#1a2f51', margin: 0 }}>{parentName || 'Parent Dashboard'}</p>
               </button>
             </div>

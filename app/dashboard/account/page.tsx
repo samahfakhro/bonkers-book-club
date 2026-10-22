@@ -1,21 +1,13 @@
 'use client'
 
+import { avatarRef } from '@/lib/avatars'
+import AvatarPicker, { AvatarFace } from '@/components/AvatarPicker'
 import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import CuriousLogo from '@/components/CuriousLogo'
 import ParentBottomNav from '@/components/ParentBottomNav'
 
-const AVATARS = [
-  { id: 'lion', emoji: '🦁', bg: '#FCD34D' },
-  { id: 'elephant', emoji: '🐘', bg: '#93C5FD' },
-  { id: 'fox', emoji: '🦊', bg: '#FB923C' },
-  { id: 'owl', emoji: '🦉', bg: '#A78BFA' },
-  { id: 'bear', emoji: '🐻', bg: '#86EFAC' },
-  { id: 'bunny', emoji: '🐰', bg: '#F9A8D4' },
-  { id: 'tiger', emoji: '🐯', bg: '#FDE68A' },
-  { id: 'penguin', emoji: '🐧', bg: '#BAE6FD' },
-]
 
 type Child = {
   id: string
@@ -51,7 +43,7 @@ export default function AccountPage() {
     load()
   }, [])
 
-  const parentAvatar = AVATARS.find(a => a.id === parent?.avatarId)
+  const parentAvatar = avatarRef(parent?.avatarId)
 
   const isActive = (path: string, exact = false) =>
     exact ? pathname === path : pathname.startsWith(path)
@@ -69,8 +61,8 @@ export default function AccountPage() {
           <>
             {/* Parent row */}
             <div className="flex items-center gap-4" style={{ marginBottom: '48px' }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: parentAvatar?.bg || 'rgba(237,219,195,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', flexShrink: 0, border: '3px solid rgba(237,219,195,0.2)' }}>
-                {parentAvatar?.emoji || <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700 }}>{parent?.firstName?.[0] || '?'}</span>}
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(237,219,195,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', flexShrink: 0, border: '3px solid rgba(237,219,195,0.2)' }}>
+                <AvatarFace id={parentAvatar?.id} fallback={<span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.6rem', fontWeight: 700 }}>{parent?.firstName?.[0] || '?'}</span>} />
               </div>
               <div>
                 <p style={{ fontFamily: 'var(--font-amatic)', fontWeight: 700, color: '#eddbc3', fontSize: '2.2rem', letterSpacing: '0.04em', margin: 0, lineHeight: 1 }}>{parent?.firstName}</p>

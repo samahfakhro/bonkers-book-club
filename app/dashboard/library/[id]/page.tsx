@@ -1,5 +1,8 @@
 'use client'
 
+import { avatarRef } from '@/lib/avatars'
+import AvatarPicker, { AvatarFace } from '@/components/AvatarPicker'
+import ChildChoiceSheet from '@/components/ChildChoiceSheet'
 import { useState, useEffect, useRef, Fragment } from 'react'
 import { useRouter, useParams, useSearchParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -55,19 +58,7 @@ type ShelfBook = {
   series_number?: number | null
 }
 
-const AVATARS = [
-  { id: '1', emoji: '🦊', bg: '#e8703a' }, { id: '2', emoji: '🐼', bg: '#5a8a5a' },
-  { id: '3', emoji: '🦁', bg: '#c9853a' }, { id: '4', emoji: '🐨', bg: '#7a9eae' },
-  { id: '5', emoji: '🦋', bg: '#9b6fb5' }, { id: '6', emoji: '🐸', bg: '#5a9a5a' },
-  { id: '7', emoji: '🦄', bg: '#c06080' }, { id: '8', emoji: '🐙', bg: '#5a7ab5' },
-]
 
-const PARENT_AVATARS = [
-  { id: 'lion', emoji: '🦁', bg: '#FCD34D' }, { id: 'elephant', emoji: '🐘', bg: '#93C5FD' },
-  { id: 'fox', emoji: '🦊', bg: '#FB923C' }, { id: 'owl', emoji: '🦉', bg: '#A78BFA' },
-  { id: 'bear', emoji: '🐻', bg: '#86EFAC' }, { id: 'bunny', emoji: '🐰', bg: '#F9A8D4' },
-  { id: 'tiger', emoji: '🐯', bg: '#FDE68A' }, { id: 'penguin', emoji: '🐧', bg: '#BAE6FD' },
-]
 
 
 function CategoryBlob({ cat, size = 40, labelSize = '0.5rem', showLabel = true }: { cat: { id: string; name: string }; size?: number; labelSize?: string; showLabel?: boolean }) {
@@ -121,6 +112,7 @@ export default function BookDetailPage() {
   const [parentId, setParentId] = useState<string | null>(null)
   const [parentName, setParentName] = useState<string>('')
   const [parentAvatarId, setParentAvatarId] = useState<string | null>(null)
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
   const [headerInfo, setHeaderInfo] = useState<{ name: string; avatarId: string | null } | null>(null)
   const [householdId, setHouseholdId] = useState<string | null>(null)
   const [swapRequestId, setSwapRequestId] = useState<string | null>(null)
@@ -137,7 +129,8 @@ export default function BookDetailPage() {
   const [isNotifying, setIsNotifying] = useState(false)
   const [notifyLoading, setNotifyLoading] = useState(false)
   const [swapChildId, setSwapChildId] = useState<string | null>(null)
-  const [swapDropdownOpen, setSwapDropdownOpen] = useState(false)
+  const [swapDropdownOpen, setSwapDropdownOpen] = useState(false)   // "who is it for?" sheet for + (parents with 2+ readers)
+  const [heartChoiceOpen, setHeartChoiceOpen] = useState(false)     // same sheet for ♡
   const [showSlotsPopup, setShowSlotsPopup] = useState(false)
 
   const [toast, setToast] = useState<string | null>(null)
@@ -209,7 +202,7 @@ export default function BookDetailPage() {
           reading_level:reading_level_id ( id, name )
         `).eq('id', bookId).single(),
         household
-          ? supabase.from('child_profiles').select('id, name, nickname, avatar_url, avatar_id, book_slot_allocation').eq('household_id', household.id).order('created_at')
+          ? supabase.from('child_profiles').select('id, name, nickname, avatar_id, book_slot_allocation, avatars(image_url)').eq('household_id', household.id).order('created_at')
           : Promise.resolve({ data: [] }),
         fetchAvailableBookIds([bookId]), // on the shelf and not held in another family's Coming Next
         supabase.from('book_categories').select('category_id').eq('book_id', bookId),
@@ -245,7 +238,7 @@ export default function BookDetailPage() {
 
       setIsAvailable(availableIds.has(bookId))
 
-      const childList = (kids || []) as Child[]
+      const childList = ((kids || []) as any[]).map(k => ({ ...k, avatar_url: k.avatars?.image_url ?? null })) as Child[]
       setChildren(childList)
       const preSelected = childIdParam ? childList.find(c => c.id === childIdParam) : null
       if (preSelected) setSelectedChildId(preSelected.id)
@@ -431,8 +424,8 @@ export default function BookDetailPage() {
   }, [book])
 
   const headerAvatar = isChildMode
-    ? AVATARS.find(a => a.id === headerInfo?.avatarId)
-    : PARENT_AVATARS.find(a => a.id === headerInfo?.avatarId)
+    ? avatarRef(headerInfo?.avatarId)
+    : avatarRef(headerInfo?.avatarId)
 
   async function toggleWishlist(childId: string) {
     if (!childId || wishlistLoading) return
@@ -458,10 +451,10 @@ export default function BookDetailPage() {
   function handleHeartClick() {
     if (isChildMode && childIdParam) {
       toggleWishlist(childIdParam)
-    } else if (selectedChildId) {
-      toggleWishlist(selectedChildId)
-    } else if (children.length > 0) {
+    } else if (children.length === 1) {
       toggleWishlist(children[0].id)
+    } else if (children.length > 1) {
+      setHeartChoiceOpen(true)
     }
   }
 
@@ -474,7 +467,7 @@ export default function BookDetailPage() {
     if (children.length === 1) {
       handleSwapForChild(children[0].id)
     } else {
-      setSwapDropdownOpen(o => !o)
+      setSwapDropdownOpen(true)
     }
   }
 
@@ -650,8 +643,8 @@ export default function BookDetailPage() {
             {/* Avatar / profile switcher */}
             {headerInfo && (
               <button onClick={() => setProfileMenuOpen(o => !o)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: headerAvatar?.bg || 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: headerAvatar ? '1.7rem' : '1.1rem', border: '2px solid rgba(26,47,81,0.15)', flexShrink: 0, fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51' }}>
-                  {headerAvatar?.emoji || headerInfo.name[0]?.toUpperCase() || '?'}
+                <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', border: '2px solid rgba(26,47,81,0.15)', flexShrink: 0, fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51' }}>
+                  <AvatarFace id={headerAvatar?.id} fallback={headerInfo.name[0]?.toUpperCase() || '?'} />
                 </div>
                 <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.55rem', color: '#1a2f51', letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1 }}>{headerInfo.name}</span>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1a2f51" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: profileMenuOpen ? 'rotate(180deg)' : 'none' }}><polyline points="6 9 12 15 18 9"/></svg>
@@ -830,31 +823,8 @@ export default function BookDetailPage() {
                   <img src="/spines/whiskers_right_yellow.png" alt="" style={{ height: '44px', width: 'auto', flexShrink: 0, marginLeft: '8px', pointerEvents: 'none' }} />
                 </div>
 
-                {/* Child selector pill — parent only */}
-                {!isChildMode && children.length > 0 && (
-                  <button onClick={() => setSwapDropdownOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', background: 'rgba(26,47,81,0.05)', border: '1px solid rgba(26,47,81,0.15)', borderRadius: '999px', cursor: 'pointer', flexShrink: 0 }}>
-                    {selectedChild?.avatar_url && <img src={selectedChild.avatar_url} alt="" style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }} />}
-                    <span style={{ fontFamily: 'var(--font-patrick-hand)', fontSize: '1.15rem', fontWeight: 700, color: '#1a2f51', letterSpacing: '0.03em', lineHeight: 1 }}>
-                      {selectedChild?.nickname || selectedChild?.name || 'Pick child'}
-                    </span>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(26,47,81,0.4)" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-                  </button>
-                )}
               </div>
 
-              {/* Child dropdown — parent only */}
-              {!isChildMode && swapDropdownOpen && children.length > 1 && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 100, backgroundColor: '#fefaf2', border: '1px solid rgba(26,47,81,0.15)', borderRadius: '12px', overflow: 'hidden', minWidth: '160px', boxShadow: '0 4px 16px rgba(26,47,81,0.12)' }}>
-                  <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.7rem', color: 'rgba(26,47,81,0.4)', padding: '8px 14px 4px', letterSpacing: '0.04em' }}>For which child?</p>
-                  {children.map((child, i) => (
-                    <button key={child.id} onClick={() => { setSelectedChildId(child.id); handleSwapForChild(child.id) }}
-                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', borderTop: '1px solid rgba(26,47,81,0.08)' }}>
-                      {child.avatar_url && <img src={child.avatar_url} alt="" style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />}
-                      <span style={{ fontFamily: 'var(--font-patrick-hand)', fontSize: '1.35rem', fontWeight: 700, letterSpacing: '0.04em', color: '#1a2f51', lineHeight: 1 }}>{child.nickname || child.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
           </>
@@ -1059,23 +1029,40 @@ export default function BookDetailPage() {
         </div>
       )}
 
+      {(swapDropdownOpen || heartChoiceOpen) && book && (
+        <ChildChoiceSheet action={heartChoiceOpen ? 'heart' : 'basket'} bookTitle={book.title} readers={children}
+          savedFor={[...wishlistedChildIds]}
+          onChoose={r => { if (heartChoiceOpen) { setHeartChoiceOpen(false); toggleWishlist(r.id) } else { setSelectedChildId(r.id); handleSwapForChild(r.id) } }}
+          onClose={() => { setSwapDropdownOpen(false); setHeartChoiceOpen(false) }} />
+      )}
+
+      {avatarPickerOpen && (isChildMode ? childIdParam : householdId) && (
+        <AvatarPicker target={isChildMode ? { childId: childIdParam! } : { householdId: householdId! }} currentId={headerInfo?.avatarId ?? null}
+          onClose={() => setAvatarPickerOpen(false)} onSaved={id => { setHeaderInfo(h => h ? { ...h, avatarId: id } : h); if (isChildMode) setChildren(cs => cs.map(c => c.id === childIdParam ? { ...c, avatar_id: id } : c)); else setParentAvatarId(id) }} />
+      )}
+
       {/* ── Profile switcher dropdown ── */}
       {profileMenuOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 60 }} onClick={() => setProfileMenuOpen(false)}>
           <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: '72px', right: '10px', width: 'min(260px, calc(100vw - 20px))', backgroundColor: '#fefaf2', borderRadius: '16px', boxShadow: '0 8px 32px rgba(0,0,0,0.45)', overflow: 'hidden' }}>
+            <button onClick={() => { setProfileMenuOpen(false); setAvatarPickerOpen(true) }}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'none', border: 'none', borderBottom: '1px solid rgba(26,47,81,0.1)', cursor: 'pointer', textAlign: 'left' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a2f51" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#1a2f51', margin: 0, fontWeight: 600 }}>Change avatar</p>
+            </button>
             <div style={{ padding: '12px 16px 10px', borderBottom: '1px solid rgba(26,47,81,0.1)' }}>
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#1a2f51', margin: 0 }}>Switch Profile</p>
             </div>
             <div style={{ padding: '6px 0' }}>
               {children.map(child => {
-                const av = AVATARS.find(a => a.id === child.avatar_id)
+                const av = avatarRef(child.avatar_id)
                 const isActive = isChildMode && childIdParam === child.id
                 return (
                   <button key={child.id}
                     onClick={() => { setProfileMenuOpen(false); router.push(`/dashboard/children/${child.id}`) }}
                     style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: isActive ? 'rgba(26,47,81,0.07)' : 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: av?.bg || 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: av ? '1rem' : '0.85rem', flexShrink: 0, color: '#1a2f51', fontWeight: 700 }}>
-                      {av?.emoji || child.name[0]}
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', flexShrink: 0, color: '#1a2f51', fontWeight: 700 }}>
+                      <AvatarFace id={av?.id} fallback={child.name[0]} />
                     </div>
                     <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '1.05rem', color: '#1a2f51', margin: 0, flex: 1 }}>{child.name}</p>
                     {isActive && <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.55rem', color: 'rgba(26,47,81,0.45)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Active</span>}
@@ -1083,12 +1070,12 @@ export default function BookDetailPage() {
                 )
               })}
               {isChildMode && (() => {
-                const av = PARENT_AVATARS.find(a => a.id === parentAvatarId)
+                const av = avatarRef(parentAvatarId)
                 return (
                   <button onClick={() => tryParentNav('/dashboard/library?from=parent')}
                     style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: av?.bg || 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: av ? '1rem' : '0.9rem', flexShrink: 0, fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51' }}>
-                      {av?.emoji || (parentName?.[0]?.toUpperCase() || '👤')}
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', flexShrink: 0, fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51' }}>
+                      <AvatarFace id={av?.id} fallback={(parentName?.[0]?.toUpperCase() || '👤')} />
                     </div>
                     <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '1.05rem', color: '#1a2f51', margin: 0 }}>Parent View</p>
                   </button>

@@ -1,5 +1,7 @@
 'use client'
 
+import { avatarRef } from '@/lib/avatars'
+import AvatarPicker, { AvatarFace } from '@/components/AvatarPicker'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -63,16 +65,6 @@ function SaveButton({ onClick, loading, saved }: { onClick: () => void; loading:
   )
 }
 
-const AVATARS = [
-  { id: 'lion', emoji: '🦁', bg: '#FCD34D' },
-  { id: 'elephant', emoji: '🐘', bg: '#93C5FD' },
-  { id: 'fox', emoji: '🦊', bg: '#FB923C' },
-  { id: 'owl', emoji: '🦉', bg: '#A78BFA' },
-  { id: 'bear', emoji: '🐻', bg: '#86EFAC' },
-  { id: 'bunny', emoji: '🐰', bg: '#F9A8D4' },
-  { id: 'tiger', emoji: '🐯', bg: '#FDE68A' },
-  { id: 'penguin', emoji: '🐧', bg: '#BAE6FD' },
-]
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -359,8 +351,8 @@ export default function SettingsPage() {
               {/* Avatar */}
               <div className="flex items-center gap-4" style={{ marginBottom: '16px' }}>
                 <button type="button" onClick={() => setShowAvatarModal(true)}
-                  style={{ width: '64px', height: '64px', borderRadius: '50%', fontSize: '1.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: AVATARS.find(a => a.id === account.avatarId)?.bg || 'rgba(26,47,81,0.1)', border: '2px solid rgba(26,47,81,0.25)', cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51' }}>
-                  {AVATARS.find(a => a.id === account.avatarId)?.emoji || (account.firstName ? account.firstName[0].toUpperCase() : '?')}
+                  style={{ width: '64px', height: '64px', borderRadius: '50%', fontSize: '1.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(26,47,81,0.1)', border: '2px solid rgba(26,47,81,0.25)', cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51' }}>
+                  <AvatarFace id={avatarRef(account.avatarId)?.id} fallback={(account.firstName ? account.firstName[0].toUpperCase() : '?')} />
                 </button>
                 <button type="button" onClick={() => setShowAvatarModal(true)}
                   style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#1a2f51', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', opacity: 0.7 }}>
@@ -791,23 +783,9 @@ export default function SettingsPage() {
       </div>
 
       {/* ── AVATAR MODAL ── */}
-      {showAvatarModal && (
-        <div onClick={() => setShowAvatarModal(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 60, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div onClick={e => e.stopPropagation()}
-            style={{ backgroundColor: '#fefaf2', border: '2px solid rgba(26,47,81,0.15)', borderRadius: '24px 24px 0 0', padding: '32px 24px 48px', width: '100%', maxWidth: '768px' }}>
-            <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51', fontSize: '2rem', marginBottom: '24px', textAlign: 'center' }}>Choose your avatar</p>
-            <div className="grid grid-cols-4 gap-4">
-              {AVATARS.map(av => (
-                <button key={av.id} type="button"
-                  onClick={() => { setAccount(a => ({ ...a, avatarId: av.id })); setShowAvatarModal(false) }}
-                  style={{ width: '100%', aspectRatio: '1', borderRadius: '50%', fontSize: '2.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: av.bg, border: account.avatarId === av.id ? '4px solid #1a2f51' : '4px solid transparent', cursor: 'pointer', transform: account.avatarId === av.id ? 'scale(1.1)' : 'scale(1)', transition: 'all 0.15s' }}>
-                  {av.emoji}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+      {showAvatarModal && household && (
+        <AvatarPicker target={{ householdId: household.id }} currentId={account.avatarId || null}
+          onClose={() => setShowAvatarModal(false)} onSaved={id => setAccount(a => ({ ...a, avatarId: id }))} />
       )}
 
       {/* ── BOTTOM NAV ── */}

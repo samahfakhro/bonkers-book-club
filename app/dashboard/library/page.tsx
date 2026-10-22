@@ -1,5 +1,7 @@
 'use client'
 
+import { avatarRef } from '@/lib/avatars'
+import AvatarPicker, { AvatarFace } from '@/components/AvatarPicker'
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -8,6 +10,7 @@ import CuriousLogo from '@/components/CuriousLogo'
 import ParentBottomNav from '@/components/ParentBottomNav'
 import ChildBottomNav from '@/components/ChildBottomNav'
 import NoReaderSheet from '@/components/NoReaderSheet'
+import ChildChoiceSheet from '@/components/ChildChoiceSheet'
 import BookRequestSheet from '@/components/BookRequestSheet'
 import { nextDeliverySpace, openFullDelivery } from '@/lib/next-delivery'
 
@@ -16,19 +19,7 @@ type Category = { id: string; name: string; image_url: string | null }
 type ReadingLevel = { id: string; name: string }
 type Child = { id: string; name: string; date_of_birth?: string | null; book_slot_allocation?: number | null; avatar_id?: string | null; avatar_image_url?: string | null }
 
-const AVATARS = [
-  { id: '1', emoji: '🦊', bg: '#e8703a' }, { id: '2', emoji: '🐼', bg: '#5a8a5a' },
-  { id: '3', emoji: '🦁', bg: '#c9853a' }, { id: '4', emoji: '🐨', bg: '#7a9eae' },
-  { id: '5', emoji: '🦋', bg: '#9b6fb5' }, { id: '6', emoji: '🐸', bg: '#5a9a5a' },
-  { id: '7', emoji: '🦄', bg: '#c06080' }, { id: '8', emoji: '🐙', bg: '#5a7ab5' },
-]
 
-const PARENT_AVATARS = [
-  { id: 'lion', emoji: '🦁', bg: '#FCD34D' }, { id: 'elephant', emoji: '🐘', bg: '#93C5FD' },
-  { id: 'fox', emoji: '🦊', bg: '#FB923C' }, { id: 'owl', emoji: '🦉', bg: '#A78BFA' },
-  { id: 'bear', emoji: '🐻', bg: '#86EFAC' }, { id: 'bunny', emoji: '🐰', bg: '#F9A8D4' },
-  { id: 'tiger', emoji: '🐯', bg: '#FDE68A' }, { id: 'penguin', emoji: '🐧', bg: '#BAE6FD' },
-]
 type Toast = { message: string; id: number; x: number; y: number }
 type Particle = { id: number; src: string; x: number; y: number; size: number; angle: number; distance: number; rotation: number }
 
@@ -99,6 +90,7 @@ function LibraryPageInner() {
   const [requestsByChildId, setRequestsByChildId] = useState<Map<string, string>>(new Map())
   const [parentName, setParentName] = useState('')
   const [parentAvatarId, setParentAvatarId] = useState<string | null>(null)
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
   const [parentLoaded, setParentLoaded] = useState(false)
   const [readBookIds, setReadBookIds] = useState<Set<string>>(new Set())
   const [readByMap, setReadByMap] = useState<Map<string, string[]>>(new Map())
@@ -641,11 +633,11 @@ function LibraryPageInner() {
               if (isChildMode) {
                 const browsingChild = children.find(c => c.id === childIdParam)
                 if (!browsingChild) return null
-                const av = AVATARS.find(a => a.id === browsingChild.avatar_id)
+                const av = avatarRef(browsingChild.avatar_id)
                 return (
                   <button onClick={() => setProfileMenuOpen(o => !o)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                    <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: av?.bg || 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: av ? '1.7rem' : '1.1rem', border: '2px solid rgba(26,47,81,0.15)', flexShrink: 0, fontWeight: 700, color: '#1a2f51' }}>
-                      {av?.emoji || browsingChild.name[0]}
+                    <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', border: '2px solid rgba(26,47,81,0.15)', flexShrink: 0, fontWeight: 700, color: '#1a2f51' }}>
+                      <AvatarFace id={av?.id} fallback={browsingChild.name[0]} />
                     </div>
                     <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.55rem', color: '#1a2f51', letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1 }}>{browsingChild.name}</span>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1a2f51" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: profileMenuOpen ? 'rotate(180deg)' : 'none' }}><polyline points="6 9 12 15 18 9"/></svg>
@@ -653,11 +645,11 @@ function LibraryPageInner() {
                 )
               }
               if (!parentLoaded) return null
-              const av = PARENT_AVATARS.find(a => a.id === parentAvatarId)
+              const av = avatarRef(parentAvatarId)
               return (
                 <button onClick={() => setProfileMenuOpen(o => !o)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                  <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: av ? av.bg : 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: av ? '1.7rem' : '1.3rem', flexShrink: 0, border: '2px solid rgba(26,47,81,0.15)', fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51' }}>
-                    {av ? av.emoji : (parentName ? parentName[0].toUpperCase() : '?')}
+                  <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0, border: '2px solid rgba(26,47,81,0.15)', fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51' }}>
+                    <AvatarFace id={av?.id} fallback={(parentName ? parentName[0].toUpperCase() : '?')} />
                   </div>
                   {parentName && <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.55rem', color: '#1a2f51', letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1 }}>{parentName}</span>}
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1a2f51" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: profileMenuOpen ? 'rotate(180deg)' : 'none' }}><polyline points="6 9 12 15 18 9"/></svg>
@@ -948,23 +940,33 @@ function LibraryPageInner() {
         </div>
       )}
 
+      {avatarPickerOpen && (isChildMode ? childIdParam : householdId) && (
+        <AvatarPicker target={isChildMode ? { childId: childIdParam! } : { householdId: householdId! }} currentId={isChildMode ? (children.find(c => c.id === childIdParam)?.avatar_id ?? null) : parentAvatarId}
+          onClose={() => setAvatarPickerOpen(false)} onSaved={id => isChildMode ? setChildren(cs => cs.map(c => c.id === childIdParam ? { ...c, avatar_id: id } : c)) : setParentAvatarId(id)} />
+      )}
+
       {/* Profile switcher dropdown */}
       {profileMenuOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 60 }} onClick={() => setProfileMenuOpen(false)}>
           <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: '72px', right: '10px', width: 'min(260px, calc(100vw - 20px))', backgroundColor: '#fefaf2', borderRadius: '16px', boxShadow: '0 8px 32px rgba(0,0,0,0.45)', overflow: 'hidden' }}>
+            <button onClick={() => { setProfileMenuOpen(false); setAvatarPickerOpen(true) }}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'none', border: 'none', borderBottom: '1px solid rgba(26,47,81,0.1)', cursor: 'pointer', textAlign: 'left' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a2f51" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.78rem', color: '#1a2f51', margin: 0, fontWeight: 600 }}>Change avatar</p>
+            </button>
             <div style={{ padding: '12px 16px 10px', borderBottom: '1px solid rgba(26,47,81,0.1)' }}>
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#1a2f51', margin: 0 }}>Switch Profile</p>
             </div>
             <div style={{ padding: '6px 0' }}>
               {children.map(child => {
-                const av = AVATARS.find(a => a.id === child.avatar_id)
+                const av = avatarRef(child.avatar_id)
                 const isActive = isChildMode && childIdParam === child.id
                 return (
                   <button key={child.id}
                     onClick={() => { setProfileMenuOpen(false); router.push(`/dashboard/children/${child.id}`) }}
                     style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: isActive ? 'rgba(26,47,81,0.07)' : 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: av?.bg || 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: av ? '1rem' : '0.8rem', flexShrink: 0, fontWeight: 700, color: '#1a2f51' }}>
-                      {av?.emoji || child.name[0]}
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', flexShrink: 0, fontWeight: 700, color: '#1a2f51' }}>
+                      <AvatarFace id={av?.id} fallback={child.name[0]} />
                     </div>
                     <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '1.05rem', color: '#1a2f51', margin: 0, flex: 1 }}>{child.name}</p>
                     {isActive && <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.55rem', color: 'rgba(26,47,81,0.45)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Active</span>}
@@ -972,12 +974,12 @@ function LibraryPageInner() {
                 )
               })}
               {isChildMode && (() => {
-                const av = PARENT_AVATARS.find(a => a.id === parentAvatarId)
+                const av = avatarRef(parentAvatarId)
                 return (
                   <button onClick={() => tryParentNav('/dashboard/library?from=parent')}
                     style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: av?.bg || 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: av ? '1rem' : '0.9rem', flexShrink: 0, fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51' }}>
-                      {av?.emoji || (parentName?.[0]?.toUpperCase() || '👤')}
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', flexShrink: 0, fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51' }}>
+                      <AvatarFace id={av?.id} fallback={(parentName?.[0]?.toUpperCase() || '👤')} />
                     </div>
                     <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '1.05rem', color: '#1a2f51', margin: 0 }}>Parent View</p>
                   </button>
@@ -1011,40 +1013,12 @@ function LibraryPageInner() {
       {/* No-children gate — shown when heart/basket tapped with no profiles */}
       {showChildGate && <NoReaderSheet onAdd={() => router.push('/dashboard/children/new')} onClose={() => setShowChildGate(false)} />}
 
-      {/* Child selector modal — shared for heart and basket */}
+      {/* Who is it for? — shared for heart and basket */}
       {pendingBook && pendingAction && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-          onClick={() => { setPendingBook(null); setPendingAction(null) }}>
-          <div onClick={e => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: '576px', backgroundColor: '#130d09', borderRadius: '20px 20px 0 0', padding: '24px 20px 32px', border: '1px solid rgba(237,219,195,0.15)' }}>
-            <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#eddbc3', fontSize: '1.3rem', fontWeight: 700, margin: '0 0 4px' }}>
-              {pendingAction === 'heart' ? 'Save to My List for…' : 'Add to delivery for…'}
-            </p>
-            <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.72rem', opacity: 0.55, margin: '0 0 20px' }}>{pendingBook.title}</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {children.map(child => {
-                const isOnList = pendingAction === 'heart' && (wishlists.get(pendingBook.id) || []).includes(child.id)
-                return (
-                  <button key={child.id}
-                    onClick={e => pendingAction === 'heart' ? toggleWishlist(pendingBook, child, e.clientX, e.clientY) : confirmBasket(pendingBook, child, e.currentTarget, e.clientX, e.clientY)}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderRadius: '12px', backgroundColor: isOnList ? 'rgba(244,114,182,0.1)' : 'rgba(237,219,195,0.06)', border: `1px solid ${isOnList ? 'rgba(244,114,182,0.35)' : 'rgba(237,219,195,0.15)'}`, cursor: 'pointer' }}>
-                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.9rem', fontWeight: 600 }}>{child.name}</span>
-                    {pendingAction === 'heart'
-                      ? isOnList
-                        ? <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.72rem', color: '#f472b6' }}>Remove ✕</span>
-                        : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#eddbc3" strokeWidth="2" style={{ opacity: 0.4 }}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                      : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#eddbc3" strokeWidth="2" style={{ opacity: 0.4 }}><polyline points="9 18 15 12 9 6"/></svg>
-                    }
-                  </button>
-                )
-              })}
-            </div>
-            <button onClick={() => { setPendingBook(null); setPendingAction(null) }}
-              style={{ marginTop: '16px', width: '100%', padding: '12px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', color: '#eddbc3', fontSize: '0.8rem', opacity: 0.45 }}>
-              Cancel
-            </button>
-          </div>
-        </div>
+        <ChildChoiceSheet action={pendingAction} bookTitle={pendingBook.title} readers={children}
+          savedFor={wishlists.get(pendingBook.id) || []}
+          onChoose={(r, e) => { const child = children.find(c => c.id === r.id)!; if (pendingAction === 'heart') toggleWishlist(pendingBook, child, e.clientX, e.clientY); else confirmBasket(pendingBook, child, e.currentTarget, e.clientX, e.clientY) }}
+          onClose={() => { setPendingBook(null); setPendingAction(null) }} />
       )}
     </main>
   )

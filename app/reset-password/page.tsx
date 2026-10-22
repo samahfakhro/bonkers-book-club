@@ -41,7 +41,7 @@ export default function ResetPasswordPage() {
 
   const label: React.CSSProperties = { fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }
   const text: React.CSSProperties = { fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.9rem', lineHeight: 1.5 }
-  const inputClass = "w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-[#fcf7eb]"
+  const inputClass = "w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-[#fcf7eb] text-[#1a2f51]"
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-start px-4 py-12" style={{ backgroundColor: '#fefaf2', paddingTop: 'max(3rem, env(safe-area-inset-top))', position: 'relative' }}>
