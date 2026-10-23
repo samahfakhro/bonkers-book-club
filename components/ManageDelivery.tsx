@@ -66,9 +66,10 @@ export default function ManageDelivery({ apiPath, headers, footer }: { apiPath: 
   const selected = OPTIONS.find(o => o.value === choice)
 
   return (
-    <main style={{ minHeight: '100vh', padding: '28px 20px 80px', background: '#fefaf2' }}>
-      <CuriousLogo height={60} />
-      <p style={{ ...body, fontSize: '0.55rem', fontWeight: 600, letterSpacing: '0.18em', margin: '2px 0 0' }}>THE CHILDREN’S LIBRARY</p>
+    <main style={{ minHeight: '100vh', padding: '24px 20px 80px', background: '#fefaf2' }}>
+      <div style={{ lineHeight: 1 }}>
+        <CuriousLogo height={72} />
+      </div>
 
       {error && !info && <p style={{ ...body, marginTop: '28px', color: '#e05c3a' }}>{error}</p>}
       {!info && !error && <p style={{ ...body, marginTop: '28px', opacity: 0.6 }}>Loading…</p>}

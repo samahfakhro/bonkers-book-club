@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import ParentBottomNav from '@/components/ParentBottomNav'
+import CuriousLogo from '@/components/CuriousLogo'
 
 type Message = { id: string; title: string | null; message: string | null; action_link: string | null; read_at: string | null; created_at: string }
 
@@ -47,7 +48,10 @@ export default function MessagesPage() {
 
   return (
     <main className="min-h-screen pb-28" style={{ backgroundColor: '#fefaf2' }}>
-      <div className="max-w-xl mx-auto px-4 pt-6">
+      <div style={{ padding: '24px 20px 0', lineHeight: 1 }}>
+        <CuriousLogo height={72} />
+      </div>
+      <div className="max-w-xl mx-auto px-4" style={{ paddingTop: '16px' }}>
         <button onClick={() => router.push('/dashboard')}
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: navy, fontFamily: montserrat, fontSize: '0.8rem', padding: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
           ← Back

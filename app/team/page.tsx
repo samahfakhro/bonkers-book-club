@@ -45,9 +45,11 @@ function TeamLogin() {
   }
 
   return (
-    <main style={{ minHeight: '100svh', backgroundColor: '#fefaf2', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '48px 24px' }}>
-      <CuriousLogo height={72} />
-      <h1 style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2744', fontSize: '2rem', margin: '28px 0 6px' }}>Team login</h1>
+    <main style={{ minHeight: '100svh', backgroundColor: '#fefaf2', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '120px 24px 48px', position: 'relative' }}>
+      <div style={{ position: 'absolute', top: '24px', left: '20px', lineHeight: 1, zIndex: 10 }}>
+        <CuriousLogo height={72} />
+      </div>
+      <h1 style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2744', fontSize: '2rem', margin: '0 0 6px' }}>Team login</h1>
       <p style={{ fontFamily: font, color: '#1a2f51', fontSize: '0.95rem', margin: '0 0 28px', textAlign: 'center' }}>For drivers, warehouse and admin staff.</p>
 
       <form onSubmit={signIn} style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '18px' }}>

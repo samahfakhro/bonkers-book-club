@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getPublicSettings } from '@/lib/public-settings'
 import ParentBottomNav from '@/components/ParentBottomNav'
+import CuriousLogo from '@/components/CuriousLogo'
 import { HELP_TOPICS, searchHelp } from '@/lib/help-articles'
 
 // Support: search the help answers, browse them by topic, or get in touch.
@@ -41,7 +42,10 @@ export default function SupportPage() {
 
   return (
     <main style={{ minHeight: '100svh', backgroundColor: '#fefaf2', paddingBottom: 'calc(88px + env(safe-area-inset-bottom))' }}>
-      <div className="max-w-xl mx-auto px-5" style={{ paddingTop: '48px' }}>
+      <div style={{ padding: '24px 20px 0', lineHeight: 1 }}>
+        <CuriousLogo height={72} />
+      </div>
+      <div className="max-w-xl mx-auto px-5" style={{ paddingTop: '24px' }}>
         <h1 style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51', fontSize: '2.4rem', margin: '0 0 6px', lineHeight: 1 }}>Support</h1>
         <p style={{ fontFamily: font, color: '#1a2f51', fontSize: '0.95rem', margin: '0 0 22px' }}>Ask a question, or browse the answers below.</p>
 

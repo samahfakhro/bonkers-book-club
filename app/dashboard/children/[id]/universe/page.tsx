@@ -140,8 +140,8 @@ export default function UniversePage() {
       <style>{`.uni-inner::-webkit-scrollbar{display:none} @keyframes bonky-z{0%{opacity:0;transform:translateY(0) scale(0.8)}15%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translateY(-32px) scale(1.1)}}`}</style>
 
       {/* Top left: logo */}
-      <div style={{ position: 'absolute', top: '24px', left: '16px', zIndex: 20, lineHeight: 1 }}>
-        <CuriousLogo height={60} light />
+      <div style={{ position: 'absolute', top: '24px', left: '20px', zIndex: 20, lineHeight: 1 }}>
+        <CuriousLogo height={72} light />
       </div>
 
       {/* Bottom right: back button */}

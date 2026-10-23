@@ -26,9 +26,11 @@ function Locked() {
   }
 
   return (
-    <main style={{ minHeight: '100svh', backgroundColor: '#fefaf2', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', textAlign: 'center' }}>
-      <CuriousLogo height={84} />
-      <h1 style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51', fontSize: '2rem', margin: '28px 0 8px' }}>Coming soon</h1>
+    <main style={{ minHeight: '100svh', backgroundColor: '#fefaf2', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '120px 24px 40px', textAlign: 'center', position: 'relative' }}>
+      <div style={{ position: 'absolute', top: '24px', left: '20px', lineHeight: 1, zIndex: 10 }}>
+        <CuriousLogo height={72} />
+      </div>
+      <h1 style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51', fontSize: '2rem', margin: '0 0 8px' }}>Coming soon</h1>
       <p style={{ fontFamily: font, color: '#1a2f51', fontSize: '0.98rem', lineHeight: 1.6, margin: '0 0 26px', maxWidth: '360px' }}>
         We’re putting the finishing touches to The Curious Library. If you’re helping us test, enter the password below.
       </p>

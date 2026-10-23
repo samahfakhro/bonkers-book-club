@@ -597,29 +597,29 @@ export default function DashboardPage() {
         .dash-whisker { height: 44px; }
         @media (min-width: 768px) { .dash-whisker { height: 64px; } }
       `}</style>
-      <div className="max-w-xl mx-auto px-4 pt-6">
-
-        {/* Header */}
-        <div className="flex items-start justify-between mb-7">
-          <div style={{ lineHeight: 1 }}>
-            <CuriousLogo height={72} />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-          <NotificationBell />
-          {(() => {
-            const av = avatarRef(member?.avatar_id)
-            return (
-              <button onClick={() => setProfileMenuOpen(o => !o)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0, border: '2px solid rgba(26,47,81,0.2)', fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51' }}>
-                  <AvatarFace id={av?.id} fallback={(member?.first_name?.[0]?.toUpperCase() || '?')} />
-                </div>
-                {member?.first_name && <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.55rem', color: '#1a2f51', letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1 }}>{member.first_name}</span>}
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1a2f51" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: profileMenuOpen ? 'rotate(180deg)' : 'none' }}><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-            )
-          })()}
-          </div>
+      {/* Header */}
+      <div className="flex items-start justify-between" style={{ padding: '24px 20px 0' }}>
+        <div style={{ lineHeight: 1 }}>
+          <CuriousLogo height={72} />
         </div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+        <NotificationBell />
+        {(() => {
+          const av = avatarRef(member?.avatar_id)
+          return (
+            <button onClick={() => setProfileMenuOpen(o => !o)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: 'rgba(26,47,81,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0, border: '2px solid rgba(26,47,81,0.2)', fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51' }}>
+                <AvatarFace id={av?.id} fallback={(member?.first_name?.[0]?.toUpperCase() || '?')} />
+              </div>
+              {member?.first_name && <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.55rem', color: '#1a2f51', letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1 }}>{member.first_name}</span>}
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1a2f51" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: profileMenuOpen ? 'rotate(180deg)' : 'none' }}><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          )
+        })()}
+        </div>
+      </div>
+      <div className="max-w-xl mx-auto px-4" style={{ paddingTop: '28px' }}>
+
 
         <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '2.8rem', fontWeight: 700, lineHeight: 1, marginTop: '24px', marginBottom: '34px', textAlign: 'center' }}>Hello, {member?.first_name || 'there'}!</h1>
 

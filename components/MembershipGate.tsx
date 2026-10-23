@@ -44,10 +44,12 @@ export default function MembershipGate({ children }: { children: React.ReactNode
   const navy = '#1a2f51'
   const btn: React.CSSProperties = { width: '100%', fontFamily: font, fontWeight: 600, fontSize: '0.82rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', backgroundColor: navy, border: 'none', borderRadius: '999px', padding: '15px', cursor: 'pointer' }
   return (
-    <main style={{ minHeight: '100svh', backgroundColor: '#fefaf2', padding: '32px 20px calc(110px + env(safe-area-inset-bottom))' }}>
+    <main style={{ minHeight: '100svh', backgroundColor: '#fefaf2', padding: '120px 20px calc(110px + env(safe-area-inset-bottom))', position: 'relative' }}>
+      <div style={{ position: 'absolute', top: '24px', left: '20px', lineHeight: 1, zIndex: 10 }}>
+        <CuriousLogo height={72} />
+      </div>
       <div style={{ maxWidth: '480px', margin: '0 auto' }}>
-        <CuriousLogo height={64} />
-        <h1 style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: navy, fontSize: '2.2rem', lineHeight: 1.1, margin: '28px 0 10px' }}>Your membership has ended</h1>
+        <h1 style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: navy, fontSize: '2.2rem', lineHeight: 1.1, margin: '0 0 10px' }}>Your membership has ended</h1>
         <p style={{ fontFamily: font, color: navy, fontSize: '0.98rem', lineHeight: 1.6, margin: '0 0 24px' }}>
           Thank you for being part of The Curious Library. Your readers’ worlds, saved books and reading history are kept safe — you can rejoin any time and carry on right where you left off.
         </p>

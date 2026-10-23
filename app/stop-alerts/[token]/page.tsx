@@ -23,9 +23,10 @@ export default function StopAlertsPage() {
 
   const text: React.CSSProperties = { fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.95rem', lineHeight: 1.55 }
   return (
-    <main style={{ minHeight: '100vh', padding: '28px 20px', background: '#fefaf2' }}>
-      <CuriousLogo height={60} />
-      <p style={{ ...text, fontSize: '0.55rem', fontWeight: 600, letterSpacing: '0.18em', margin: '2px 0 0' }}>THE CHILDREN’S LIBRARY</p>
+    <main style={{ minHeight: '100vh', padding: '24px 20px', background: '#fefaf2' }}>
+      <div style={{ lineHeight: 1 }}>
+        <CuriousLogo height={72} />
+      </div>
       <div style={{ maxWidth: '420px', marginTop: '36px' }}>
         {!state && <p style={{ ...text, opacity: 0.6 }}>Loading…</p>}
         {state?.error && <p style={{ ...text, color: '#e05c3a' }}>{state.error}</p>}

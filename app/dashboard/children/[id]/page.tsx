@@ -626,9 +626,9 @@ export default function ChildProfilePage() {
       `}</style>
 
       {/* ── TOP BAR ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 0', position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '24px 20px 0', position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
         <div style={{ lineHeight: 1 }}>
-          <CuriousLogo height={60} light />
+          <CuriousLogo height={72} light />
         </div>
         <button onClick={() => setShowSwitcher(o => !o)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
           <div style={{ width: '3rem', height: '3rem', borderRadius: '50%', backgroundColor: 'rgba(237,219,195,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.7rem', flexShrink: 0, border: '2px solid rgba(237,219,195,0.25)' }}>

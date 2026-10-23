@@ -26,7 +26,9 @@ export default function DriverHome() {
 
   return (
     <Screen>
-      <CuriousLogo height={60} />
+      <div style={{ margin: '4px 0 0 4px', lineHeight: 1 }}>
+        <CuriousLogo height={72} />
+      </div>
       <p style={{ margin: '2px 0 22px', fontSize: '12px', fontWeight: 700, letterSpacing: '0.16em', color: navy, opacity: 0.7 }}>DRIVER</p>
 
       <h1 style={{ margin: '0 0 4px', fontSize: '26px', color: navy }}>{date === dubaiToday() ? 'Today' : 'Routes'}</h1>
