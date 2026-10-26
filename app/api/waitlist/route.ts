@@ -5,12 +5,13 @@ import { checkAvailability } from '@/lib/membership/availability'
 type GeoComponent = { long_name: string; types: string[] }
 
 // Community name for waitlist demand (e.g. "Arabian Ranches", "Mirdif") from the map pin.
+// Uses the server-only GOOGLE_GEOCODING_KEY (Geocoding API only); the browser map key is locked to our websites.
 // Prefers Google's neighbourhood (developer community), falls back to the official area.
 async function lookUpArea(lat: unknown, lng: unknown): Promise<{ community: string | null; address: string | null }> {
   const none = { community: null, address: null }
   if (typeof lat !== 'number' || typeof lng !== 'number') return none
   try {
-    const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}`)
+    const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${process.env.GOOGLE_GEOCODING_KEY}`)
     const results: { formatted_address: string; address_components: GeoComponent[] }[] = (await res.json()).results ?? []
     const find = (type: string) => {
       for (const r of results) for (const c of r.address_components) if (c.types.includes(type)) return c.long_name
