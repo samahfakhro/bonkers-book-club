@@ -11,6 +11,7 @@ import { householdDeliveryDay } from '@/lib/delivery-day'
 import { useTapOnly } from '@/hooks/useTapOnly'
 import CuriousLogo from '@/components/CuriousLogo'
 import ChildBottomNav from '@/components/ChildBottomNav'
+import KeepReturnToggle from '@/components/KeepReturnToggle'
 import ReviewSheet from '@/components/ReviewSheet'
 import WishCameTrue from '@/components/WishCameTrue'
 import { nextDeliverySpace, openFullDelivery, returnsNeededMessage } from '@/lib/next-delivery'
@@ -40,6 +41,14 @@ const WORLDS = [
 
 // Book shelf slots — 83 positions derived from PSD layer data (DOC 1672×941)
 // Shelf 1: slots 0–42 | Shelf 2: slots 43–82
+// where the room opens: centred when the shelf is empty, otherwise so the newest book on the shelf is in view
+function roomScrollTarget(el: HTMLDivElement, booksOnShelf: number) {
+  const max = el.scrollWidth - el.clientWidth
+  if (booksOnShelf === 0) return max / 2
+  const last = BOOK_SLOTS[Math.min(booksOnShelf, BOOK_SLOTS.length) - 1]
+  return Math.min(max, Math.max(0, (parseFloat(last.l) / 100) * el.scrollWidth - el.clientWidth * 0.6))
+}
+
 const BOOK_SLOTS = [
   {l:'0.0%',t:'17.2%',h:'16.7%'},{l:'1.1%',t:'18.1%',h:'16.4%'},{l:'3.0%',t:'18.7%',h:'16.2%'},
   {l:'4.1%',t:'21.3%',h:'13.9%'},{l:'6.2%',t:'20.8%',h:'15.1%'},{l:'7.7%',t:'22.4%',h:'14.0%'},
@@ -676,7 +685,7 @@ export default function ChildProfilePage() {
               />
               {/* Bonky's door — tap to open */}
               <div
-                onClick={() => { if (doorOpen || insideHouse) return; setDoorOpen(true); setTimeout(() => { setInsideHouse(true); setDoorOpen(false); setTimeout(() => { if (roomScrollRef.current) { const el = roomScrollRef.current; el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2 } }, 50) }, 700) }}
+                onClick={() => { if (doorOpen || insideHouse) return; setDoorOpen(true); setTimeout(() => { setInsideHouse(true); setDoorOpen(false); setTimeout(() => { if (roomScrollRef.current) { const el = roomScrollRef.current; el.scrollLeft = roomScrollTarget(el, readBooks.length) } }, 50) }, 700) }}
                 style={{ position: 'absolute', left: '32.5%', top: '46.5%', height: '12.5%', cursor: 'pointer' }}
               >
                 <img
@@ -885,9 +894,7 @@ export default function ChildProfilePage() {
                       }
                     </div>
                     {loan.collected ? <span style={{ display: 'inline-block', marginTop: '5px', padding: '3px 8px', borderRadius: '20px', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.52rem', letterSpacing: '0.04em', backgroundColor: '#eef1f8', color: '#1a2f51' }}>On its way back 🚐</span> : canIndependentSwap && (
-                      <button onClick={() => toggleReturn(loan.loanId)} style={{ marginTop: '5px', padding: '3px 8px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.52rem', letterSpacing: '0.06em', backgroundColor: isReturn ? '#e8533a' : 'rgba(26,47,81,0.08)', color: isReturn ? '#fff' : 'rgba(26,47,81,0.45)', transition: 'all 0.2s' }}>
-                        {isReturn ? 'Returning' : 'Keeping'}
-                      </button>
+                      <KeepReturnToggle returning={isReturn} onChange={() => toggleReturn(loan.loanId)} />
                     )}
                   </div>
                 )

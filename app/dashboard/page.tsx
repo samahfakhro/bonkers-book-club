@@ -11,6 +11,7 @@ import NotificationBell from '@/components/NotificationBell'
 import { householdDeliveryDay } from '@/lib/delivery-day'
 import CuriousLogo from '@/components/CuriousLogo'
 import ParentBottomNav from '@/components/ParentBottomNav'
+import KeepReturnToggle from '@/components/KeepReturnToggle'
 import { nextDeliverySpace, openFullDelivery, returnsNeededMessage } from '@/lib/next-delivery'
 
 type Book = {
@@ -778,9 +779,7 @@ export default function DashboardPage() {
                                 }
                               </div>
                               {loan.collected ? <span style={{ display: 'inline-block', marginTop: '5px', padding: '3px 8px', borderRadius: '20px', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.52rem', letterSpacing: '0.04em', backgroundColor: '#eef1f8', color: '#1a2f51' }}>On its way back 🚐</span> : (
-                              <button onClick={() => toggleReturn(loan.loanId)} style={{ marginTop: '5px', padding: '3px 8px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.52rem', letterSpacing: '0.06em', backgroundColor: isReturn ? '#e8533a' : 'rgba(26,47,81,0.08)', color: isReturn ? '#fff' : 'rgba(26,47,81,0.45)', transition: 'all 0.2s' }}>
-                                {isReturn ? 'Returning' : 'Keeping'}
-                              </button>
+                              <KeepReturnToggle returning={isReturn} onChange={() => toggleReturn(loan.loanId)} />
                               )}
                             </div>
                           )

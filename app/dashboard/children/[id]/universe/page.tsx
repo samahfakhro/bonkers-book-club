@@ -5,6 +5,14 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import CuriousLogo from '@/components/CuriousLogo'
 
+// where the room opens: centred when the shelf is empty, otherwise so the newest book on the shelf is in view
+function roomScrollTarget(el: HTMLDivElement, booksOnShelf: number) {
+  const max = el.scrollWidth - el.clientWidth
+  if (booksOnShelf === 0) return max / 2
+  const last = BOOK_SLOTS[Math.min(booksOnShelf, BOOK_SLOTS.length) - 1]
+  return Math.min(max, Math.max(0, (parseFloat(last.l) / 100) * el.scrollWidth - el.clientWidth * 0.6))
+}
+
 const BOOK_SLOTS = [
   {l:'0.0%',t:'17.2%',h:'16.7%'},{l:'1.1%',t:'18.1%',h:'16.4%'},{l:'3.0%',t:'18.7%',h:'16.2%'},
   {l:'4.1%',t:'21.3%',h:'13.9%'},{l:'6.2%',t:'20.8%',h:'15.1%'},{l:'7.7%',t:'22.4%',h:'14.0%'},
@@ -159,7 +167,7 @@ export default function UniversePage() {
             <div style={{ position: 'absolute', inset: 0 }} />
             <div style={{ position: 'relative', height: '100%' }}>
               <img src="/universe_bonky_home.png" alt="Bonky's Home" onLoad={centreUniverse} style={{ display: 'block', height: '100%', width: 'auto', maxWidth: 'none', pointerEvents: 'none' }} />
-              <div onClick={() => { if (doorOpen || insideHouse) return; setDoorOpen(true); setTimeout(() => { setInsideHouse(true); setDoorOpen(false); setTimeout(() => { if (roomScrollRef.current) { const el = roomScrollRef.current; el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2 } }, 50) }, 700) }} style={{ position: 'absolute', left: '32.5%', top: '46.5%', height: '12.5%', cursor: 'pointer' }}>
+              <div onClick={() => { if (doorOpen || insideHouse) return; setDoorOpen(true); setTimeout(() => { setInsideHouse(true); setDoorOpen(false); setTimeout(() => { if (roomScrollRef.current) { const el = roomScrollRef.current; el.scrollLeft = roomScrollTarget(el, readBooks.length) } }, 50) }, 700) }} style={{ position: 'absolute', left: '32.5%', top: '46.5%', height: '12.5%', cursor: 'pointer' }}>
                 <img src="/bonkyhouse_opendoor.png" alt="" style={{ height: '100%', width: 'auto', opacity: doorOpen ? 1 : 0, transition: doorOpen ? 'opacity 0.2s ease' : 'opacity 0.6s ease', pointerEvents: 'none', display: 'block' }} />
               </div>
               {isBonkyTime && <div style={{ position: 'absolute', left: '41%', top: '49%', height: '15%', transform: 'translateX(-50%)', pointerEvents: 'none' }}>

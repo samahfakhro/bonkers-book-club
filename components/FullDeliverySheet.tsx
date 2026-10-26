@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import KeepReturnToggle from '@/components/KeepReturnToggle'
 import { ACTIVE_REQUEST_STATUSES, FULL_DELIVERY_EVENT, addToNextDelivery, nextDeliverySpace, type FullDeliveryRequest, returnsNeededMessage } from '@/lib/next-delivery'
 
 // "Your next delivery is full!" — shown when someone taps + with no free space.
@@ -142,10 +143,7 @@ function FullDeliverySheet({ req, onClose }: { req: FullDeliveryRequest; onClose
                     <div key={l.id}>
                       <Cover src={l.book.cover} />
                       {!kid && new Set(atHome.map(x => x.childId)).size > 1 && <p style={{ fontFamily: font, fontSize: '0.72rem', color: '#1a2f51', margin: '4px 0 0' }}>{l.childName}</p>}
-                      <button onClick={() => toggleReturning(l.id, !l.returning)} disabled={busy}
-                        style={{ marginTop: '6px', width: '100%', fontFamily: font, fontWeight: 700, fontSize: '0.68rem', letterSpacing: '0.06em', textTransform: 'uppercase', borderRadius: '999px', padding: '7px 4px', cursor: 'pointer', border: '2px solid #1a2f51', color: l.returning ? '#fff' : '#1a2f51', backgroundColor: l.returning ? '#5a8a5a' : 'transparent', borderColor: l.returning ? '#5a8a5a' : '#1a2f51' }}>
-                        {l.returning ? 'Returning ✓' : kid ? 'I’m sending it back' : 'Mark returning'}
-                      </button>
+                      <KeepReturnToggle returning={l.returning} onChange={now => toggleReturning(l.id, now)} disabled={busy} />
                     </div>
                   ))}
                 </div>
