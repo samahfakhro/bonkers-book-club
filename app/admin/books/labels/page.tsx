@@ -9,6 +9,7 @@ import { copyCode, normaliseCopyLabel } from '@/lib/copy-codes'
 
 // standard Avery layouts (mm)
 const LAYOUTS = {
+  '44': { name: '44 per sheet · 48.5 × 25.4 mm (e.g. Avery 3657)', cols: 4, rows: 11, w: 48.5, h: 25.4, top: 8.8, left: 8.0, pitchX: 48.5, pitchY: 25.4 },
   '24': { name: '24 per sheet · 63.5 × 33.9 mm (Avery L7159)', cols: 3, rows: 8, w: 63.5, h: 33.9, top: 12.9, left: 6.4, pitchX: 66.0, pitchY: 33.9 },
   '40': { name: '40 per sheet · 45.7 × 25.4 mm (Avery L7654)', cols: 4, rows: 10, w: 45.7, h: 25.4, top: 21.5, left: 9.7, pitchX: 48.3, pitchY: 25.4 },
 } as const
@@ -27,7 +28,7 @@ function Barcode({ value, height }: { value: string; height: number }) {
 function LabelsPageInner() {
   // ?codes=CUR-0042 → reprint just those labels (e.g. a label fell off), in any position on a part-used sheet
   const reprint = (useSearchParams().get('codes') || '').split(',').map(c => normaliseCopyLabel(c)).filter((c): c is string => !!c)
-  const [layoutKey, setLayoutKey] = useState<LayoutKey>('24')
+  const [layoutKey, setLayoutKey] = useState<LayoutKey>('44')
   const [start, setStart] = useState(1)
   const [sheets, setSheets] = useState(1)
   const [skip, setSkip] = useState(0)              // labels already used on a partly used sheet
@@ -57,7 +58,7 @@ function LabelsPageInner() {
     window.print()
   }
 
-  const small = layoutKey === '40'
+  const small = layoutKey !== '24'
   const inp: React.CSSProperties = { padding: '8px 10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', width: '100%' }
 
   return (
