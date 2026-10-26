@@ -118,7 +118,7 @@ function LabelsPageInner() {
                   padding: small ? '1.5mm 2.5mm' : '2.5mm 4mm', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: small ? '0.6mm' : '1mm',
                 }}>
                   {code && <>
-                    <div style={{ fontFamily: 'Georgia, serif', fontSize: small ? '6.5pt' : '8pt', fontWeight: 700, color: '#1a2f51', letterSpacing: '0.02em' }}>The Curious Library</div>
+                    <div style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: small ? '6pt' : '7pt', fontWeight: 700, letterSpacing: '0.14em', color: '#1a2f51', textTransform: 'uppercase' }}>The Curious Library</div>
                     <Barcode value={code} height={small ? 28 : 40} />
                     <div style={{ fontFamily: 'Arial, sans-serif', fontSize: small ? '8pt' : '10pt', fontWeight: 700, color: '#1a2f51', letterSpacing: '0.08em' }}>{code}</div>
                   </>}
