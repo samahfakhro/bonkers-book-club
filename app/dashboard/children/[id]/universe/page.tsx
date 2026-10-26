@@ -185,7 +185,7 @@ export default function UniversePage() {
           <div style={{ height: '100%', position: 'relative', display: 'inline-block', flexShrink: 0 }} onClick={() => setRoomSpineSelected(null)}>
             <img src="/bonkyhouse_room.png" alt="" style={{ display: 'block', height: '100%', width: 'auto', maxWidth: 'none', pointerEvents: 'none' }} />
             {[...readBooks].reverse().slice(0, BOOK_SLOTS.length).map((rb, i) => (
-              <img key={rb.loanId} src={`/spines/layer%20${i + 1}.png`} alt="" onClick={e => { e.stopPropagation(); setRoomSpineSelected(roomSpineSelected === i ? null : i) }} style={{ position: 'absolute', left: BOOK_SLOTS[i].l, top: BOOK_SLOTS[i].t, height: BOOK_SLOTS[i].h, width: 'auto', display: 'block', cursor: 'pointer' }} />
+              <img key={rb.loanId} src={`/spines/Layer%20${i + 1}.png`} alt="" onClick={e => { e.stopPropagation(); setRoomSpineSelected(roomSpineSelected === i ? null : i) }} style={{ position: 'absolute', left: BOOK_SLOTS[i].l, top: BOOK_SLOTS[i].t, height: BOOK_SLOTS[i].h, width: 'auto', display: 'block', cursor: 'pointer' }} />
             ))}
             {roomSpineSelected !== null && (() => {
               const reversedBooks = [...readBooks].reverse()

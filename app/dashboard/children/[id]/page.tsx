@@ -731,7 +731,7 @@ export default function ChildProfilePage() {
               {[...readBooks].reverse().slice(0, BOOK_SLOTS.length).map((rb, i) => (
                 <img
                   key={rb.loanId}
-                  src={`/spines/layer%20${i + 1}.png`}
+                  src={`/spines/Layer%20${i + 1}.png`}
                   alt=""
                   onClick={e => { e.stopPropagation(); setRoomSpineSelected(roomSpineSelected === i ? null : i) }}
                   style={{ position: 'absolute', left: BOOK_SLOTS[i].l, top: BOOK_SLOTS[i].t, height: BOOK_SLOTS[i].h, width: 'auto', display: 'block', cursor: 'pointer' }}
