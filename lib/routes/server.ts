@@ -3,6 +3,7 @@
 // Packing order, boxes of 25, labels and the driver's order all come from route_stops.stop_order.
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { builtInOrder, routeLengthKm, type LatLng } from '@/lib/routing/builtin'
+import { googleOrder } from '@/lib/routing/google'
 
 export const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 export const BOX_SIZE = 25
@@ -101,14 +102,23 @@ export async function generateRoute(zoneId: string, date: string) {
 
   const warehouse = await getWarehouse()
   const points = placeable.map(c => ({ lat: c.lat as number, lng: c.lng as number }))
-  // TODO (Phase D): try Google Route Optimization first; this built-in order is the backup
-  const order = builtInOrder(warehouse, points)
+  // Google's order by real roads first; the built-in calculation is the backup if Google isn't set up or fails
+  let plan: { order: number[]; with: 'google' | 'built_in'; distanceM: number; durationS: number | null; googleError?: string }
+  try {
+    const g = await googleOrder(warehouse, points)
+    plan = { order: g.order, with: 'google', distanceM: g.distanceM, durationS: g.durationS }
+  } catch (e) {
+    const order = builtInOrder(warehouse, points)
+    plan = { order, with: 'built_in', distanceM: Math.round(routeLengthKm(warehouse, order.map(i => points[i])) * 1000), durationS: null, googleError: (e as Error).message }
+    console.warn('Route planning: using the built-in order —', plan.googleError)
+  }
+  const order = plan.order
   const ordered = order.map(i => placeable[i])
 
   const { data: route, error: rtErr } = await supabaseAdmin.from('routes').insert({
     zone_id: zoneId, route_date: date, status: 'draft',
-    start_lat: warehouse.lat, start_lng: warehouse.lng, optimised_with: 'built_in',
-    total_distance_m: Math.round(routeLengthKm(warehouse, order.map(i => points[i])) * 1000),
+    start_lat: warehouse.lat, start_lng: warehouse.lng, optimised_with: plan.with,
+    total_distance_m: plan.distanceM, total_duration_s: plan.durationS,
   }).select('id').single()
   if (rtErr || !route) throw rtErr || new Error('Could not create route')
 
@@ -129,7 +139,7 @@ export async function generateRoute(zoneId: string, date: string) {
       if (c.loanIds.length) await supabaseAdmin.from('loans').update({ collection_stop_id: s.id }).in('id', c.loanIds)
     }
   }
-  return { routeId: route.id, stops: ordered.length, noPin: noPin.map(c => c.name) }
+  return { routeId: route.id, stops: ordered.length, noPin: noPin.map(c => c.name), optimisedWith: plan.with, googleError: plan.googleError ?? null }
 }
 
 export async function getRoute(routeId: string) {

@@ -24,7 +24,7 @@ type Stop = {
   expected_deliveries_count: number; expected_collections_count: number
   households: { first_name: string | null; last_name: string | null; villa_flat: string | null; street: string | null; area: string | null; property_type: string | null; building: string | null } | null
 }
-type Route = { id: string; route_date: string; status: string; optimised_with: string | null; total_distance_m: number | null; start_lat: number; start_lng: number; zones: { code: string; name: string } | null; stops: Stop[] }
+type Route = { id: string; route_date: string; status: string; optimised_with: string | null; total_distance_m: number | null; total_duration_s?: number | null; start_lat: number; start_lng: number; zones: { code: string; name: string } | null; stops: Stop[] }
 
 const TYPE_LABEL: Record<string, string> = { delivery: 'Delivery', collection: 'Collection', both: 'Delivery + Collection' }
 const TYPE_COLOUR: Record<string, string> = { delivery: '#2a78d6', collection: '#b45309', both: '#7b55d6' }
@@ -73,7 +73,7 @@ export default function RoutesPage() {
     const body = await res.json().catch(() => ({}))
     setBusy(null)
     if (!res.ok) { setMsg({ ok: false, text: body.error || 'Could not generate route' }); return }
-    setMsg({ ok: true, text: `${zd.zone.name}: ${body.stops} stop${body.stops === 1 ? '' : 's'} in order.${body.noPin?.length ? ` Not included (no map pin): ${body.noPin.join(', ')}.` : ''}` })
+    setMsg({ ok: true, text: `${zd.zone.name}: ${body.stops} stop${body.stops === 1 ? '' : 's'} in order${body.optimisedWith === 'google' ? ' (planned by Google)' : body.googleError ? ' (Google wasn’t available, so the built-in calculation was used)' : ''}.${body.noPin?.length ? ` Not included (no map pin): ${body.noPin.join(', ')}.` : ''}` })
     await Promise.all([load(date), openRoute(body.routeId)])
   }
 
@@ -208,6 +208,7 @@ export default function RoutesPage() {
                   {[
                     `${route.stops.length} stop${route.stops.length === 1 ? '' : 's'}`,
                     route.total_distance_m ? `about ${(route.total_distance_m / 1000).toFixed(1)} km${route.optimised_with === 'google' ? '' : ' as the crow flies'}` : null,
+                    route.optimised_with === 'google' && route.total_duration_s ? `about ${Math.round(route.total_duration_s / 60)} min driving` : null,
                     `order by ${route.optimised_with === 'google' ? 'Google' : route.optimised_with === 'manual' ? 'hand' : 'built-in calculation'}`,
                   ].filter(Boolean).join(' · ')}
                 </span>
