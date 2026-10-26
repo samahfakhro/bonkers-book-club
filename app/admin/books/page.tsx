@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { copyCode, normaliseCopyLabel } from '@/lib/copy-codes'
+import EnvelopeScanner from '@/components/driver/EnvelopeScanner'
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Book = {
   id: string; title: string; author: string
@@ -33,7 +35,7 @@ type DetailsForm = {
   age_min: string; age_max: string
 }
 
-// â”€â”€â”€ Shared styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Shared styles ────────────────────────────────────────────────────────────
 
 const inp: React.CSSProperties = {
   width: '100%', padding: '7px 10px', borderRadius: '6px',
@@ -87,18 +89,20 @@ function StatusDot({ status }: { status: string }) {
   )
 }
 
-// â”€â”€â”€ BNK ID generator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Copy codes (CUR-0001…, printed on the labels from /admin/books/labels) ───
 
-async function generateBNKId(): Promise<string> {
-  const { data } = await supabase.from('book_copies').select('internal_id')
-  const nums = (data || [])
-    .map((c: any) => c.internal_id as string | null)
-    .filter((id): id is string => !!id && /^BNK-\d+$/.test(id))
-    .map(id => parseInt(id.slice(4), 10))
-  return `BNK-${(nums.length > 0 ? Math.max(...nums) : 0) + 1}`
+async function nextCopyId(): Promise<string> {
+  const { data } = await supabase.from('book_copies').select('internal_id').like('internal_id', 'CUR-%')
+  const nums = (data || []).map((c: any) => parseInt(String(c.internal_id).slice(4), 10)).filter(n => Number.isFinite(n))
+  return copyCode((nums.length > 0 ? Math.max(...nums) : 0) + 1)
 }
 
-// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function labelInUse(code: string): Promise<boolean> {
+  const { data } = await supabase.from('book_copies').select('id').eq('internal_id', code).limit(1)
+  return !!data?.length
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AdminBooksPage() {
   const [books, setBooks] = useState<Book[]>([])
@@ -136,6 +140,9 @@ export default function AdminBooksPage() {
   const [copyLoans, setCopyLoans] = useState<Record<string, LoanEntry[]>>({})
   const [loadingLoans, setLoadingLoans] = useState<string | null>(null)
   const [addingCopy, setAddingCopy] = useState(false)
+  const [addLabel, setAddLabel] = useState('')          // copy label for a new book (scanned or typed)
+  const [copyLabel, setCopyLabel] = useState('')        // copy label for "+ Add copy"
+  const [scanFor, setScanFor] = useState<'isbn' | 'addLabel' | 'copyLabel' | null>(null)
 
   // Add form
   const [addForm, setAddForm] = useState({ title: '', author: '', isbn: '', page_count: '', book_type: '', series_number: '', reading_level_id: '', tags: '', description: '', age_min: '', age_max: '' })
@@ -168,7 +175,7 @@ export default function AdminBooksPage() {
   const [fetchResults, setFetchResults] = useState<any[]>([])
   const [fetchedCoverBase64, setFetchedCoverBase64] = useState<string | null>(null)
 
-  // â”€â”€ Load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Load ───────────────────────────────────────────────────────────────────
 
   async function loadAll() {
     const [
@@ -210,7 +217,7 @@ export default function AdminBooksPage() {
 
   useEffect(() => { loadAll() }, [])
 
-  // â”€â”€ Category toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Category toggle ────────────────────────────────────────────────────────
 
   async function toggleCategory(bookId: string, categoryId: string) {
     const current = new Set(assignments[bookId] || [])
@@ -227,7 +234,7 @@ export default function AdminBooksPage() {
     setSaving(null)
   }
 
-  // â”€â”€ Reading level toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Reading level toggle ───────────────────────────────────────────────────
 
   async function toggleReadingLevel(bookId: string, levelId: string) {
     const current = new Set(levelAssignments[bookId] || [])
@@ -244,7 +251,7 @@ export default function AdminBooksPage() {
     setSavingLevel(null)
   }
 
-  // â”€â”€ Book selection / panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Book selection / panel ─────────────────────────────────────────────────
 
   function openBook(book: Book) {
     if (selectedBook?.id === book.id && panelMode === 'detail') {
@@ -276,7 +283,7 @@ export default function AdminBooksPage() {
     setPanelMode(null); setSelectedBook(null); setDetailsForm(null); setExpandedCopyId(null)
   }
 
-  // â”€â”€ Series helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Series helper ──────────────────────────────────────────────────────────
 
   async function createSeriesViaApi(body: object): Promise<{ id: string; name: string; parent_series_id: string | null; series_number: number | null } | null> {
     const res = await fetch('/api/admin/series', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -306,7 +313,7 @@ export default function AdminBooksPage() {
     return detailsForm?.series_id || null
   }
 
-  // â”€â”€ Save details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Save details ───────────────────────────────────────────────────────────
 
   async function saveDetails() {
     if (!detailsForm || !selectedBook) return
@@ -355,7 +362,7 @@ export default function AdminBooksPage() {
     setTimeout(() => setSavedOk(false), 2000)
   }
 
-  // â”€â”€ Upload helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Upload helpers ─────────────────────────────────────────────────────────
 
   function fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -392,7 +399,7 @@ export default function AdminBooksPage() {
     setUploadingAssetFor(null)
   }
 
-  // â”€â”€ Fetch & enrich book â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Fetch & enrich book ────────────────────────────────────────────────────
 
   async function fetchBookInfo(query: string, isIsbn: boolean, volumeId?: string) {
     setFetchLoading(true); setFetchError(null); setFetchResults([])
@@ -412,7 +419,7 @@ export default function AdminBooksPage() {
         setFetchLoading(false); return
       }
 
-      // Single book returned â€” fill form
+      // Single book returned — fill form
       const { book, enrichment } = data
       applyFetchedBook(book, enrichment)
     } catch {
@@ -439,7 +446,7 @@ export default function AdminBooksPage() {
         }
         if (!finalSeriesId) finalSeriesId = match.id
       } else {
-        // Series not in DB â€” pre-fill new series name
+        // Series not in DB — pre-fill new series name
         setAddNewSeriesMode(true)
         setAddNewSeriesName(enrichment.series_name)
       }
@@ -482,7 +489,7 @@ export default function AdminBooksPage() {
     })
   }
 
-  // â”€â”€ Add book â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Add book ───────────────────────────────────────────────────────────────
 
   async function handleAddBook() {
     if (!addForm.title.trim() || !addForm.author.trim()) { setError('Title and author are required.'); return }
@@ -523,7 +530,13 @@ export default function AdminBooksPage() {
     const tags = addForm.tags.split(',').map(t => t.trim()).filter(Boolean)
     const seriesNum = addForm.series_number.trim() ? Number(addForm.series_number.trim()) : null
 
-    const internalId = await generateBNKId()
+    let internalId: string
+    if (addLabel.trim()) {
+      const code = normaliseCopyLabel(addLabel)
+      if (!code) { setError('That copy label doesn’t look right — it should be like CUR-0042.'); setAddingBook(false); return }
+      if (await labelInUse(code)) { setError(`${code} is already on another book. Use the next label.`); setAddingBook(false); return }
+      internalId = code
+    } else internalId = await nextCopyId()
     const res = await fetch('/api/admin/books', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -609,13 +622,13 @@ export default function AdminBooksPage() {
     setAddCoverFile(null); setAddAssetFile(null)
     if (addCoverRef.current) addCoverRef.current.value = ''
     if (addAssetRef.current) addAssetRef.current.value = ''
-    setFetchQuery(''); setFetchedCoverBase64(null); setFetchResults([])
+    setFetchQuery(''); setFetchedCoverBase64(null); setFetchResults([]); setAddLabel('')
     setAddLevelIds(new Set()); setAddCategoryIds(new Set())
     setAddCategoryIds(new Set())
     setAddingBook(false)
   }
 
-  // â”€â”€ Collectible generation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Collectible generation ─────────────────────────────────────────────────
 
   async function generateCollectible(book: Book, mode: 'new' | 'retry' | 'revise', feedbackText?: string, customPrompt?: string) {
     setGeneratingCollectibleFor(book.id)
@@ -679,17 +692,23 @@ export default function AdminBooksPage() {
     }
   }
 
-  // â”€â”€ Copies â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Copies ─────────────────────────────────────────────────────────────────
 
   async function addCopy(bookId: string) {
     setAddingCopy(true); setError(null)
-    const internalId = await generateBNKId()
+    let internalId: string
+    if (copyLabel.trim()) {
+      const code = normaliseCopyLabel(copyLabel)
+      if (!code) { setError('That copy label doesn’t look right — it should be like CUR-0042.'); setAddingCopy(false); return }
+      if (await labelInUse(code)) { setError(`${code} is already on another book. Use the next label.`); setAddingCopy(false); return }
+      internalId = code
+    } else internalId = await nextCopyId()
     const { data, error: e } = await supabase.from('book_copies')
       .insert({ book_id: bookId, internal_id: internalId, status: 'available' })
       .select('id, book_id, internal_id, status').single()
     if (e) { setError(`Add copy failed: ${e.message}`); setAddingCopy(false); return }
     setCopies(prev => ({ ...prev, [bookId]: [...(prev[bookId] || []), data] }))
-    setAddingCopy(false)
+    setAddingCopy(false); setCopyLabel('')
     // anyone waiting on this book (Notify Me) hears it's back
     fetch('/api/admin/notify-me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookIds: [bookId] }) }).catch(() => {})
   }
@@ -723,7 +742,7 @@ export default function AdminBooksPage() {
     setLoadingLoans(null)
   }
 
-  // â”€â”€ Utils â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Utils ──────────────────────────────────────────────────────────────────
 
   function fmtDate(iso: string) {
     return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -734,14 +753,14 @@ export default function AdminBooksPage() {
     b.author.toLowerCase().includes(search.toLowerCase())
   )
 
-  if (loading) return <div style={{ padding: '32px', fontSize: '14px', color: '#6b6b6b' }}>Loadingâ€¦</div>
+  if (loading) return <div style={{ padding: '32px', fontSize: '14px', color: '#6b6b6b' }}>Loading…</div>
 
-  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
 
-      {/* â”€â”€ Left: book list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Left: book list ────────────────────────────────────────────── */}
       <div style={{
         width: panelMode ? '340px' : '100%', flexShrink: 0,
         display: 'flex', flexDirection: 'column',
@@ -751,16 +770,17 @@ export default function AdminBooksPage() {
         {/* Toolbar */}
         <div style={{ padding: '14px 16px', borderBottom: '1px solid #e5e5e5', display: 'flex', gap: '8px', alignItems: 'center' }}>
           <span style={{ flex: 1, fontWeight: 700, fontSize: '15px', color: '#1a1a1a' }}>Books</span>
+          <a href="/admin/books/labels" style={{ fontSize: '13px', fontWeight: 600, color: '#1a2f51', textDecoration: 'none', padding: '8px 12px', border: '1px solid #e5e5e5', borderRadius: '8px', marginRight: '8px' }}>🏷 Print labels</a>
           <Btn onClick={() => { setSelectedBook(null); setPanelMode('add') }}>+ Add Book</Btn>
         </div>
         {/* Search */}
         <div style={{ padding: '10px 16px', borderBottom: '1px solid #e5e5e5' }}>
-          <input style={inp} placeholder="Searchâ€¦" value={search} onChange={e => setSearch(e.target.value)} />
+          <input style={inp} placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         {/* Error bar */}
         {error && (
           <div style={{ margin: '8px 16px', padding: '8px 12px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', color: '#dc2626', fontSize: '12px' }}>
-            âš  {error}
+            ⚠ {error}
           </div>
         )}
         {/* List */}
@@ -773,12 +793,12 @@ export default function AdminBooksPage() {
             const isSelected = selectedBook?.id === book.id && panelMode === 'detail'
 
             let copyLine = 'No copies'
-            if (active.length === 1) copyLine = `1 copy â€” ${avail ? 'available' : out ? 'out' : active[0].status}`
+            if (active.length === 1) copyLine = `1 copy — ${avail ? 'available' : out ? 'out' : active[0].status}`
             else if (active.length > 1) {
               const parts = []
               if (avail) parts.push(`${avail} available`)
               if (out) parts.push(`${out} out`)
-              copyLine = `${active.length} copies${parts.length ? ' â€” ' + parts.join(' Â· ') : ''}`
+              copyLine = `${active.length} copies${parts.length ? ' — ' + parts.join(' · ') : ''}`
             }
 
             return (
@@ -808,7 +828,7 @@ export default function AdminBooksPage() {
         </div>
       </div>
 
-      {/* â”€â”€ Right: detail / add panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Right: detail / add panel ──────────────────────────────────── */}
       {panelMode && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
           {/* Panel header */}
@@ -816,12 +836,26 @@ export default function AdminBooksPage() {
             <span style={{ flex: 1, fontWeight: 700, fontSize: '15px', color: '#1a1a1a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {panelMode === 'add' ? 'Add New Book' : (selectedBook?.title || '')}
             </span>
-            <button onClick={closePanel} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.4rem', color: '#9b9b9b', padding: 0, lineHeight: 1, display: 'flex', alignItems: 'center' }}>Ã—</button>
+            <button onClick={closePanel} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.4rem', color: '#9b9b9b', padding: 0, lineHeight: 1, display: 'flex', alignItems: 'center' }}>×</button>
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
 
-            {/* â”€â”€ ADD BOOK FORM â”€â”€ */}
+            {scanFor && (
+              <EnvelopeScanner
+                title={scanFor === 'isbn' ? 'Scan the ISBN barcode (back of the book)' : 'Scan the CUR label'}
+                placeholder={scanFor === 'isbn' ? 'e.g. 9780747532699' : 'e.g. CUR-0042'}
+                onClose={() => setScanFor(null)}
+                onCode={code => {
+                  const target = scanFor
+                  setScanFor(null)
+                  if (target === 'isbn') { setFetchQuery(code); fetchBookInfo(code, true, undefined) }
+                  else if (target === 'addLabel') setAddLabel(code)
+                  else setCopyLabel(code)
+                }} />
+            )}
+
+            {/* ── ADD BOOK FORM ── */}
             {panelMode === 'add' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '580px' }}>
 
@@ -836,14 +870,25 @@ export default function AdminBooksPage() {
                       onChange={e => setFetchQuery(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter' && fetchQuery.trim()) { const q = fetchQuery.trim(); fetchBookInfo(q, /^\d[\d\-]{8,}$/.test(q), undefined) } }}
                     />
+                    <Btn variant="secondary" onClick={() => setScanFor('isbn')}>📷 Scan</Btn>
                     <Btn
                       onClick={() => { const q = fetchQuery.trim(); if (q) fetchBookInfo(q, /^\d[\d\-]{8,}$/.test(q), undefined) }}
                       disabled={fetchLoading || !fetchQuery.trim()}
                     >
-                      {fetchLoading ? 'Fetchingâ€¦' : 'Fetch'}
+                      {fetchLoading ? 'Fetching…' : 'Fetch'}
                     </Btn>
                   </div>
                   {fetchError && <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#dc2626' }}>{fetchError}</p>}
+                  {(() => {
+                    const isbn = (addForm.isbn || fetchQuery).replace(/[^0-9X]/gi, '')
+                    const already = isbn.length >= 10 ? books.find(b => (b.isbn || '').replace(/[^0-9X]/gi, '') === isbn) : null
+                    return already ? (
+                      <div style={{ marginTop: '10px', padding: '10px 12px', borderRadius: '8px', backgroundColor: '#fff7e6', border: '1px solid #f3d18a', fontSize: '13px', color: '#1a1a1a' }}>
+                        <strong>{already.title}</strong> is already in the library.{' '}
+                        <button onClick={() => openBook(already)} style={{ background: 'none', border: 'none', padding: 0, color: '#1a2f51', fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}>Open it to add another copy</button>
+                      </div>
+                    ) : null
+                  })()}
                   {fetchResults.length > 0 && (
                     <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <p style={{ margin: '0 0 6px', fontSize: '11px', fontWeight: 600, color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pick the right edition</p>
@@ -853,7 +898,7 @@ export default function AdminBooksPage() {
                           {r.thumbnailUrl && <img src={r.thumbnailUrl.replace('http://', 'https://')} alt="" style={{ width: '28px', height: '42px', objectFit: 'cover', borderRadius: '3px', flexShrink: 0 }} />}
                           <div style={{ minWidth: 0 }}>
                             <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#1a1a1a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</p>
-                            <p style={{ margin: '1px 0 0', fontSize: '12px', color: '#6b6b6b' }}>{r.author}{r.pageCount ? ` Â· ${r.pageCount}pp` : ''}</p>
+                            <p style={{ margin: '1px 0 0', fontSize: '12px', color: '#6b6b6b' }}>{r.author}{r.pageCount ? ` · ${r.pageCount}pp` : ''}</p>
                           </div>
                         </button>
                       ))}
@@ -862,7 +907,7 @@ export default function AdminBooksPage() {
                   {fetchedCoverBase64 && (
                     <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <img src={fetchedCoverBase64} alt="cover" style={{ width: '36px', height: '54px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #e5e5e5' }} />
-                      <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 600 }}>Cover fetched âœ“</span>
+                      <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 600 }}>Cover fetched ✓</span>
                       <button onClick={() => setFetchedCoverBase64(null)} style={{ background: 'none', border: 'none', color: '#9b9b9b', cursor: 'pointer', fontSize: '12px', marginLeft: '4px' }}>remove</button>
                     </div>
                   )}
@@ -919,12 +964,12 @@ export default function AdminBooksPage() {
                     }}>
                       <option value="">Not part of a series</option>
                       {seriesList.filter(s => !s.parent_series_id).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                      <option value="__new__">+ Add new seriesâ€¦</option>
+                      <option value="__new__">+ Add new series…</option>
                     </select>
                   ) : (
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <input style={inp} placeholder="New series name" value={addNewSeriesName} onChange={e => setAddNewSeriesName(e.target.value)} />
-                      <button onClick={() => { setAddNewSeriesMode(false); setAddNewSeriesName('') }} style={{ background: 'none', border: 'none', color: '#9b9b9b', cursor: 'pointer', fontSize: '17px' }}>Ã—</button>
+                      <button onClick={() => { setAddNewSeriesMode(false); setAddNewSeriesName('') }} style={{ background: 'none', border: 'none', color: '#9b9b9b', cursor: 'pointer', fontSize: '17px' }}>×</button>
                     </div>
                   )}
                 </div>
@@ -949,7 +994,7 @@ export default function AdminBooksPage() {
 
                 <div>
                   <label style={lbl}>Description</label>
-                  <textarea style={{ ...inp, minHeight: '80px', resize: 'vertical' }} placeholder="A short description of the bookâ€¦" value={addForm.description} onChange={e => setAddForm(f => ({ ...f, description: e.target.value }))} />
+                  <textarea style={{ ...inp, minHeight: '80px', resize: 'vertical' }} placeholder="A short description of the book…" value={addForm.description} onChange={e => setAddForm(f => ({ ...f, description: e.target.value }))} />
                 </div>
 
                 <div>
@@ -977,12 +1022,21 @@ export default function AdminBooksPage() {
                   <div><label style={lbl}>Discovery asset</label><input ref={addAssetRef} type="file" accept="image/*" onChange={e => setAddAssetFile(e.target.files?.[0] || null)} style={{ fontSize: '13px', color: '#1a1a1a' }} /></div>
                 </div>
 
-                {error && <p style={{ color: '#dc2626', fontSize: '13px', margin: 0 }}>âš  {error}</p>}
-                <Btn onClick={handleAddBook} disabled={addingBook}>{addingBook ? 'Addingâ€¦' : 'Add Book'}</Btn>
+                <div style={{ backgroundColor: '#f7f7f7', borderRadius: '10px', padding: '14px' }}>
+                  <label style={lbl}>Copy label (the CUR sticker on this book)</label>
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                    <input style={{ ...inp, flex: 1 }} placeholder="Scan or type, e.g. CUR-0042" value={addLabel}
+                      onChange={e => setAddLabel(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && addLabel.trim()) handleAddBook() }} />
+                    <Btn variant="secondary" onClick={() => setScanFor('addLabel')}>📷 Scan</Btn>
+                  </div>
+                  <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#6b6b6b' }}>Left empty, the next free number is used — print that label afterwards.</p>
+                </div>
+                {error && <p style={{ color: '#dc2626', fontSize: '13px', margin: 0 }}>⚠ {error}</p>}
+                <Btn onClick={handleAddBook} disabled={addingBook}>{addingBook ? 'Adding…' : 'Add Book'}</Btn>
               </div>
             )}
 
-            {/* â”€â”€ BOOK DETAIL â”€â”€ */}
+            {/* ── BOOK DETAIL ── */}
             {panelMode === 'detail' && selectedBook && detailsForm && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '620px' }}>
 
@@ -991,7 +1045,7 @@ export default function AdminBooksPage() {
                   <div style={{ width: '72px', height: '108px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, backgroundColor: '#e8e8e8', position: 'relative' }}>
                     {selectedBook.cover_image_url && <img src={selectedBook.cover_image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                     {uploadingCoverFor === selectedBook.id && (
-                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px' }}>â€¦</div>
+                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px' }}>…</div>
                     )}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
@@ -1003,7 +1057,7 @@ export default function AdminBooksPage() {
                       <label style={lbl}>Discovery asset {selectedBook.discovery_asset_url ? '(replace)' : ''}</label>
                       {selectedBook.discovery_asset_url && <img src={selectedBook.discovery_asset_url} alt="" style={{ width: '28px', height: '28px', objectFit: 'contain', display: 'block', marginBottom: '4px' }} />}
                       <input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) uploadAsset(f, selectedBook.id) }} style={{ fontSize: '12px', color: '#1a1a1a' }} />
-                      {uploadingAssetFor === selectedBook.id && <span style={{ fontSize: '11px', color: '#9b9b9b' }}>Uploadingâ€¦</span>}
+                      {uploadingAssetFor === selectedBook.id && <span style={{ fontSize: '11px', color: '#9b9b9b' }}>Uploading…</span>}
                     </div>
                   </div>
                 </div>
@@ -1011,7 +1065,7 @@ export default function AdminBooksPage() {
                 {/* Book details */}
                 <div>
                   <p style={secHead}>Book details</p>
-                  {error && <p style={{ color: '#dc2626', fontSize: '13px', margin: '0 0 8px', padding: '8px 12px', backgroundColor: '#fef2f2', borderRadius: '6px', border: '1px solid #fecaca' }}>âš  {error}</p>}
+                  {error && <p style={{ color: '#dc2626', fontSize: '13px', margin: '0 0 8px', padding: '8px 12px', backgroundColor: '#fef2f2', borderRadius: '6px', border: '1px solid #fecaca' }}>⚠ {error}</p>}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div><label style={lbl}>ISBN</label><input style={inp} value={detailsForm.isbn} onChange={e => setDetailsForm(f => f && ({ ...f, isbn: e.target.value }))} /></div>
@@ -1024,7 +1078,7 @@ export default function AdminBooksPage() {
                             return (
                               <button key={level.id} onClick={() => toggleReadingLevel(selectedBook.id, level.id)} disabled={!!savingLevel}
                                 style={{ padding: '4px 10px', borderRadius: '999px', border: '1px solid #e5e5e5', fontSize: '12px', fontWeight: 500, cursor: savingLevel ? 'default' : 'pointer', backgroundColor: isOn ? '#1a1a1a' : '#f7f7f7', color: isOn ? '#fff' : '#4a4a4a', opacity: isSaving ? 0.5 : 1 }}>
-                                {isSaving ? 'â€¦' : level.name}
+                                {isSaving ? '…' : level.name}
                               </button>
                             )
                           })}
@@ -1044,7 +1098,7 @@ export default function AdminBooksPage() {
                       <div><label style={lbl}>Age to</label><input style={inp} type="number" placeholder="10" value={detailsForm.age_max} onChange={e => setDetailsForm(f => f && ({ ...f, age_max: e.target.value }))} /></div>
                     </div>
 
-                    {/* Series â€” Row 1: Series Name | Book Number */}
+                    {/* Series — Row 1: Series Name | Book Number */}
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
                       <div>
                         <label style={lbl}>Series Name</label>
@@ -1057,12 +1111,12 @@ export default function AdminBooksPage() {
                           }}>
                             <option value="">Not part of a series</option>
                             {seriesList.filter(s => !s.parent_series_id).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                            <option value="__new__">+ Add new seriesâ€¦</option>
+                            <option value="__new__">+ Add new series…</option>
                           </select>
                         ) : (
                           <div style={{ display: 'flex', gap: '6px' }}>
                             <input style={{ ...inp, flex: 1 }} placeholder="New series name" value={newSeriesName} onChange={e => setNewSeriesName(e.target.value)} />
-                            <button onClick={() => { setNewSeriesMode(false); setNewSeriesName('') }} style={{ background: 'none', border: 'none', color: '#9b9b9b', cursor: 'pointer', fontSize: '17px' }}>Ã—</button>
+                            <button onClick={() => { setNewSeriesMode(false); setNewSeriesName('') }} style={{ background: 'none', border: 'none', color: '#9b9b9b', cursor: 'pointer', fontSize: '17px' }}>×</button>
                           </div>
                         )}
                       </div>
@@ -1071,7 +1125,7 @@ export default function AdminBooksPage() {
                         <input style={inp} type="number" placeholder="1" value={detailsForm.series_number} onChange={e => setDetailsForm(f => f && ({ ...f, series_number: e.target.value }))} />
                       </div>
                     </div>
-                    {/* Series â€” Row 2: Sub-series | Sub-series No. */}
+                    {/* Series — Row 2: Sub-series | Sub-series No. */}
                     {!!editMainSeriesId && !newSeriesMode && (
                       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
                         <div>
@@ -1087,12 +1141,12 @@ export default function AdminBooksPage() {
                               {seriesList.filter(s => s.parent_series_id === editMainSeriesId).sort((a, b) => (a.series_number ?? 0) - (b.series_number ?? 0)).map(s => (
                                 <option key={s.id} value={s.id}>Series {s.series_number}{s.name ? `: ${s.name}` : ''}</option>
                               ))}
-                              <option value="__new__">+ Add newâ€¦</option>
+                              <option value="__new__">+ Add new…</option>
                             </select>
                           ) : (
                             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                               <input style={{ ...inp, flex: 1 }} placeholder="Sub-series name" value={newSubSeriesName} onChange={e => setNewSubSeriesName(e.target.value)} />
-                              <button onClick={() => { setNewSubSeriesMode(false); setNewSubSeriesName(''); setNewSubSeriesNumber('') }} style={{ background: 'none', border: 'none', color: '#9b9b9b', cursor: 'pointer', fontSize: '17px' }}>Ã—</button>
+                              <button onClick={() => { setNewSubSeriesMode(false); setNewSubSeriesName(''); setNewSubSeriesNumber('') }} style={{ background: 'none', border: 'none', color: '#9b9b9b', cursor: 'pointer', fontSize: '17px' }}>×</button>
                             </div>
                           )}
                         </div>
@@ -1122,7 +1176,7 @@ export default function AdminBooksPage() {
                       return (
                         <button key={cat.id} onClick={() => toggleCategory(selectedBook.id, cat.id)} disabled={!!saving}
                           style={{ padding: '5px 13px', borderRadius: '999px', border: '1px solid #e5e5e5', fontSize: '12px', fontWeight: 500, cursor: saving ? 'default' : 'pointer', backgroundColor: isOn ? '#1a1a1a' : '#f7f7f7', color: isOn ? '#fff' : '#4a4a4a', opacity: isSaving ? 0.5 : 1 }}>
-                          {isSaving ? 'â€¦' : cat.name}
+                          {isSaving ? '…' : cat.name}
                         </button>
                       )
                     })}
@@ -1244,8 +1298,11 @@ export default function AdminBooksPage() {
                     <p style={{ ...secHead, marginBottom: 0, flex: 1 }}>
                       Copies ({(copies[selectedBook.id] || []).filter(c => c.status !== 'retired').length})
                     </p>
+                    <input style={{ ...inp, width: '150px', fontSize: '12px', padding: '5px 8px', marginRight: '6px' }} placeholder="CUR label" value={copyLabel}
+                      onChange={e => setCopyLabel(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && copyLabel.trim()) addCopy(selectedBook.id) }} />
+                    <Btn variant="secondary" onClick={() => setScanFor('copyLabel')} style={{ fontSize: '12px', padding: '5px 10px', marginRight: '6px' }}>📷</Btn>
                     <Btn variant="secondary" onClick={() => addCopy(selectedBook.id)} disabled={addingCopy} style={{ fontSize: '12px', padding: '5px 10px' }}>
-                      {addingCopy ? 'Addingâ€¦' : '+ Add copy'}
+                      {addingCopy ? 'Adding…' : '+ Add copy'}
                     </Btn>
                   </div>
 
@@ -1265,8 +1322,9 @@ export default function AdminBooksPage() {
                             <span style={{ fontFamily: 'ui-monospace, monospace', fontWeight: 700, fontSize: '13px', color: '#1a1a1a', minWidth: '60px' }}>{copy.internal_id}</span>
                             <StatusDot status={copy.status} />
                             <div style={{ flex: 1 }} />
+                            {copy.internal_id && <a href={'/admin/books/labels?codes=' + encodeURIComponent(copy.internal_id)} title='Print a label for this copy' style={{ fontSize: '11px', padding: '4px 10px', border: '1px solid #e5e5e5', borderRadius: '8px', color: '#1a2f51', textDecoration: 'none', fontWeight: 600 }}>🏷 Print</a>}
                             <Btn variant="secondary" onClick={() => toggleCopyLoans(copy.id)} style={{ fontSize: '11px', padding: '4px 10px' }}>
-                              {isLoadingThis ? 'â€¦' : `Loans ${isExpanded ? 'â–²' : 'â–¼'}`}
+                              {isLoadingThis ? '…' : `Loans ${isExpanded ? '▲' : '▼'}`}
                             </Btn>
                             {canArchive && (
                               <Btn variant="secondary" onClick={() => archiveCopy(copy.id, selectedBook.id)} style={{ fontSize: '11px', padding: '4px 10px', color: '#9b9b9b' }}>
@@ -1278,7 +1336,7 @@ export default function AdminBooksPage() {
                           {isExpanded && (
                             <div style={{ borderTop: '1px solid #e5e5e5', backgroundColor: '#fafafa', padding: '10px 14px' }}>
                               {!loans ? (
-                                <p style={{ margin: 0, fontSize: '13px', color: '#9b9b9b' }}>Loadingâ€¦</p>
+                                <p style={{ margin: 0, fontSize: '13px', color: '#9b9b9b' }}>Loading…</p>
                               ) : loans.length === 0 ? (
                                 <p style={{ margin: 0, fontSize: '13px', color: '#9b9b9b' }}>No loans recorded for this copy.</p>
                               ) : (
@@ -1287,7 +1345,7 @@ export default function AdminBooksPage() {
                                     <div key={loan.id} style={{ display: 'grid', gridTemplateColumns: '140px 120px 16px 1fr', gap: '8px', fontSize: '12px', color: '#4a4a4a', alignItems: 'center' }}>
                                       <span style={{ fontWeight: 600 }}>{loan.child_name || 'Unknown'}</span>
                                       <span style={{ color: '#9b9b9b' }}>{fmtDate(loan.created_at)}</span>
-                                      <span style={{ color: '#d4d4d4', textAlign: 'center' }}>â†’</span>
+                                      <span style={{ color: '#d4d4d4', textAlign: 'center' }}>→</span>
                                       <span style={{ color: loan.returned_at ? '#9b9b9b' : '#d97706', fontWeight: loan.returned_at ? 400 : 600 }}>
                                         {loan.returned_at ? fmtDate(loan.returned_at) : 'Current loan'}
                                       </span>
@@ -1303,11 +1361,11 @@ export default function AdminBooksPage() {
                   </div>
                 </div>
 
-                {error && <p style={{ color: '#dc2626', fontSize: '13px', margin: 0 }}>âš  {error}</p>}
+                {error && <p style={{ color: '#dc2626', fontSize: '13px', margin: 0 }}>⚠ {error}</p>}
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Btn onClick={saveDetails} disabled={savingDetails} style={savedOk ? { backgroundColor: '#16a34a' } : {}}>
-                    {savingDetails ? 'Savingâ€¦' : savedOk ? 'Saved âœ“' : 'Save Book Details'}
+                    {savingDetails ? 'Saving…' : savedOk ? 'Saved ✓' : 'Save Book Details'}
                   </Btn>
                   {!confirmDelete ? (
                     <button onClick={() => setConfirmDelete(true)}

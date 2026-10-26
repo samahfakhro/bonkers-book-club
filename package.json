@@ -27,6 +27,7 @@
     "@zxing/library": "^0.21.3",
     "canvas-confetti": "^1.9.4",
     "docx": "^9.7.0",
+    "jsbarcode": "^3.11.6",
     "mapbox-gl": "^3.32.0",
     "next": "16.2.6",
     "openai": "^7.21.0",
