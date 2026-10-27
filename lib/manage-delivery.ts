@@ -1,5 +1,5 @@
 // Server-only. Manage Delivery: what a family sees and can answer after a missed visit.
-// Reached either signed in (/dashboard/manage-delivery/<stopId>) or from the no-login WhatsApp/email link (/m/<token>).
+// Reached from the no-login WhatsApp/email link (/m/<token>).
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { FAILED_DELIVERY, manageLinkOpen } from '@/lib/driver/server'
 
@@ -10,14 +10,6 @@ export async function stopByToken(token: string) {
   if (!/^[0-9a-f-]{36}$/i.test(token)) return null
   const { data } = await supabaseAdmin.from('route_stops').select(SELECT).eq('manage_token', token).maybeSingle()
   return data
-}
-
-export async function stopForParent(stopId: string, accessToken: string | undefined) {
-  if (!accessToken) return null
-  const { data: { user } } = await supabaseAdmin.auth.getUser(accessToken)
-  if (!user) return null
-  const { data } = await supabaseAdmin.from('route_stops').select(SELECT).eq('id', stopId).maybeSingle()
-  return data && (data.households as any)?.user_id === user.id ? data : null
 }
 
 export async function manageInfo(stop: any) {

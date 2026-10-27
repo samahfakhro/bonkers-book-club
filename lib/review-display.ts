@@ -2,7 +2,7 @@
  * Resolves a child's display name for reviews.
  *
  * review_display = 'first_name'  → "Layla, Age 8"
- * review_display = 'anonymous'   → "Curious reader, Age 8"
+ * anything else (anonymous, or not chosen) → "Curious reader, Age 8"
  *
  * Pass date_of_birth as an ISO string (YYYY-MM-DD) to include age.
  */
@@ -18,7 +18,7 @@ export function getReviewDisplayName(
 
   const ageSuffix = age !== null && !isNaN(age) ? `, Age ${age}` : ''
 
-  if (reviewDisplay === 'anonymous') {
+  if (reviewDisplay !== 'first_name') {
     return `Curious reader${ageSuffix}`
   }
 

@@ -334,14 +334,12 @@ export default function AdminBooksPage() {
       age_min: detailsForm.age_min.trim() ? Number(detailsForm.age_min.trim()) : null,
       age_max: detailsForm.age_max.trim() ? Number(detailsForm.age_max.trim()) : null,
     }
-    console.log('[saveDetails] PATCH payload:', patchBody)
     const patchRes = await fetch('/api/admin/books', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patchBody),
     })
     const patchJson = await patchRes.json()
-    console.log('[saveDetails] PATCH response:', patchJson)
     if (patchJson.error) { console.error('[saveDetails] PATCH error:', patchJson.error); setError(`Save failed: ${patchJson.error}`); setSavingDetails(false); return }
     const updated = {
       ...selectedBook,

@@ -16,6 +16,17 @@ function firstTouchColumns(ft: any) {
   }
 }
 
+// The only household fields the sign-up form may set; status, zone and Curious Day are decided here
+const FORM_FIELDS = [
+  'first_name', 'last_name', 'mobile_phone', 'whatsapp_number', 'community_id', 'property_type',
+  'building', 'villa_flat', 'street', 'sub_community', 'area',
+  'delivery_preferences', 'delivery_preference', 'backup_safe_drop', 'backup_concierge',
+  'delivery_notes', 'safe_spot_description', 'signup_source_category', 'signup_source_sub_detail',
+  'agreed_to_marketing', 'latitude', 'longitude',
+] as const
+const formFields = (body: Record<string, unknown>) =>
+  Object.fromEntries(FORM_FIELDS.filter(k => k in body).map(k => [k, body[k]]))
+
 const digits = (s: unknown) => String(s ?? '').replace(/\D/g, '').replace(/^(971|0)/, '')
 
 // A waitlisted family that signs up (same email or same mobile) is marked Joined
@@ -39,7 +50,8 @@ async function markWaitlistJoined(email: string | undefined, phone: unknown, hou
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { userId, planLabel, firstTouch, ...householdFields } = body
+    const { userId, planLabel, firstTouch } = body
+    const householdFields = formFields(body) as Record<string, any>
 
     if (!userId) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
@@ -78,7 +90,7 @@ export async function POST(request: NextRequest) {
     // Create household — zone + Curious Day come from the server's check, not the browser
     const { data: household, error: hhError } = await supabaseAdmin
       .from('households')
-      .insert({ user_id: userId, notify_whatsapp: defaults.default_notify_whatsapp !== 'false', notify_email: defaults.default_notify_email !== 'false', ...firstTouchColumns(firstTouch), ...householdFields, signup_zone_id: availability.zoneId, bonkers_day: availability.bonkersDay })
+      .insert({ user_id: userId, notify_whatsapp: defaults.default_notify_whatsapp !== 'false', notify_email: defaults.default_notify_email !== 'false', ...firstTouchColumns(firstTouch), ...householdFields, account_status: 'active', service_status: 'active', terms_accepted_at: new Date().toISOString(), signup_zone_id: availability.zoneId, bonkers_day: availability.bonkersDay })
       .select('id')
       .single()
 

@@ -60,7 +60,6 @@ export default function NewChildPage() {
     dobDay: '',
     dobMonth: '',
     dobYear: '',
-    readingLevel: '',
     readingMode: '',
     bookSlots: null as number | null,
     swapPermission: '',
@@ -125,6 +124,7 @@ export default function NewChildPage() {
 
     if (form.pin && !/^\d{4}$/.test(form.pin)) errors.pin = 'PIN must be exactly 4 digits.'
     if (!hasParentPin && !/^\d{4}$/.test(form.parentPin)) errors.parentPin = 'Please set a 4-digit parent PIN.'
+    if (!form.reviewDisplay) errors.reviewDisplay = 'Please choose the name shown on reviews.'
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors)
@@ -371,7 +371,7 @@ export default function NewChildPage() {
           </section>
 
           {/* Review display name */}
-          <section>
+          <section id="field-reviewDisplay">
             <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: '#1a2f51', fontSize: '1.4rem', margin: '0 0 12px', lineHeight: 1 }}>Name Shown On Reviews</p>
             <div className="flex flex-col gap-2">
               {(() => {
@@ -389,6 +389,7 @@ export default function NewChildPage() {
                 ))
               })()}
             </div>
+            {fieldErrors.reviewDisplay && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#e57451', fontSize: '0.95rem', marginTop: '4px', paddingLeft: '4px' }}>{fieldErrors.reviewDisplay}</p>}
           </section>
 
           {/* Submit */}

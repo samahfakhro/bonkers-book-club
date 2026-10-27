@@ -508,7 +508,7 @@ function SignupForm() {
         <CuriousLogo height={72} />
       </div>
 
-      {/* Step progress bar â€" only shown in signup flow */}
+      {/* Step progress bar — only shown in signup flow */}
       {step === 'signup' && (
         <div style={{ padding: `0 ${isTablet ? '60px' : '32px'}`, maxWidth: isTablet ? '680px' : '440px', margin: `${isTablet ? '64px' : '24px'} auto ${isTablet ? '16px' : '10px'}`, position: 'relative', zIndex: 2 }}>
           {/* Circles + lines row */}
@@ -543,7 +543,7 @@ function SignupForm() {
       )}
 
 
-      {/* â"€â"€ WAITLIST â"€â"€ */}
+      {/* ── WAITLIST ── */}
       {step === 'waitlist' && (
         <div style={{ maxWidth: '480px', margin: '0 auto', padding: '0 24px 60px', textAlign: 'center' }}>
           <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '2.2rem', fontWeight: 700, lineHeight: 1.1 }}>Memberships in your area are currently full</h1>
@@ -563,7 +563,7 @@ function SignupForm() {
         </div>
       )}
 
-      {/* â"€â"€ WAITLIST DONE â"€â"€ */}
+      {/* ── WAITLIST DONE ── */}
       {step === 'waitlist-done' && (
         <div style={{ maxWidth: '480px', margin: '0 auto', padding: '0 24px 60px', textAlign: 'center' }}>
           <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '2.4rem', fontWeight: 700, lineHeight: 1.1 }}>You&apos;re on the list!</h1>
@@ -574,7 +574,7 @@ function SignupForm() {
         </div>
       )}
 
-      {/* â"€â"€ CONFIRM EMAIL â"€â"€ */}
+      {/* ── CONFIRM EMAIL ── */}
       {step === 'confirm-email' && (
         <div style={{ maxWidth: '480px', margin: '0 auto', padding: '0 24px 60px', textAlign: 'center' }}>
           <div style={{ fontSize: '3rem', marginBottom: '16px' }}>ðŸ"¬</div>
@@ -588,7 +588,7 @@ function SignupForm() {
         </div>
       )}
 
-      {/* â"€â"€ 5-STEP SIGNUP CARD â"€â"€ */}
+      {/* ── 5-STEP SIGNUP CARD ── */}
       {step === 'signup' && (
         <div style={{ padding: isTablet ? '16px 8px 60px' : '0 0 60px', position: 'relative', zIndex: isTablet ? 2 : currentStep === 3 ? undefined : 2 }}>
           <div style={{ maxWidth: isTablet ? '900px' : '100%', margin: '0 auto', padding: isTablet ? '12px 52px 52px' : '0 12px 40px', position: 'relative' }}>
@@ -599,7 +599,7 @@ function SignupForm() {
               </div>
             )}
 
-            {/* â"€â"€ STEP 1: YOUR PLAN â"€â"€ */}
+            {/* ── STEP 1: YOUR PLAN ── */}
             {currentStep === 1 && (
               <div>
                 <SectionHeading title="Choose Your Family Plan" subtitle="" />
@@ -646,7 +646,7 @@ function SignupForm() {
               </div>
             )}
 
-            {/* â"€â"€ STEP 2: ABOUT YOU â"€â"€ */}
+            {/* ── STEP 2: ABOUT YOU ── */}
             {currentStep === 2 && (
               <div>
                 <SectionHeading stepNum={2} title="Tell Us About Yourself" subtitle="" />
@@ -731,7 +731,7 @@ function SignupForm() {
               </div>
             )}
 
-            {/* â"€â"€ STEP 3: DELIVERY DETAILS â"€â"€ */}
+            {/* ── STEP 3: DELIVERY DETAILS ── */}
             {currentStep === 3 && (
               <div>
                 {/* Above image on mobile */}
@@ -816,7 +816,7 @@ function SignupForm() {
               </div>
             )}
 
-            {/* â"€â"€ STEP 4: HOW TO DELIVER â"€â"€ */}
+            {/* ── STEP 4: HOW TO DELIVER ── */}
             {currentStep === 4 && (
               <div>
                 <SectionHeading stepNum={4} title={'Collection & Delivery Preferences'} subtitle={''} />
@@ -858,7 +858,7 @@ function SignupForm() {
             )}
 
 
-            {/* â"€â"€ STEP 5: PAYMENT â"€â"€ */}
+            {/* ── STEP 5: PAYMENT ── */}
             {currentStep === 5 && (
               <div style={{ position: 'relative', zIndex: 1 }}>
                 <SectionHeading stepNum={5} title="Almost done!" subtitle="" />

@@ -91,7 +91,7 @@ export default function UniversePage() {
       if (child) setChildName(child.nickname || child.name || '')
 
       const { data: returned } = await supabase.from('loans').select('id, returned_at, book_copies(books(id, title, cover_image_url, author))').eq('child_id', childId).eq('status', 'returned').order('returned_at', { ascending: false })
-      let reviewMap = new Map<string, number>()
+      const reviewMap = new Map<string, number>()
       try {
         const { data: reviews } = await supabase.from('book_reviews').select('book_id, star_rating').eq('child_id', childId)
         for (const r of reviews || []) if (r.star_rating) reviewMap.set(r.book_id, r.star_rating)

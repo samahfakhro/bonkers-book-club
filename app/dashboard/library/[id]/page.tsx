@@ -47,7 +47,7 @@ type Review = {
   rating: number | null
   written_review: string | null
   category_ratings: Record<string, number> | null
-  child: { nickname: string; avatar_url: string | null } | null
+  child: { display_name: string; avatar_url: string | null } | null
 }
 
 type ShelfBook = {
@@ -289,13 +289,9 @@ export default function BookDetailPage() {
         }
       }
 
-      const { data: reviewData } = await supabase
-        .from('book_reviews').select('id, star_rating, review_text, moderation_status, category_ratings, child_profiles ( nickname, avatars ( image_url ) )')
-        .eq('book_id', bookId).order('created_at', { ascending: false }).limit(10)
-
-      if (reviewData) {
-        setReviews(reviewData.map((r: any) => ({ id: r.id, rating: r.star_rating, written_review: r.moderation_status === 'approved' ? r.review_text : null, category_ratings: r.category_ratings ?? null, child: r.child_profiles ? { nickname: r.child_profiles.nickname, avatar_url: r.child_profiles.avatars?.image_url ?? null } : null })))
-      }
+      // names and avatars come from the server, following each parent’s choice (app/api/book-reviews)
+      const reviewRes = await fetch(`/api/book-reviews?bookId=${bookId}`).then(r => r.json()).catch(() => null)
+      if (reviewRes?.reviews) setReviews(reviewRes.reviews)
 
       const { data: defaultAvatar } = await supabase.from('avatars').select('image_url').eq('is_default', true).limit(1).single()
       if (defaultAvatar) setDefaultAvatarUrl(defaultAvatar.image_url)
@@ -921,7 +917,7 @@ export default function BookDetailPage() {
                           : <span style={{ color: '#1a2f51', fontSize: '1.2rem' }}>★</span>}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                        <p style={{ fontFamily: 'var(--font-patrick-hand)', color: '#1a2f51', fontSize: '1.1rem', fontWeight: 700, margin: 0, lineHeight: 1, letterSpacing: '0.04em' }}>{review.child?.nickname ?? 'Curious reader'}</p>
+                        <p style={{ fontFamily: 'var(--font-patrick-hand)', color: '#1a2f51', fontSize: '1.1rem', fontWeight: 700, margin: 0, lineHeight: 1, letterSpacing: '0.04em' }}>{review.child?.display_name ?? 'Curious reader'}</p>
                         {review.rating && <div>{renderStars(review.rating, 13)}</div>}
                       </div>
                     </div>

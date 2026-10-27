@@ -3,7 +3,7 @@
 //
 //   Email (Resend)       RESEND_API_KEY                 from "The Curious Library <hello@curiouslibrary.ae>" (curiouslibrary.ae must be verified in Resend)
 //   WhatsApp (Meta)      WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID, and an approved template (see WHATSAPP_TEMPLATES)
-//   Links                APP_URL  e.g. https://curiouslibrary.ae  (falls back to the current Vercel address)
+//   Links                APP_URL  e.g. https://curiouslibrary.ae  (falls back to the live site)
 //
 // Until then a channel is skipped and the skip is logged — nothing breaks.
 import { supabaseAdmin } from '@/lib/supabase-admin'
@@ -11,7 +11,7 @@ import { renderMessage } from '@/lib/messages'
 import { emailHtml } from '@/lib/email-layout'
 
 const FROM_EMAIL = process.env.MESSAGING_FROM_EMAIL || 'The Curious Library <hello@curiouslibrary.ae>'
-export const appUrl = () => (process.env.APP_URL || 'https://bonkers-book-club.vercel.app').replace(/\/$/, '')
+export const appUrl = () => (process.env.APP_URL || 'https://www.curiouslibrary.ae').replace(/\/$/, '')
 
 // Template names + languages as approved in Meta's WhatsApp Manager
 export const WHATSAPP_TEMPLATES = {

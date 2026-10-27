@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
     if (b.cover_image_url) userText += `\nThe book cover image is included above for visual context.\n`
 
     if (existingList) {
-      userText += `\nEXISTING COLLECTIBLES IN THE BONKERS UNIVERSE (avoid repetition of object types and concepts):\n${existingList}\n`
+      userText += `\nEXISTING COLLECTIBLES IN THE CURIOUS UNIVERSE (avoid repetition of object types and concepts):\n${existingList}\n`
     }
 
     if (mode === 'retry') {
