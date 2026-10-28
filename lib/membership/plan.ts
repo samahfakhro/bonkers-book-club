@@ -26,7 +26,7 @@ type Plan = { id: string; name: string; book_count: number; price_monthly: numbe
 export async function loadMembership(householdId: string) {
   const [{ data: sub }, { data: plans }] = await Promise.all([
     supabaseAdmin.from('subscriptions')
-      .select('id, plan_id, status, start_date, next_billing_date, paused_days_remaining, pause_start_date, scheduled_plan_id, cancel_at, stripe_subscription_id')
+      .select('id, plan_id, status, start_date, next_billing_date, paused_days_remaining, pause_start_date, scheduled_plan_id, cancel_at, stripe_subscription_id, stripe_customer_id, is_free')
       .eq('household_id', householdId).in('status', ['active', 'paused', 'cancelling', 'cancelled']).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     supabaseAdmin.from('subscription_plans').select('id, name, book_count, price_monthly, stripe_price_id').eq('is_active', true).order('book_count'),
   ])

@@ -253,6 +253,11 @@ function SignupForm() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // promo code (step 5): checked with "Apply"; a free code skips payment
+  const [promoInput, setPromoInput] = useState('')
+  const [promo, setPromo] = useState<{ code: string; free: boolean; description: string } | null>(null)
+  const [promoError, setPromoError] = useState('')
+  const [checkingPromo, setCheckingPromo] = useState(false)
   const [stepErrors, setStepErrors] = useState<Record<string, string>>({})
   const [showPassword, setShowPassword] = useState(false)
   const [isTablet, setIsTablet] = useState(false)
@@ -409,12 +414,27 @@ function SignupForm() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const applyPromo = async () => {
+    setPromoError(''); setPromo(null)
+    if (!promoInput.trim()) return
+    setCheckingPromo(true)
+    const res = await fetch('/api/promo-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: promoInput }) })
+    const body = await res.json().catch(() => ({}))
+    setCheckingPromo(false)
+    if (body.ok) setPromo({ code: body.code, free: body.free, description: body.description })
+    else setPromoError(body.error || 'That code isn’t valid.')
+  }
+
   const handleFinalSubmit = async () => {
     setError('')
     const errs: Record<string, string> = {}
     if (!form.agreedToTerms) errs.terms = 'Please agree to the Terms & Conditions to continue.'
     setStepErrors(errs)
     if (Object.keys(errs).length > 0) return
+    if (promoInput.trim() && promo?.code !== promoInput.trim().toUpperCase().replace(/\s+/g, '')) {
+      setPromoError('Tap Apply to use your code, or clear the box.')
+      return
+    }
 
     setLoading(true)
     // A place may have gone since the pin was confirmed — check again before creating the account
@@ -448,6 +468,7 @@ function SignupForm() {
         area: form.area || null, ...preferenceColumns(form.deliveryPreferences),
         delivery_notes: form.deliveryNotes || null, safe_spot_description: form.safeSpotDescription || null,
         signup_source_category: form.hearAboutUs || null, signup_source_sub_detail: form.hearDetail || null,
+        promoCode: promo?.code ?? null,
         agreed_to_marketing: form.agreedToMarketing, terms_accepted_at: new Date().toISOString(),
         account_status: 'active',
         latitude: mapResult?.lat ?? null, longitude: mapResult?.lng ?? null,
@@ -464,6 +485,10 @@ function SignupForm() {
     if (!res.ok) {
       setError(result.error ?? 'Something went wrong saving your details. Please try again.')
       setLoading(false)
+      return
+    }
+    if (result.checkoutUrl) {
+      window.location.href = result.checkoutUrl   // Stripe's secure payment page; it comes back to /signup/paid
       return
     }
     setLoading(false)
@@ -577,7 +602,7 @@ function SignupForm() {
       {/* ── CONFIRM EMAIL ── */}
       {step === 'confirm-email' && (
         <div style={{ maxWidth: '480px', margin: '0 auto', padding: '0 24px 60px', textAlign: 'center' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '16px' }}>ðŸ"¬</div>
+          <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📬</div>
           <h1 style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '2.4rem', fontWeight: 700, lineHeight: 1.1, margin: '0 0 12px' }}>Check your email!</h1>
           <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.9rem', opacity: 0.75, lineHeight: 1.7 }}>
             We&apos;ve sent a confirmation link to <span style={{ color: '#f9d174', fontWeight: 600 }}>{form.email}</span>.
@@ -877,6 +902,23 @@ function SignupForm() {
                 <label style={{ ...labelStyle, marginBottom: '8px' }}>The small print</label>
                 <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.78rem' : '0.92rem', color: '#1a2f51', margin: '0 0 16px' }}>Your membership renews monthly. You can cancel anytime.</p>
 
+                {/* Promo code */}
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={labelStyle}>Promo code <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.6 }}>(optional)</span></label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input type="text" value={promoInput} placeholder="Enter your code" autoCapitalize="characters"
+                      onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromo(null); setPromoError('') }}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyPromo() } }}
+                      className={cardInputClass} style={{ letterSpacing: '0.06em' }} />
+                    <button type="button" onClick={applyPromo} disabled={checkingPromo || !promoInput.trim()}
+                      style={{ flexShrink: 0, backgroundColor: 'transparent', color: '#1a2f51', border: '1.5px solid #1a2f51', borderRadius: '999px', padding: '0 22px', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', cursor: checkingPromo || !promoInput.trim() ? 'default' : 'pointer', opacity: !promoInput.trim() ? 0.5 : 1 }}>
+                      {checkingPromo ? '…' : 'Apply'}
+                    </button>
+                  </div>
+                  {promo && <p style={{ color: '#2f7d4f', fontSize: '0.85rem', fontWeight: 600, margin: '8px 0 0 4px', fontFamily: 'var(--font-montserrat), sans-serif' }}>✓ {promo.description}</p>}
+                  {promoError && <p style={{ color: '#e05c3a', fontSize: '0.8rem', margin: '8px 0 0 4px', fontFamily: 'var(--font-montserrat), sans-serif' }}>{promoError}</p>}
+                </div>
+
                 {/* Terms */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
                   <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
@@ -901,7 +943,7 @@ function SignupForm() {
                 <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <button type="button" onClick={handleFinalSubmit} disabled={loading}
                     style={{ backgroundColor: loading ? '#ccc' : '#1a2f51', color: 'white', border: 'none', borderRadius: '999px', padding: '18px 56px', fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.9rem', letterSpacing: '0.15em', textTransform: 'uppercase', cursor: loading ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '10px', minWidth: '220px', justifyContent: 'center', transition: 'background-color 0.2s' }}>
-                    {loading ? 'Setting up...' : 'Continue to payment'}
+                    {loading ? 'Setting up...' : promo?.free ? 'Join for free' : 'Continue to payment'}
                   </button>
                   <BackButton onClick={goBack} />
                 </div>

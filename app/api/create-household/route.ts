@@ -5,6 +5,9 @@ import { getSettingValues } from '@/lib/settings'
 import { notifyHousehold } from '@/lib/notify'
 import { renderMessage } from '@/lib/messages'
 import { markLeadCompleted } from '@/lib/signup-leads'
+import { stripeEnabled } from '@/lib/billing/stripe'
+import { addMonth, checkoutForSubscription } from '@/lib/billing/join'
+import { markCodeUsed, usableCode } from '@/lib/promo-codes'
 
 // where the visitor first came from (lib/first-touch.ts), stored with the family
 function firstTouchColumns(ft: any) {
@@ -50,7 +53,7 @@ async function markWaitlistJoined(email: string | undefined, phone: unknown, hou
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { userId, planLabel, firstTouch } = body
+    const { userId, planLabel, firstTouch, promoCode } = body
     const householdFields = formFields(body) as Record<string, any>
 
     if (!userId) {
@@ -71,6 +74,9 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (existing) {
+      // tapped twice, or came back before paying: send them to the payment page again
+      const { data: waiting } = await supabaseAdmin.from('subscriptions').select('id').eq('household_id', existing.id).eq('status', 'pending_payment').maybeSingle()
+      if (waiting && stripeEnabled()) return NextResponse.json({ householdId: existing.id, checkoutUrl: await checkoutForSubscription(waiting.id, request.nextUrl.origin) })
       return NextResponse.json({ householdId: existing.id })
     }
 
@@ -99,7 +105,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: hhError.message }, { status: 500 })
     }
 
-    // Create subscription
+    // Create subscription. A free code (e.g. trial families) joins straight away with no card; otherwise, once
+    // Stripe is on, the membership waits for payment on Stripe's page (a discount code is applied there).
+    let checkoutSubId: string | null = null
     if (planLabel) {
       const { data: planRow } = await supabaseAdmin
         .from('subscription_plans')
@@ -107,16 +115,31 @@ export async function POST(request: NextRequest) {
         .eq('name', planLabel)
         .maybeSingle()
 
-      await supabaseAdmin.from('subscriptions').insert({
+      const promo = promoCode ? await usableCode(promoCode) : null
+      const code = promo?.ok ? promo.promo.code : null
+      const free = !!(promo?.ok && promo.promo.kind === 'free')
+      const paying = stripeEnabled() && !free
+
+      const { data: sub } = await supabaseAdmin.from('subscriptions').insert({
         household_id: household.id,
         plan_id: planRow?.id ?? null,
-        status: 'active',
+        status: paying ? 'pending_payment' : 'active',
         start_date: new Date().toISOString(),
-      })
+        next_billing_date: paying ? null : addMonth(new Date()),
+        promo_code: code,
+        is_free: free,
+      }).select('id').single()
+      if (paying && sub) checkoutSubId = sub.id
+      else if (code) await markCodeUsed(code)   // paid codes are counted once Stripe confirms the payment
     }
 
     await markWaitlistJoined(authUser.user.email, householdFields.mobile_phone, household.id)
     if (authUser.user.email) await markLeadCompleted(authUser.user.email)   // no 'nearly there' reminder now they've joined
+
+    if (checkoutSubId) {
+      // the welcome goes out once they've paid (webhook)
+      return NextResponse.json({ householdId: household.id, checkoutUrl: await checkoutForSubscription(checkoutSubId, request.nextUrl.origin) })
+    }
 
     // welcome — in the app and by their chosen email / WhatsApp
     const welcome = await renderMessage('welcome', { parent_name: householdFields.first_name || 'there' })

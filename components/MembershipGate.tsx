@@ -18,6 +18,19 @@ export default function MembershipGate({ children }: { children: React.ReactNode
   const router = useRouter()
   const [ended, setEnded] = useState(false)
   const [readers, setReaders] = useState<{ id: string; name: string }[]>([])
+  const [pending, setPending] = useState(false)   // signed up but hasn't paid yet
+  const [opening, setOpening] = useState(false)
+  const [payError, setPayError] = useState('')
+
+  const finishPayment = async () => {
+    setOpening(true); setPayError('')
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/billing', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` }, body: JSON.stringify({ action: 'finish' }) })
+    const body = await res.json().catch(() => ({}))
+    if (body.url) { window.location.href = body.url; return }
+    setPayError(body.error || 'Something went wrong. Please try again.')
+    setOpening(false)
+  }
 
   useEffect(() => {
     let alive = true
@@ -28,8 +41,10 @@ export default function MembershipGate({ children }: { children: React.ReactNode
       if (!hh) return
       const { data: subs } = await supabase.from('subscriptions').select('status').eq('household_id', hh.id)
       const isEnded = !!subs?.length && !subs.some(s => s.status !== 'cancelled')
+      const isPending = !!subs?.some(s => s.status === 'pending_payment') && !subs.some(s => s.status === 'active')
       if (!alive) return
       setEnded(isEnded)
+      setPending(isPending)
       if (isEnded) {
         const { data: kids } = await supabase.from('child_profiles').select('id, name, nickname').eq('household_id', hh.id)
         if (alive) setReaders((kids || []).map(k => ({ id: k.id, name: k.nickname || k.name })))
@@ -38,11 +53,27 @@ export default function MembershipGate({ children }: { children: React.ReactNode
     return () => { alive = false }
   }, [])
 
-  if (!ended || isOpen(pathname)) return <>{children}</>
-
   const font = 'var(--font-montserrat), sans-serif'
   const navy = '#1a2f51'
   const btn: React.CSSProperties = { width: '100%', fontFamily: font, fontWeight: 600, fontSize: '0.82rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', backgroundColor: navy, border: 'none', borderRadius: '999px', padding: '15px', cursor: 'pointer' }
+
+  if (pending && !pathname.startsWith('/dashboard/support')) return (
+    <main style={{ minHeight: '100svh', backgroundColor: '#fefaf2', padding: '120px 20px 60px', position: 'relative' }}>
+      <div style={{ position: 'absolute', top: '24px', left: '20px', lineHeight: 1, zIndex: 10 }}>
+        <CuriousLogo height={72} />
+      </div>
+      <div style={{ maxWidth: '480px', margin: '0 auto' }}>
+        <h1 style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, color: navy, fontSize: '2.2rem', lineHeight: 1.1, margin: '0 0 10px' }}>Finish setting up your membership</h1>
+        <p style={{ fontFamily: font, color: navy, fontSize: '0.98rem', lineHeight: 1.6, margin: '0 0 24px' }}>
+          Your details are saved. One last step: set up your monthly payment on our secure payment page, and your readers can start choosing books.
+        </p>
+        <button onClick={finishPayment} disabled={opening} style={{ ...btn, opacity: opening ? 0.7 : 1 }}>{opening ? 'Opening…' : 'Set up payment'}</button>
+        {payError && <p style={{ fontFamily: font, color: '#e05c3a', fontSize: '0.85rem', margin: '12px 0 0' }}>{payError}</p>}
+      </div>
+    </main>
+  )
+
+  if (!ended || isOpen(pathname)) return <>{children}</>
   return (
     <main style={{ minHeight: '100svh', backgroundColor: '#fefaf2', padding: '120px 20px calc(110px + env(safe-area-inset-bottom))', position: 'relative' }}>
       <div style={{ position: 'absolute', top: '24px', left: '20px', lineHeight: 1, zIndex: 10 }}>

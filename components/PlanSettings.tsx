@@ -10,6 +10,7 @@ type Membership = {
   plan: PlanOpt | null; nextBillingDate: string | null; paidDaysLeft: number; savedDays: number; pausedSince: string | null; cancelAt: string | null
   scheduled: (PlanOpt & { extraBooks: number }) | null
   booksOut: number; booksNotBooked: number; deliveryOnItsWay: boolean
+  isFree: boolean; hasBilling: boolean
   owed: { items: { id: string; kind: string; title: string; amount: number }[]; total: number }
 }
 type Confirm = { kind: 'upgrade' | 'downgrade' | 'pause' | 'resume' | 'cancel' | 'rejoin' | 'delete_account'; plan?: PlanOpt } | null
@@ -25,8 +26,23 @@ async function call(method: 'GET' | 'POST', body?: object) {
   return { ok: res.ok, body: await res.json().catch(() => ({})) }
 }
 
+// Stripe's own page for changing card and seeing invoices
+async function billingPage() {
+  const { data } = await supabase.auth.getSession()
+  const res = await fetch('/api/billing', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session?.access_token ?? ''}` }, body: JSON.stringify({ action: 'portal' }) })
+  return res.json().catch(() => ({}))
+}
+
 export default function PlanSettings() {
   const [m, setM] = useState<Membership | null>(null)
+  const [openingBilling, setOpeningBilling] = useState(false)
+  const openBilling = async () => {
+    setOpeningBilling(true)
+    const body = await billingPage()
+    if (body.url) { window.location.href = body.url; return }
+    setMsg({ text: body.error || 'Couldn’t open billing, please try again.', bad: true })
+    setOpeningBilling(false)
+  }
   const [plans, setPlans] = useState<PlanOpt[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -106,11 +122,16 @@ export default function PlanSettings() {
           <span style={{ fontFamily: font, fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '4px 12px', borderRadius: '999px', backgroundColor: statusChip[1], color: statusChip[2], whiteSpace: 'nowrap' }}>{statusChip[0]}</span>
         </div>
         <p style={{ ...p, margin: '12px 0 0' }}>
-          {m.status === 'active' && <>Next payment: <strong>{nice(m.nextBillingDate)}</strong></>}
+          {m.status === 'active' && (m.isFree ? <>Free membership: no payments.</> : <>Next payment: <strong>{nice(m.nextBillingDate)}</strong></>)}
           {m.status === 'paused' && <>Paused since {nice(m.pausedSince)} · <strong>{m.savedDays} paid {m.savedDays === 1 ? 'day' : 'days'} saved</strong></>}
           {m.status === 'cancelling' && <>Your membership ends on <strong>{nice(m.cancelAt)}</strong>.</>}
           {m.status === 'cancelled' && <>Your membership has ended. We’d love to have you back — just get in touch.</>}
         </p>
+        {m.hasBilling && (
+          <button onClick={openBilling} disabled={openingBilling} style={{ ...secondary, marginTop: '14px', opacity: openingBilling ? 0.6 : 1 }}>
+            {openingBilling ? 'Opening…' : 'Manage billing'}
+          </button>
+        )}
       </div>
 
       {msg && <p style={{ ...p, margin: 0, padding: '12px 14px', borderRadius: '12px', backgroundColor: msg.bad ? '#fdecea' : '#e6f0e6', color: msg.bad ? '#b3261e' : '#2e5c3a', fontWeight: 600 }}>{msg.text}</p>}

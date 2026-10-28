@@ -6,7 +6,6 @@
 //  • billing dates roll forward each month (Stripe takes this over once it's connected)
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { notifyHousehold } from '@/lib/notify'
-import { stripeEnabled } from '@/lib/billing/stripe'
 import { addMonths, applyDowngradeAtRenewal, booksCountingTowardPlan, today } from '@/lib/membership/plan'
 import { renderMessage } from '@/lib/messages'
 
@@ -72,9 +71,10 @@ export async function runBillingDay() {
     }
   }
 
-  // 3. roll billing dates forward (Stripe does this itself once connected)
-  if (!stripeEnabled()) {
-    const { data: due } = await supabaseAdmin.from('subscriptions').select('id, next_billing_date').eq('status', 'active').lte('next_billing_date', now)
+  // 3. roll billing dates forward for memberships Stripe doesn't bill (free codes, or Stripe off);
+  //    Stripe-billed ones are kept in step by the webhook
+  {
+    const { data: due } = await supabaseAdmin.from('subscriptions').select('id, next_billing_date').eq('status', 'active').is('stripe_subscription_id', null).lte('next_billing_date', now)
     for (const s of due || []) {
       let next = s.next_billing_date as string
       while (next <= now) next = addMonths(next, 1)

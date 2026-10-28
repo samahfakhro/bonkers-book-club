@@ -56,6 +56,62 @@ export const cancelAtPeriodEnd = (subId: string | null | undefined, cancel: bool
   await stripe(`subscriptions/${id}`, { cancel_at_period_end: cancel ? 'true' : 'false' })
 })
 
+// ── Joining ──────────────────────────────────────────────────────────────────────────────────────────────
+// Families pay on Stripe's own page (Checkout), so card details never touch our app. `subscriptionRow` is our
+// subscriptions.id; the webhook (app/api/webhooks/stripe) uses it to switch the membership on once they've paid.
+export async function createCheckout(o: {
+  priceId: string; subscriptionRow: string; householdId: string; email?: string | null; customerId?: string | null
+  couponId?: string | null; successUrl: string; cancelUrl: string
+}): Promise<string> {
+  const params: Record<string, string> = {
+    mode: 'subscription',
+    'line_items[0][price]': o.priceId, 'line_items[0][quantity]': '1',
+    client_reference_id: o.householdId,
+    'metadata[subscription_row]': o.subscriptionRow,
+    'subscription_data[metadata][subscription_row]': o.subscriptionRow,
+    'subscription_data[metadata][household_id]': o.householdId,
+    success_url: o.successUrl, cancel_url: o.cancelUrl,
+  }
+  if (o.customerId) params.customer = o.customerId
+  else if (o.email) params.customer_email = o.email
+  if (o.couponId) params['discounts[0][coupon]'] = o.couponId
+  return (await stripe('checkout/sessions', params)).url as string
+}
+
+// A discount promo code = a Stripe coupon: % off for the first N monthly payments
+export async function createCoupon(percentOff: number, months: number, name: string): Promise<string> {
+  const params: Record<string, string> = { percent_off: String(percentOff), name: name.slice(0, 40) }
+  if (months <= 1) params.duration = 'once'
+  else { params.duration = 'repeating'; params.duration_in_months = String(months) }
+  return (await stripe('coupons', params)).id as string
+}
+
+// "Manage billing": Stripe's own page for changing card and seeing invoices
+export const billingPortal = async (customerId: string, returnUrl: string) =>
+  (await stripe('billing_portal/sessions', { customer: customerId, return_url: returnUrl })).url as string
+
+export const getSubscription = (subId: string) => stripe(`subscriptions/${subId}`, {}, 'GET')
+
+// When the current paid month ends (newer Stripe versions keep this on the subscription item)
+export const periodEnd = (sub: any): string | null => {
+  const t = sub?.current_period_end ?? sub?.items?.data?.[0]?.current_period_end
+  return t ? new Date(t * 1000).toISOString().slice(0, 10) : null
+}
+
+// Webhooks: check Stripe really sent it (Stripe-Signature header, signed with STRIPE_WEBHOOK_SECRET)
+export async function verifyWebhook(rawBody: string, header: string | null): Promise<boolean> {
+  const secret = process.env.STRIPE_WEBHOOK_SECRET
+  if (!secret || !header) return false
+  const parts = Object.fromEntries(header.split(',').map(p => p.split('=') as [string, string]))
+  const sigs = header.split(',').filter(p => p.startsWith('v1=')).map(p => p.slice(3))
+  const t = Number(parts.t)
+  if (!t || Math.abs(Date.now() / 1000 - t) > 300) return false   // older than 5 minutes: refuse (replays)
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+  const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${t}.${rawBody}`))
+  const expected = Array.from(new Uint8Array(mac)).map(b => b.toString(16).padStart(2, '0')).join('')
+  return sigs.includes(expected)
+}
+
 // Money owed (lost / damaged books) charged to the family's saved card, e.g. when they cancel. A charge, never a refund.
 export async function chargeOutstanding(customerId: string | null | undefined, amountAed: number, description: string): Promise<Result> {
   if (!KEY || !customerId || amountAed <= 0) return { ok: true, skipped: true }

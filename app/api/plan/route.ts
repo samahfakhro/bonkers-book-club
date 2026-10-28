@@ -44,6 +44,8 @@ export async function GET(req: NextRequest) {
       booksNotBooked: outstanding.notMarked,    // at home and not yet booked for collection
       deliveryOnItsWay: (onItsWay || 0) > 0,
       owed,                                     // unpaid lost / damaged book payment requests
+      isFree: !!sub.is_free,                    // joined with a free code: no card, no payments
+      hasBilling: !!sub.stripe_customer_id,     // card on file with Stripe → "Manage billing"
     },
   })
 }

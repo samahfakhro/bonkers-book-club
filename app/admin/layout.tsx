@@ -15,6 +15,7 @@ const NAV = [
   { label: 'Zones', path: '/admin/zones' },
   { label: 'Capacity', path: '/admin/capacity' },
   { label: 'Reports', path: '/admin/reports' },
+  { label: 'Finance', path: '/admin/finance' },
   { label: 'Team', path: '/admin/team' },
   { label: 'Settings', path: '/admin/settings' },
 ]
