@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   const { data: newBook, error: bookErr } = await supabaseAdmin
     .from('books')
     .insert(book)
-    .select('id, title, author, cover_image_url, discovery_asset_url, isbn, page_count, book_type, series_id, series_number, reading_level_id, search_tags, description, age_min, age_max')
+    .select('id, created_at, title, author, cover_image_url, discovery_asset_url, isbn, page_count, book_type, series_id, series_number, reading_level_id, search_tags, description, age_min, age_max')
     .single()
 
   if (bookErr || !newBook) {
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   const { data: newCopy, error: copyErr } = await supabaseAdmin
     .from('book_copies')
     .insert({ book_id: newBook.id, internal_id: internalId, status: 'available' })
-    .select('id, book_id, internal_id, status')
+    .select('id, book_id, internal_id, status, created_at')
     .single()
 
   return NextResponse.json({ book: newBook, copy: newCopy || null, copyError: copyErr?.message || null })

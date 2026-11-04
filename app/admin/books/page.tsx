@@ -12,6 +12,7 @@ type Book = {
   cover_image_url: string | null; discovery_asset_url: string | null
   isbn: string | null; page_count: number | null; book_type: string | null
   publisher?: string | null; illustrator?: string | null; publication_date?: string | null; is_non_fiction?: boolean
+  created_at?: string
   series_id: string | null; series_number: number | null
   reading_level_id: string | null; search_tags: string[] | null
   description: string | null; age_min: number | null; age_max: number | null
@@ -25,7 +26,7 @@ type Book = {
 type Category = { id: string; name: string }
 type ReadingLevel = { id: string; name: string }
 type Series = { id: string; name: string; parent_series_id: string | null; series_number: number | null }
-type BookCopy = { id: string; book_id: string; internal_id: string; status: string }
+type BookCopy = { id: string; book_id: string; internal_id: string; status: string; created_at?: string }
 type LoanEntry = { id: string; status: string; created_at: string; returned_at: string | null; child_name: string | null }
 
 type DetailsForm = {
@@ -117,6 +118,7 @@ export default function AdminBooksPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [sortNewest, setSortNewest] = useState(false)   // book list: A–Z or newest first
   const [saving, setSaving] = useState<string | null>(null)
   const [savingLevel, setSavingLevel] = useState<string | null>(null)
 
@@ -184,12 +186,12 @@ export default function AdminBooksPage() {
       { data: bookData }, { data: catData }, { data: bcData },
       { data: levelData }, seriesRes, { data: copyData }, { data: brlData }
     ] = await Promise.all([
-      supabase.from('books').select('id, title, author, cover_image_url, discovery_asset_url, isbn, publisher, illustrator, publication_date, is_non_fiction, page_count, book_type, series_id, series_number, reading_level_id, search_tags, description, age_min, age_max, collectible_status, collectible_name, collectible_concept, collectible_lore, collectible_image_url, collectible_openai_response_id, collectible_version, collectible_source_moment, collectible_research').eq('is_active', true).order('title'),
+      supabase.from('books').select('id, created_at, title, author, cover_image_url, discovery_asset_url, isbn, publisher, illustrator, publication_date, is_non_fiction, page_count, book_type, series_id, series_number, reading_level_id, search_tags, description, age_min, age_max, collectible_status, collectible_name, collectible_concept, collectible_lore, collectible_image_url, collectible_openai_response_id, collectible_version, collectible_source_moment, collectible_research').eq('is_active', true).order('title'),
       supabase.from('categories').select('id, name').order('display_order'),
       supabase.from('book_categories').select('book_id, category_id'),
       supabase.from('reading_levels').select('id, name').order('display_order'),
       fetch('/api/admin/series').then(r => r.json()),
-      supabase.from('book_copies').select('id, book_id, internal_id, status'),
+      supabase.from('book_copies').select('id, book_id, internal_id, status, created_at'),
       supabase.from('book_reading_levels').select('book_id, reading_level_id'),
     ])
     setBooks(bookData || [])
@@ -711,7 +713,7 @@ export default function AdminBooksPage() {
     } else internalId = await nextCopyId()
     const { data, error: e } = await supabase.from('book_copies')
       .insert({ book_id: bookId, internal_id: internalId, status: 'available' })
-      .select('id, book_id, internal_id, status').single()
+      .select('id, book_id, internal_id, status, created_at').single()
     if (e) { setError(`Add copy failed: ${e.message}`); setAddingCopy(false); return }
     setCopies(prev => ({ ...prev, [bookId]: [...(prev[bookId] || []), data] }))
     setAddingCopy(false); setCopyLabel('')
@@ -757,7 +759,7 @@ export default function AdminBooksPage() {
   const filtered = books.filter(b =>
     b.title.toLowerCase().includes(search.toLowerCase()) ||
     b.author.toLowerCase().includes(search.toLowerCase())
-  )
+  ).sort((a, b) => sortNewest ? (b.created_at || '').localeCompare(a.created_at || '') : a.title.localeCompare(b.title))
 
   if (loading) return <div style={{ padding: '32px', fontSize: '14px', color: '#6b6b6b' }}>Loading…</div>
 
@@ -781,7 +783,13 @@ export default function AdminBooksPage() {
         </div>
         {/* Search */}
         <div style={{ padding: '10px 16px', borderBottom: '1px solid #e5e5e5' }}>
-          <input style={inp} placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <input style={{ ...inp, flex: 1 }} placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
+            <select style={{ ...inp, width: 'auto' }} value={sortNewest ? 'new' : 'az'} onChange={e => setSortNewest(e.target.value === 'new')}>
+              <option value="az">A–Z</option>
+              <option value="new">Newest first</option>
+            </select>
+          </div>
         </div>
         {/* Error bar */}
         {error && (
@@ -841,6 +849,7 @@ export default function AdminBooksPage() {
           <div style={{ padding: '14px 20px', borderBottom: '1px solid #e5e5e5', display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
             <span style={{ flex: 1, fontWeight: 700, fontSize: '15px', color: '#1a1a1a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {panelMode === 'add' ? 'Add New Book' : (selectedBook?.title || '')}
+              {panelMode !== 'add' && selectedBook?.created_at && <span style={{ display: 'block', fontWeight: 400, fontSize: '12px', color: '#9b9b9b', marginTop: '2px' }}>Added {fmtDate(selectedBook.created_at)}</span>}
             </span>
             <button onClick={closePanel} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.4rem', color: '#9b9b9b', padding: 0, lineHeight: 1, display: 'flex', alignItems: 'center' }}>×</button>
           </div>
@@ -1345,6 +1354,7 @@ export default function AdminBooksPage() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 14px' }}>
                             <span style={{ fontFamily: 'ui-monospace, monospace', fontWeight: 700, fontSize: '13px', color: '#1a1a1a', minWidth: '60px' }}>{copy.internal_id}</span>
                             <StatusDot status={copy.status} />
+                            {copy.created_at && <span style={{ fontSize: '11px', color: '#9b9b9b' }}>added {fmtDate(copy.created_at)}</span>}
                             <div style={{ flex: 1 }} />
                             {copy.internal_id && <a href={'/admin/books/labels?codes=' + encodeURIComponent(copy.internal_id)} title='Print a label for this copy' style={{ fontSize: '11px', padding: '4px 10px', border: '1px solid #e5e5e5', borderRadius: '8px', color: '#1a2f51', textDecoration: 'none', fontWeight: 600 }}>🏷 Print</a>}
                             <Btn variant="secondary" onClick={() => toggleCopyLoans(copy.id)} style={{ fontSize: '11px', padding: '4px 10px' }}>
