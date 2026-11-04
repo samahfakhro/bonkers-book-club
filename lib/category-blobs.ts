@@ -2,7 +2,7 @@
 // One list for the whole app (library, book page, landing page, review ratings), matched by the category's name.
 // Symbols are drawn black on the blob (tint), except the colourful rocket.
 
-type Art = { words: string[]; blob: string; symbol: string | null; size: string; tint: boolean }
+type Art = { words: string[]; blob: string; symbol: string | null; size: string; tint: boolean; nudgeX?: string }
 
 const ART: Art[] = [
   { words: ['adventure'],               blob: '/blob_adventure.png', symbol: '/symbol_rocket.png',   size: '60%', tint: false },
@@ -12,7 +12,7 @@ const ART: Art[] = [
   { words: ['science'],                 blob: '/blob_weird.png',     symbol: '/symbol_science.png',  size: '55%', tint: true },
   { words: ['facts', 'true'],           blob: '/blob_true.png',      symbol: '/symbol_true.png',     size: '48%', tint: true },
   { words: ['mystery'],                 blob: '/blob_mystery.png',   symbol: '/symbol_mystery.png',  size: '52%', tint: true },
-  { words: ['animal'],                  blob: '/blob_hero.png',      symbol: '/symbol_animals.png',  size: '54%', tint: true },
+  { words: ['animal'],                  blob: '/blob_hero.png',      symbol: '/symbol_animals.png',  size: '54%', tint: true, nudgeX: '7%' },
   { words: ['spooky', 'scary'],         blob: '/blob_spooky.png',    symbol: '/symbol_spooky1.png',  size: '60%', tint: true },
 ]
 
@@ -22,8 +22,8 @@ export function getCategoryBlob(name: string): string | null {
   return artFor(name)?.blob ?? null
 }
 
-// tint = drawn in black on the blob (every symbol except the colourful rocket)
-export function getCategorySymbol(name: string): { src: string; size: string; tint: boolean } | null {
+// tint = drawn in black on the blob (every symbol except the colourful rocket); nudge = shift right to look centred
+export function getCategorySymbol(name: string): { src: string; size: string; tint: boolean; nudge?: string } | null {
   const a = artFor(name)
-  return a?.symbol ? { src: a.symbol, size: a.size, tint: a.tint } : null
+  return a?.symbol ? { src: a.symbol, size: a.size, tint: a.tint, nudge: a.nudgeX ? `translateX(${a.nudgeX})` : undefined } : null
 }

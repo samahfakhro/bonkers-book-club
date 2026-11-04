@@ -681,11 +681,11 @@ function LibraryPageInner() {
               const displayName = nameMap[key] || (key.charAt(0).toUpperCase() + key.slice(1))
               return (
                 <button key={level.id} onClick={() => setActiveLevels(prev => prev.some(l => l.id === level.id) ? prev.filter(l => l.id !== level.id) : [...prev, level])}
-                  style={{ background: isSelected ? '#fffef9' : 'transparent', border: `${isSelected ? '2.5px' : '1.5px'} solid ${isSelected ? '#f9d174' : 'rgba(26,47,81,0.2)'}`, borderRadius: '12px', cursor: 'pointer', padding: '10px 6px 10px 3px', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '6px', flex: 1, transition: 'all 0.15s' }}>
+                  style={{ background: isSelected ? '#1a2f51' : 'transparent', border: `1.5px solid ${isSelected ? '#1a2f51' : 'rgba(26,47,81,0.2)'}`, borderRadius: '12px', cursor: 'pointer', padding: '10px 6px 10px 3px', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '6px', flex: 1, transition: 'all 0.25s', transform: isSelected ? 'translateY(-3px) scale(1.04)' : 'none', opacity: activeLevels.length > 0 && !isSelected ? 0.4 : 1 }}>
                   <img src={art} alt={level.name} style={{ width: '2.5rem', height: '2.5rem', objectFit: 'contain', flexShrink: 0 }} />
                   <div style={{ textAlign: 'left' }}>
-                    <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.78rem', fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{displayName}</p>
-                    <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.82rem', fontWeight: 400, margin: 0 }}>{AGE_MAP[key] || AGE_MAP[displayName.toLowerCase()] || ''}</p>
+                    <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: isSelected ? '#fefaf2' : '#1a2f51', fontSize: '0.78rem', fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{displayName}</p>
+                    <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: isSelected ? '#fefaf2' : '#1a2f51', fontSize: '0.82rem', fontWeight: 400, margin: 0 }}>{AGE_MAP[key] || AGE_MAP[displayName.toLowerCase()] || ''}</p>
                   </div>
                 </button>
               )
@@ -693,6 +693,7 @@ function LibraryPageInner() {
           </div>
         </div>
 
+        <style>{`.blob-pop{animation:blobPop .35s ease}@keyframes blobPop{0%{transform:scale(1)}60%{transform:scale(1.3)}100%{transform:scale(1.18)}}`}</style>
         {/* Category blobs */}
         {categories.length > 0 && (
           <div style={{ marginBottom: '34px', marginTop: '0' }}>
@@ -703,12 +704,12 @@ function LibraryPageInner() {
                 const isSelected = selectedCategoryIds.includes(cat.id)
                 return (
                   <button key={cat.id} onClick={() => setSelectedCategoryIds(prev => prev.includes(cat.id) ? prev.filter(c => c !== cat.id) : [...prev, cat.id])}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', width: '3.75rem' }}>
-                    <div style={{ borderRadius: '50%', padding: '3px', boxShadow: isSelected ? '0 0 0 3px #1a2f51' : 'none', transition: 'box-shadow 0.15s', display: 'inline-flex', position: 'relative' }}>
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', width: '3.75rem', transition: 'opacity 0.25s', opacity: selectedCategoryIds.length > 0 && !isSelected ? 0.4 : 1 }}>
+                    <div className={isSelected ? 'blob-pop' : undefined} style={{ borderRadius: '50%', padding: '3px', boxShadow: isSelected ? '0 0 0 3px #fefaf2, 0 0 0 6px #1a2f51' : 'none', transform: isSelected ? 'scale(1.18)' : 'none', transition: 'transform 0.25s, box-shadow 0.25s', display: 'inline-flex', position: 'relative' }}>
                       <img src={blob} alt={cat.name} style={{ width: '3rem', height: '3rem', objectFit: 'contain', display: 'block' }} />
                       <CategorySymbol name={cat.name} />
                     </div>
-                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.7rem', fontWeight: 600, color: '#1a2f51', letterSpacing: '0.04em', lineHeight: 1.2, textAlign: 'center', display: 'block' }}>{cat.name}</span>
+                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.7rem', fontWeight: 600, color: isSelected ? '#fefaf2' : '#1a2f51', backgroundColor: isSelected ? '#1a2f51' : 'transparent', borderRadius: '999px', padding: '2px 7px', marginTop: isSelected ? '4px' : 0, letterSpacing: '0.04em', lineHeight: 1.2, textAlign: 'center', display: 'block', transition: 'all 0.25s' }}>{cat.name}</span>
                   </button>
                 )
               })}

@@ -25,7 +25,7 @@ export default function BlobRating({ name, rating, size = 18, onRate, className 
                 <img src={blob} alt="" style={{ width: `${size}px`, height: `${size}px`, objectFit: 'contain' }} />
               </div>
             )}
-            {symbol && <img src={symbol.src} alt="" style={{ position: 'absolute', inset: 0, width: symbol.size, height: symbol.size, objectFit: 'contain', margin: 'auto', filter: symbol.tint ? 'brightness(0)' : undefined, opacity: filled ? 1 : half ? 0.6 : 0.25 }} />}
+            {symbol && <img src={symbol.src} alt="" style={{ position: 'absolute', inset: 0, width: symbol.size, height: symbol.size, objectFit: 'contain', margin: 'auto', filter: symbol.tint ? 'brightness(0)' : undefined, transform: symbol.nudge, opacity: filled ? 1 : half ? 0.6 : 0.25 }} />}
           </div>
         )
         return onRate ? (
