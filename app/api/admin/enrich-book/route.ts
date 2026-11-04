@@ -88,6 +88,11 @@ ${book.pageCount ? `Pages: ${book.pageCount}` : ''}
 ${book.googleAuthors?.length ? `People credited on this edition: ${book.googleAuthors.join(', ')}` : ''}
 ${book.byStatement ? `Title page credit: ${book.byStatement}` : ''}
 ${book.categoryNames?.length ? `\nAvailable library categories (pick all that apply): ${book.categoryNames.join(', ')}` : ''}
+${book.categoryNames?.length ? `How to use some of them (a book can have several):
+- Animals: animals are at the heart of the book, as a story about animals or as animal facts. Not just because the characters happen to be animals (e.g. Dog Man is Funny/Adventure, not Animals).
+- Science: how the world works, e.g. space, the human body, inventions, experiments, weather, the Earth, dinosaurs. NOT books about animals (those go in Animals), unless the book is really about a scientific idea (e.g. food chains, how animals breathe).
+- Facts: any non-fiction book, whatever the topic.
+Examples: a shark facts book = Animals + Facts. A planets book = Science + Facts. A story about a bear = Animals (plus any others that fit).` : ''}
 
 Return ONLY valid JSON (no markdown, no other text):
 {
