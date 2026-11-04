@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import CategorySymbol from '@/components/CategorySymbol'
+import { getCategoryBlob } from '@/lib/category-blobs'
 import { useRouter } from 'next/navigation'
 import CuriousHero from '@/components/CuriousHero'
 import { supabase } from '@/lib/supabase'
@@ -9,19 +11,6 @@ type Book = { id: string; title: string; author: string; cover_image_url: string
 type ReadingLevel = { id: string; name: string }
 type Category = { id: string; name: string }
 
-function getCategoryBlob(name: string): string | null {
-  const n = name.toLowerCase()
-  if (n.includes('adventure')) return '/blob_adventure.png'
-  if (n.includes('magic') || n.includes('mayhem')) return '/blob_magic.png'
-  if (n.includes('heart')) return '/blob_heart.png'
-  if (n.includes('laugh')) return '/blob_laugh.png'
-  if (n.includes('weird')) return '/blob_weird.png'
-  if (n.includes('true') || n.includes('bonkers')) return '/blob_true.png'
-  if (n.includes('hero') || n.includes('legend')) return '/blob_hero.png'
-  if (n.includes('mystery') || n.includes('mischief')) return '/blob_mystery.png'
-  if (n.includes('spooky') || n.includes('scary')) return '/blob_spooky.png'
-  return null
-}
 
 const AGE_MAP: Record<string, string> = { hatchling: '3–5 yrs', hatchlings: '3–5 yrs', '3-5': '3–5 yrs', chick: '5–7 yrs', chicks: '5–7 yrs', '5-7': '5–7 yrs', bird: '8–10 yrs', birds: '8–10 yrs', '8-10': '8–10 yrs' }
 const DISPLAY_NAME_MAP: Record<string, string> = { '3-5': 'Hatchling', '5-7': 'Chick', '8-10': 'Bird' }
@@ -340,36 +329,10 @@ export default function LandingPage() {
                         style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                         <div style={{ borderRadius: '50%', padding: '3px', boxShadow: isSelected ? '0 0 0 2px #eddbc3' : 'none', transition: 'box-shadow 0.15s', display: 'inline-flex', position: 'relative' }}>
                           <img src={blob} alt={cat.name} style={{ width: isTablet ? '96px' : '54px', height: isTablet ? '96px' : '54px', objectFit: 'contain', display: 'block' }} />
-                          {cat.name.toLowerCase().includes('adventure') && (
-                            <img src="/symbol_rocket.png" alt="" style={{ position: 'absolute', inset: 0, width: '60%', height: '60%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto' }} />
-                          )}
-                          {(cat.name.toLowerCase().includes('spooky') || cat.name.toLowerCase().includes('scary')) && (
-                            <img src="/symbol_spooky1.png" alt="" style={{ position: 'absolute', inset: 0, width: '60%', height: '60%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)', opacity: 1 }} />
-                          )}
-                          {(cat.name.toLowerCase().includes('hero') || cat.name.toLowerCase().includes('legend')) && (
-                            <img src="/symbol_hero.png" alt="" style={{ position: 'absolute', inset: 0, width: '60%', height: '60%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)', opacity: 1 }} />
-                          )}
-                          {(cat.name.toLowerCase().includes('mystery') || cat.name.toLowerCase().includes('mischief')) && (
-                            <img src="/symbol_mystery.png" alt="" style={{ position: 'absolute', inset: 0, width: '52%', height: '52%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)', opacity: 1 }} />
-                          )}
-                          {(cat.name.toLowerCase().includes('true') || cat.name.toLowerCase().includes('bonkers')) && (
-                            <img src="/symbol_true.png" alt="" style={{ position: 'absolute', inset: 0, width: '48%', height: '48%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)', opacity: 1 }} />
-                          )}
-                          {cat.name.toLowerCase().includes('laugh') && (
-                            <img src="/symbol_laugh.png" alt="" style={{ position: 'absolute', inset: 0, width: '52%', height: '52%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)', opacity: 1 }} />
-                          )}
-                          {cat.name.toLowerCase().includes('weird') && (
-                            <img src="/symbol_weird.png" alt="" style={{ position: 'absolute', inset: 0, width: '53%', height: '53%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)', opacity: 1 }} />
-                          )}
-                          {cat.name.toLowerCase().includes('heart') && (
-                            <img src="/symbol_heart.png" alt="" style={{ position: 'absolute', inset: 0, width: '45%', height: '45%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)', opacity: 1 }} />
-                          )}
-                          {(cat.name.toLowerCase().includes('magic') || cat.name.toLowerCase().includes('mayhem')) && (
-                            <img src="/symbol_magichat.png" alt="" style={{ position: 'absolute', inset: 0, width: '75%', height: '75%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)' }} />
-                          )}
+                          <CategorySymbol name={cat.name} />
                         </div>
                         <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.78rem' : '0.7rem', fontWeight: 600, color: '#1a2f51', letterSpacing: '0.04em', lineHeight: 1.2, textAlign: 'center' }}>
-                          {cat.name.toLowerCase().startsWith('heartwarming') ? 'Heart' : cat.name.toLowerCase().startsWith('amazing') ? 'Adventure' : cat.name.toLowerCase().startsWith('magical') ? 'Magic' : cat.name.split(' ')[0]}
+                          {cat.name}
                         </span>
                       </button>
                       )

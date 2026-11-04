@@ -9,6 +9,8 @@ import { fetchAvailableBookIds } from '@/lib/availability'
 import CuriousLogo from '@/components/CuriousLogo'
 import ParentBottomNav from '@/components/ParentBottomNav'
 import ChildBottomNav from '@/components/ChildBottomNav'
+import CategorySymbol from '@/components/CategorySymbol'
+import { getCategoryBlob } from '@/lib/category-blobs'
 import NoReaderSheet from '@/components/NoReaderSheet'
 import ChildChoiceSheet from '@/components/ChildChoiceSheet'
 import BookRequestSheet from '@/components/BookRequestSheet'
@@ -29,19 +31,6 @@ const AGE_MAP: Record<string, string> = {
   bird: '8–10 yrs', birds: '8–10 yrs', '8-10': '8–10 yrs',
 }
 
-function getCategoryBlob(name: string): string | null {
-  const n = name.toLowerCase()
-  if (n.includes('adventure')) return '/blob_adventure.png'
-  if (n.includes('magic') || n.includes('mayhem')) return '/blob_magic.png'
-  if (n.includes('heart')) return '/blob_heart.png'
-  if (n.includes('laugh')) return '/blob_laugh.png'
-  if (n.includes('weird')) return '/blob_weird.png'
-  if (n.includes('true') || n.includes('bonkers')) return '/blob_true.png'
-  if (n.includes('hero') || n.includes('legend')) return '/blob_hero.png'
-  if (n.includes('mystery') || n.includes('mischief')) return '/blob_mystery.png'
-  if (n.includes('spooky') || n.includes('scary')) return '/blob_spooky.png'
-  return null
-}
 
 const PLACEHOLDERS = ['Looking for dinosaurs?', 'Looking for unicorns?', 'Looking for space adventures?', 'Looking for pirates?', 'Looking for football stories?', 'Looking for cats?', 'Looking for fairies?', 'Looking for mermaids?', 'Looking for bears?', 'Looking for dragons?', 'Looking for robots?', 'Looking for witches?']
 const SPARKLES = ['/sparklestar_yellow.png', '/sparklestar_pink.png', '/sparklestar_turquoise.png', '/sparklestar_purple.png', '/sparklestar_blue.png']
@@ -712,24 +701,14 @@ function LibraryPageInner() {
               {categories.filter(c => getCategoryBlob(c.name)).map(cat => {
                 const blob = getCategoryBlob(cat.name)!
                 const isSelected = selectedCategoryIds.includes(cat.id)
-                const n = cat.name.toLowerCase()
-                const shortName = n.startsWith('heartwarming') ? 'Heart' : n.startsWith('amazing') ? 'Adventure' : n.startsWith('magical') ? 'Magic' : cat.name.split(' ')[0]
                 return (
                   <button key={cat.id} onClick={() => setSelectedCategoryIds(prev => prev.includes(cat.id) ? prev.filter(c => c !== cat.id) : [...prev, cat.id])}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', width: '3.75rem' }}>
                     <div style={{ borderRadius: '50%', padding: '3px', boxShadow: isSelected ? '0 0 0 3px #1a2f51' : 'none', transition: 'box-shadow 0.15s', display: 'inline-flex', position: 'relative' }}>
                       <img src={blob} alt={cat.name} style={{ width: '3rem', height: '3rem', objectFit: 'contain', display: 'block' }} />
-                      {n.includes('adventure') && <img src="/symbol_rocket.png" alt="" style={{ position: 'absolute', inset: 0, width: '60%', height: '60%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto' }} />}
-                      {(n.includes('spooky')||n.includes('scary')) && <img src="/symbol_spooky1.png" alt="" style={{ position: 'absolute', inset: 0, width: '60%', height: '60%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)' }} />}
-                      {(n.includes('hero')||n.includes('legend')) && <img src="/symbol_hero.png" alt="" style={{ position: 'absolute', inset: 0, width: '60%', height: '60%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)' }} />}
-                      {(n.includes('mystery')||n.includes('mischief')) && <img src="/symbol_mystery.png" alt="" style={{ position: 'absolute', inset: 0, width: '52%', height: '52%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)' }} />}
-                      {(n.includes('true')||n.includes('bonkers')) && <img src="/symbol_true.png" alt="" style={{ position: 'absolute', inset: 0, width: '48%', height: '48%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)' }} />}
-                      {n.includes('laugh') && <img src="/symbol_laugh.png" alt="" style={{ position: 'absolute', inset: 0, width: '52%', height: '52%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)' }} />}
-                      {n.includes('weird') && <img src="/symbol_weird.png" alt="" style={{ position: 'absolute', inset: 0, width: '53%', height: '53%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)' }} />}
-                      {n.includes('heart') && <img src="/symbol_heart.png" alt="" style={{ position: 'absolute', inset: 0, width: '45%', height: '45%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)' }} />}
-                      {(n.includes('magic')||n.includes('mayhem')) && <img src="/symbol_magichat.png" alt="" style={{ position: 'absolute', inset: 0, width: '75%', height: '75%', objectFit: 'contain', pointerEvents: 'none', margin: 'auto', filter: 'brightness(0)' }} />}
+                      <CategorySymbol name={cat.name} />
                     </div>
-                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.7rem', fontWeight: 600, color: '#1a2f51', letterSpacing: '0.04em', lineHeight: 1.2, textAlign: 'center', display: 'block' }}>{shortName}</span>
+                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.7rem', fontWeight: 600, color: '#1a2f51', letterSpacing: '0.04em', lineHeight: 1.2, textAlign: 'center', display: 'block' }}>{cat.name}</span>
                   </button>
                 )
               })}

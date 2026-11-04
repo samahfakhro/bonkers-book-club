@@ -95,7 +95,7 @@ Return ONLY valid JSON (no markdown, no other text):
   "tags": ["up to 8 short discovery tags like dragons, friendship, funny, adventure"],
   "book_type": "one of: Picture Book, Board Book, Flap Book, Early Reader, Chapter Book, Illustrated Book, Graphic Novel, Novel — the FORMAT only, or null",
   "reading_levels": ["subset of: 3-5, 5-7, 8-10 — pick all that apply"],
-  "categories": ["subset of the available library categories listed above — only include exact matches; always include True but Bonkers for a non-fiction book"],
+  "categories": ["subset of the available library categories listed above — only include exact matches; always include Facts for a non-fiction book"],
   "non_fiction": false,
   "series_name": "main series name or null",
   "sub_series_name": "sub-series name or null",
