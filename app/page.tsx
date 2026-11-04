@@ -110,9 +110,8 @@ export default function LandingPage() {
     if (!searchQuery.trim()) { setSearchResults(null); return }
     const t = setTimeout(async () => {
       setSearchLoading(true)
-      const { data } = await supabase.from('books').select('id, title, author, cover_image_url').eq('is_active', true)
-        .or(`title.ilike.%${searchQuery}%,author.ilike.%${searchQuery}%`).limit(20)
-      setSearchResults(data ?? [])
+      const { data } = await supabase.rpc('search_books', { q: searchQuery }).select('id, title, author, cover_image_url')
+      setSearchResults((data ?? []) as any[])
       setSearchLoading(false)
     }, 300)
     return () => clearTimeout(t)

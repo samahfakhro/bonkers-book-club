@@ -11,6 +11,7 @@ type Book = {
   id: string; title: string; author: string
   cover_image_url: string | null; discovery_asset_url: string | null
   isbn: string | null; page_count: number | null; book_type: string | null
+  publisher?: string | null; illustrator?: string | null; publication_date?: string | null; is_non_fiction?: boolean
   series_id: string | null; series_number: number | null
   reading_level_id: string | null; search_tags: string[] | null
   description: string | null; age_min: number | null; age_max: number | null
@@ -29,6 +30,7 @@ type LoanEntry = { id: string; status: string; created_at: string; returned_at: 
 
 type DetailsForm = {
   isbn: string; page_count: string; book_type: string
+  publisher: string; illustrator: string; publication_date: string; is_non_fiction: boolean
   series_id: string; series_number: string
   reading_level_id: string
   tags: string; description: string
@@ -145,7 +147,7 @@ export default function AdminBooksPage() {
   const [scanFor, setScanFor] = useState<'isbn' | 'addLabel' | 'copyLabel' | null>(null)
 
   // Add form
-  const [addForm, setAddForm] = useState({ title: '', author: '', isbn: '', page_count: '', book_type: '', series_number: '', reading_level_id: '', tags: '', description: '', age_min: '', age_max: '' })
+  const [addForm, setAddForm] = useState({ title: '', author: '', isbn: '', publisher: '', illustrator: '', publication_date: '', is_non_fiction: false, page_count: '', book_type: '', series_number: '', reading_level_id: '', tags: '', description: '', age_min: '', age_max: '' })
   const [addMainSeriesId, setAddMainSeriesId] = useState('')
   const [addCoverFile, setAddCoverFile] = useState<File | null>(null)
   const [addAssetFile, setAddAssetFile] = useState<File | null>(null)
@@ -182,7 +184,7 @@ export default function AdminBooksPage() {
       { data: bookData }, { data: catData }, { data: bcData },
       { data: levelData }, seriesRes, { data: copyData }, { data: brlData }
     ] = await Promise.all([
-      supabase.from('books').select('id, title, author, cover_image_url, discovery_asset_url, isbn, page_count, book_type, series_id, series_number, reading_level_id, search_tags, description, age_min, age_max, collectible_status, collectible_name, collectible_concept, collectible_lore, collectible_image_url, collectible_openai_response_id, collectible_version, collectible_source_moment, collectible_research').eq('is_active', true).order('title'),
+      supabase.from('books').select('id, title, author, cover_image_url, discovery_asset_url, isbn, publisher, illustrator, publication_date, is_non_fiction, page_count, book_type, series_id, series_number, reading_level_id, search_tags, description, age_min, age_max, collectible_status, collectible_name, collectible_concept, collectible_lore, collectible_image_url, collectible_openai_response_id, collectible_version, collectible_source_moment, collectible_research').eq('is_active', true).order('title'),
       supabase.from('categories').select('id, name').order('display_order'),
       supabase.from('book_categories').select('book_id, category_id'),
       supabase.from('reading_levels').select('id, name').order('display_order'),
@@ -267,6 +269,7 @@ export default function AdminBooksPage() {
     setEditMainSeriesId(s?.parent_series_id ? s.parent_series_id : (s?.id || ''))
     setDetailsForm({
       isbn: book.isbn || '',
+      publisher: book.publisher || '', illustrator: book.illustrator || '', publication_date: book.publication_date || '', is_non_fiction: !!book.is_non_fiction,
       page_count: book.page_count != null ? String(book.page_count) : '',
       book_type: book.book_type || '',
       series_id: book.series_id || '',
@@ -325,6 +328,7 @@ export default function AdminBooksPage() {
     const patchBody = {
       id: selectedBook.id,
       isbn: detailsForm.isbn.trim() || null,
+      publisher: detailsForm.publisher.trim() || null, illustrator: detailsForm.illustrator.trim() || null, publication_date: detailsForm.publication_date.trim() || null, is_non_fiction: detailsForm.is_non_fiction,
       page_count: detailsForm.page_count.trim() ? Number(detailsForm.page_count.trim()) : null,
       book_type: detailsForm.book_type.trim() || null,
       series_id: seriesId || null,
@@ -344,6 +348,7 @@ export default function AdminBooksPage() {
     const updated = {
       ...selectedBook,
       isbn: detailsForm.isbn.trim() || null,
+      publisher: detailsForm.publisher.trim() || null, illustrator: detailsForm.illustrator.trim() || null, publication_date: detailsForm.publication_date.trim() || null, is_non_fiction: detailsForm.is_non_fiction,
       page_count: detailsForm.page_count.trim() ? Number(detailsForm.page_count.trim()) : null,
       book_type: detailsForm.book_type.trim() || null,
       series_id: seriesId || null,
@@ -476,6 +481,7 @@ export default function AdminBooksPage() {
       title: book.title || '',
       author: book.author || '',
       isbn: book.isbn || '',
+      publisher: book.publisher || '', illustrator: book.illustrator || enrichment?.illustrator || '', publication_date: book.publicationDate || '', is_non_fiction: !!enrichment?.non_fiction,
       page_count: book.pageCount ? String(book.pageCount) : '',
       book_type: enrichment?.book_type || '',
       series_number: enrichment?.book_number ? String(enrichment.book_number) : '',
@@ -544,6 +550,7 @@ export default function AdminBooksPage() {
         book: {
           title: addForm.title.trim(), author: addForm.author.trim(),
           isbn: addForm.isbn.trim() || null,
+          publisher: addForm.publisher.trim() || null, illustrator: addForm.illustrator.trim() || null, publication_date: addForm.publication_date.trim() || null, is_non_fiction: addForm.is_non_fiction,
           page_count: addForm.page_count.trim() ? Number(addForm.page_count.trim()) : null,
           book_type: addForm.book_type.trim() || null,
           series_id: seriesId, series_number: seriesId ? seriesNum : null,
@@ -601,6 +608,7 @@ export default function AdminBooksPage() {
     setNewSubSeriesMode(false); setNewSubSeriesName(''); setNewSubSeriesNumber('')
     setDetailsForm({
       isbn: finalBook.isbn || '',
+      publisher: finalBook.publisher || '', illustrator: finalBook.illustrator || '', publication_date: finalBook.publication_date || '', is_non_fiction: !!finalBook.is_non_fiction,
       page_count: finalBook.page_count != null ? String(finalBook.page_count) : '',
       book_type: finalBook.book_type || '',
       series_id: seriesId || '',
@@ -613,7 +621,7 @@ export default function AdminBooksPage() {
     })
 
     // Reset add form
-    setAddForm({ title: '', author: '', isbn: '', page_count: '', book_type: '', series_number: '', reading_level_id: '', tags: '', description: '', age_min: '', age_max: '' })
+    setAddForm({ title: '', author: '', isbn: '', publisher: '', illustrator: '', publication_date: '', is_non_fiction: false, page_count: '', book_type: '', series_number: '', reading_level_id: '', tags: '', description: '', age_min: '', age_max: '' })
     setAddMainSeriesId('')
     setAddNewSeriesMode(false); setAddNewSeriesName('')
     setAddSubSeriesName(''); setAddSubSeriesNumber('')
@@ -916,6 +924,15 @@ export default function AdminBooksPage() {
                   <div><label style={lbl}>Author *</label><input style={inp} value={addForm.author} onChange={e => setAddForm(f => ({ ...f, author: e.target.value }))} /></div>
                 </div>
 
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                  <div><label style={lbl}>Illustrator</label><input style={inp} value={addForm.illustrator} onChange={e => setAddForm(f => ({ ...f, illustrator: e.target.value }))} /></div>
+                  <div><label style={lbl}>Publisher</label><input style={inp} value={addForm.publisher} onChange={e => setAddForm(f => ({ ...f, publisher: e.target.value }))} /></div>
+                  <div><label style={lbl}>Publication date</label><input style={inp} placeholder="e.g. 2004" value={addForm.publication_date} onChange={e => setAddForm(f => ({ ...f, publication_date: e.target.value }))} /></div>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#1a1a1a', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={addForm.is_non_fiction} onChange={e => setAddForm(f => ({ ...f, is_non_fiction: e.target.checked }))} />
+                  Non-fiction <span style={{ color: '#9b9b9b' }}>(admin only — "non-fiction" in the search finds it)</span>
+                </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div><label style={lbl}>ISBN</label><input style={inp} value={addForm.isbn} onChange={e => setAddForm(f => ({ ...f, isbn: e.target.value }))} /></div>
                   <div>
@@ -945,7 +962,7 @@ export default function AdminBooksPage() {
                     <label style={lbl}>Book Type</label>
                     <select style={inp} value={addForm.book_type} onChange={e => setAddForm(f => ({ ...f, book_type: e.target.value }))}>
                       <option value="">Not set</option>
-                      {['Picture Book','Early Reader','Chapter Book','Illustrated Book','Graphic Novel','Novel','Flap Book'].map(t => <option key={t}>{t}</option>)}
+                      {['Picture Book','Board Book','Flap Book','Early Reader','Chapter Book','Illustrated Book','Graphic Novel','Novel'].map(t => <option key={t}>{t}</option>)}
                     </select>
                   </div>
                   <div><label style={lbl}>Age from</label><input style={inp} type="number" placeholder="7" value={addForm.age_min} onChange={e => setAddForm(f => ({ ...f, age_min: e.target.value }))} /></div>
@@ -1065,6 +1082,15 @@ export default function AdminBooksPage() {
                   <p style={secHead}>Book details</p>
                   {error && <p style={{ color: '#dc2626', fontSize: '13px', margin: '0 0 8px', padding: '8px 12px', backgroundColor: '#fef2f2', borderRadius: '6px', border: '1px solid #fecaca' }}>⚠ {error}</p>}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                      <div><label style={lbl}>Illustrator</label><input style={inp} value={detailsForm.illustrator} onChange={e => setDetailsForm(f => f && ({ ...f, illustrator: e.target.value }))} /></div>
+                      <div><label style={lbl}>Publisher</label><input style={inp} value={detailsForm.publisher} onChange={e => setDetailsForm(f => f && ({ ...f, publisher: e.target.value }))} /></div>
+                      <div><label style={lbl}>Publication date</label><input style={inp} placeholder="e.g. 2004" value={detailsForm.publication_date} onChange={e => setDetailsForm(f => f && ({ ...f, publication_date: e.target.value }))} /></div>
+                    </div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#1a1a1a', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={detailsForm.is_non_fiction} onChange={e => setDetailsForm(f => f && ({ ...f, is_non_fiction: e.target.checked }))} />
+                      Non-fiction <span style={{ color: '#9b9b9b' }}>(admin only — "non-fiction" in the search finds it)</span>
+                    </label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div><label style={lbl}>ISBN</label><input style={inp} value={detailsForm.isbn} onChange={e => setDetailsForm(f => f && ({ ...f, isbn: e.target.value }))} /></div>
                       <div>
@@ -1089,7 +1115,7 @@ export default function AdminBooksPage() {
                         <label style={lbl}>Book Type</label>
                         <select style={inp} value={detailsForm.book_type} onChange={e => setDetailsForm(f => f && ({ ...f, book_type: e.target.value }))}>
                           <option value="">Not set</option>
-                          {['Picture Book','Early Reader','Chapter Book','Illustrated Book','Graphic Novel','Novel','Flap Book'].map(t => <option key={t}>{t}</option>)}
+                          {['Picture Book','Board Book','Flap Book','Early Reader','Chapter Book','Illustrated Book','Graphic Novel','Novel'].map(t => <option key={t}>{t}</option>)}
                         </select>
                       </div>
                       <div><label style={lbl}>Age from</label><input style={inp} type="number" placeholder="7" value={detailsForm.age_min} onChange={e => setDetailsForm(f => f && ({ ...f, age_min: e.target.value }))} /></div>

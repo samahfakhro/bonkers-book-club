@@ -276,9 +276,9 @@ function LibraryPageInner() {
     if (!searchQuery.trim()) { setSearchResults(null); return }
     const t = setTimeout(async () => {
       setSearchLoading(true)
-      const { data } = await supabase.from('books').select('id, title, author, cover_image_url, series_number, series:series_id(id, name, series_number, parent_series_id, parent:parent_series_id(id, name))').eq('is_active', true)
-        .or(`title.ilike.%${searchQuery}%,author.ilike.%${searchQuery}%`).limit(20)
-      setSearchResults((data ?? []).map((b: any) => {
+      // title, author, book type, tags, illustrator and publisher (search_books in the database)
+      const { data } = await supabase.rpc('search_books', { q: searchQuery }).select('id, title, author, cover_image_url, series_number, series:series_id(id, name, series_number, parent_series_id, parent:parent_series_id(id, name))')
+      setSearchResults(((data ?? []) as any[]).map((b: any) => {
         const s = b.series
         let label: string | null = null
         if (s) {

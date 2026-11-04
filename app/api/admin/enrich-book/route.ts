@@ -29,6 +29,39 @@ async function fetchDescription(workKey: string): Promise<string> {
   } catch { return '' }
 }
 
+// Publisher, publication date and illustrator for this exact edition (admin-only details).
+// Google Books first (uses the server key GOOGLE_GEOCODING_KEY, which also has the Books API), then Open Library.
+// Anything not found stays empty — never guessed.
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+function prettyDate(d: string | undefined | null): string {
+  if (!d) return ''
+  const m = d.match(/^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$/)
+  if (!m) return d
+  const [, y, mo, day] = m
+  return [day ? String(Number(day)) : '', mo ? MONTHS[Number(mo) - 1] : '', y].filter(Boolean).join(' ')
+}
+const flipName = (n: string) => { const p = n.replace(/,?\s*ill(ustrator)?\.?$/i, '').split(',').map(x => x.trim()).filter(Boolean); return p.length === 2 ? `${p[1]} ${p[0]}` : p.join(' ') }
+
+async function editionDetails(isbn: string): Promise<{ publisher: string; publicationDate: string; illustrator: string; googleAuthors: string[]; byStatement: string }> {
+  const out = { publisher: '', publicationDate: '', illustrator: '', googleAuthors: [] as string[], byStatement: '' }
+  const clean = (isbn || '').replace(/[^0-9X]/gi, '')
+  if (!clean) return out
+  const key = process.env.GOOGLE_GEOCODING_KEY
+  const [g, ol] = await Promise.all([
+    key ? fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${clean}&key=${key}`, { signal: AbortSignal.timeout(6000) }).then(r => r.json()).catch(() => null) : null,
+    fetch(`https://openlibrary.org/isbn/${clean}.json`, { signal: AbortSignal.timeout(6000) }).then(r => r.ok ? r.json() : null).catch(() => null),
+  ])
+  const v = g?.items?.[0]?.volumeInfo
+  out.publisher = v?.publisher || ol?.publishers?.[0] || ''
+  out.publicationDate = prettyDate(v?.publishedDate || ol?.publish_date)
+  out.googleAuthors = v?.authors || []
+  out.byStatement = ol?.by_statement || ''
+  const ill = (ol?.contributions || []).find((c: string) => /\bill(ustrator)?\b/i.test(c))
+  const byIll = out.byStatement.match(/illustrated by ([^;.]+)/i)?.[1]
+  out.illustrator = ill ? flipName(ill) : byIll ? byIll.trim() : ''
+  return out
+}
+
 async function fetchCoverBase64(coverId: number): Promise<string | null> {
   try {
     const res = await fetch(`${OL_COVERS}/${coverId}-L.jpg`, { signal: AbortSignal.timeout(8000) })
@@ -38,7 +71,7 @@ async function fetchCoverBase64(coverId: number): Promise<string | null> {
   } catch { return null }
 }
 
-async function enrichWithClaude(book: ReturnType<typeof parseDoc> & { categoryNames?: string[] }, apiKey: string): Promise<{ result: any; error?: string }> {
+async function enrichWithClaude(book: ReturnType<typeof parseDoc> & { categoryNames?: string[]; googleAuthors?: string[]; byStatement?: string }, apiKey: string): Promise<{ result: any; error?: string }> {
   try {
     const client = new Anthropic({ apiKey })
     const msg = await client.messages.create({
@@ -52,20 +85,24 @@ Book: "${book.title}" by ${book.author}
 ${book.description ? `Description: ${book.description.slice(0, 600)}` : ''}
 ${book.subjects.length ? `Subjects: ${book.subjects.slice(0, 10).join(', ')}` : ''}
 ${book.pageCount ? `Pages: ${book.pageCount}` : ''}
+${book.googleAuthors?.length ? `People credited on this edition: ${book.googleAuthors.join(', ')}` : ''}
+${book.byStatement ? `Title page credit: ${book.byStatement}` : ''}
 ${book.categoryNames?.length ? `\nAvailable library categories (pick all that apply): ${book.categoryNames.join(', ')}` : ''}
 
 Return ONLY valid JSON (no markdown, no other text):
 {
   "description": "2-3 sentence engaging description of the book suitable for a children's library — what it is about, what makes it special, written to excite a child",
   "tags": ["up to 8 short discovery tags like dragons, friendship, funny, adventure"],
-  "book_type": "one of: Picture Book, Early Reader, Chapter Book, Illustrated Book, Graphic Novel, Novel, Flap Book — or null",
+  "book_type": "one of: Picture Book, Board Book, Flap Book, Early Reader, Chapter Book, Illustrated Book, Graphic Novel, Novel — the FORMAT only, or null",
   "reading_levels": ["subset of: 3-5, 5-7, 8-10 — pick all that apply"],
-  "categories": ["subset of the available library categories listed above — only include exact matches"],
+  "categories": ["subset of the available library categories listed above — only include exact matches; always include True but Bonkers for a non-fiction book"],
+  "non_fiction": false,
   "series_name": "main series name or null",
   "sub_series_name": "sub-series name or null",
   "book_number": 1,
   "age_min": 7,
-  "age_max": 10
+  "age_max": 10,
+  "illustrator": "the illustrator's name ONLY if you are certain (e.g. the credits above name one, or it is a famous pairing like Julia Donaldson and Axel Scheffler) — otherwise null"
 }`,
       }],
     })
@@ -88,6 +125,7 @@ export async function POST(req: NextRequest) {
   if (volumeId && bookData) {
     const book = { ...bookData, description: '', categoryNames: categoryNames || [] }
     book.description = await fetchDescription(volumeId)
+    Object.assign(book, await editionDetails(book.isbn))
     const coverBase64 = book.coverId ? await fetchCoverBase64(book.coverId) : null
     const { result: enrichment, error: claudeError } = apiKey ? await enrichWithClaude(book, apiKey) : { result: null, error: undefined }
     return NextResponse.json({ book: { ...book, coverBase64 }, enrichment, claudeError })
@@ -107,8 +145,9 @@ export async function POST(req: NextRequest) {
 
   // ISBN or single result → enrich immediately
   if (isIsbn || docs.length === 1) {
-    const book = { ...parseDoc(docs[0]), categoryNames: categoryNames || [] }
+    const book: any = { ...parseDoc(docs[0]), categoryNames: categoryNames || [] }
     book.description = await fetchDescription(book.volumeId)
+    Object.assign(book, await editionDetails(isIsbn ? query : book.isbn))
     const coverBase64 = book.coverId ? await fetchCoverBase64(book.coverId) : null
     const { result: enrichment, error: claudeError } = apiKey ? await enrichWithClaude(book, apiKey) : { result: null, error: undefined }
     return NextResponse.json({ book: { ...book, coverBase64 }, enrichment, claudeError })

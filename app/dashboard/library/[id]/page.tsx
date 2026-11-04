@@ -197,7 +197,7 @@ export default function BookDetailPage() {
           id, title, author, description, cover_image_url,
           average_rating, total_ratings_count,
           series_number, series_id,
-          age_min, age_max, page_count, book_type,
+          age_min, age_max, page_count, book_type, is_non_fiction,
           series:series_id ( id, name, series_number, parent_series_id, parent:parent_series_id ( id, name ) ),
           reading_level:reading_level_id ( id, name )
         `).eq('id', bookId).single(),
@@ -346,7 +346,7 @@ export default function BookDetailPage() {
 
         if (poolIds.length > 0) {
           const { data: candidates } = await supabase.from('books')
-            .select('id, title, author, cover_image_url, book_type, age_min, age_max, average_rating, total_ratings_count')
+            .select('id, title, author, cover_image_url, book_type, is_non_fiction, age_min, age_max, average_rating, total_ratings_count')
             .in('id', poolIds).eq('is_active', true)
 
           if (candidates) {
@@ -354,6 +354,8 @@ export default function BookDetailPage() {
               let score = 0
               // Same book type — strong
               if (currentType && b.book_type === currentType) score += 40
+              // Both non-fiction (or both stories)
+              if (!!b.is_non_fiction === !!(bookData as any).is_non_fiction) score += 20
               // Shared categories — strong (15 per overlap)
               score += (catCountMap.get(b.id) || 0) * 15
               // Age range overlap — strong
