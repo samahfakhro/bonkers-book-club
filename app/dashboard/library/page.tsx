@@ -681,7 +681,7 @@ function LibraryPageInner() {
               const displayName = nameMap[key] || (key.charAt(0).toUpperCase() + key.slice(1))
               return (
                 <button key={level.id} onClick={() => setActiveLevels(prev => prev.some(l => l.id === level.id) ? prev.filter(l => l.id !== level.id) : [...prev, level])}
-                  style={{ background: isSelected ? '#1a2f51' : 'transparent', border: `1.5px solid ${isSelected ? '#1a2f51' : 'rgba(26,47,81,0.2)'}`, borderRadius: '12px', cursor: 'pointer', padding: '10px 6px 10px 3px', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '6px', flex: 1, transition: 'all 0.25s', opacity: activeLevels.length > 0 && !isSelected ? 0.4 : 1 }}>
+                  style={{ background: isSelected ? '#1a2f51' : 'transparent', border: `1.5px solid ${isSelected ? '#1a2f51' : 'rgba(26,47,81,0.2)'}`, borderRadius: '12px', cursor: 'pointer', padding: '10px 6px 10px 3px', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '6px', flex: 1, transition: 'all 0.25s' }}>
                   <img src={art} alt={level.name} style={{ width: '2.5rem', height: '2.5rem', objectFit: 'contain', flexShrink: 0 }} />
                   <div style={{ textAlign: 'left' }}>
                     <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: isSelected ? '#fefaf2' : '#1a2f51', fontSize: '0.78rem', fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{displayName}</p>
@@ -703,7 +703,7 @@ function LibraryPageInner() {
                 const isSelected = selectedCategoryIds.includes(cat.id)
                 return (
                   <button key={cat.id} onClick={() => setSelectedCategoryIds(prev => prev.includes(cat.id) ? prev.filter(c => c !== cat.id) : [...prev, cat.id])}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', width: '3.75rem', transition: 'opacity 0.25s', opacity: selectedCategoryIds.length > 0 && !isSelected ? 0.4 : 1 }}>
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', width: '3.75rem' }}>
                     <div style={{ borderRadius: '50%', padding: '4px', backgroundColor: isSelected ? '#1a2f51' : 'transparent', transition: 'background-color 0.25s', display: 'inline-flex', position: 'relative' }}>
                       <img src={blob} alt={cat.name} style={{ width: '3rem', height: '3rem', objectFit: 'contain', display: 'block' }} />
                       <CategorySymbol name={cat.name} />
