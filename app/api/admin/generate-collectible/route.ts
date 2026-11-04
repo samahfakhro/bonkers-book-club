@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export const maxDuration = 60
+export const maxDuration = 300   // research with web search can take a couple of minutes
 export const dynamic = 'force-dynamic'
-import OpenAI from 'openai'
+import OpenAI, { toFile } from 'openai'
 import { createClient } from '@supabase/supabase-js'
 import fs from 'fs'
 import path from 'path'
 import { BONKERS_BIBLE } from '@/lib/bonkers-bible'
+import { researchBook, suggestIdeas, bookDetails, type Idea } from '@/lib/collectibles/steps'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -16,8 +17,8 @@ function getSupabaseAdmin() {
 }
 
 // Model identifiers — change here only
-const CREATIVE_MODEL = process.env.OPENAI_CREATIVE_MODEL || 'gpt-4o'
-const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1'
+const CREATIVE_MODEL = process.env.OPENAI_CREATIVE_MODEL || 'gpt-5.5'
+const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1.5'   // gpt-image-2 can't make transparent backgrounds
 
 function getOpenAIClient() {
   const apiKey = process.env.OPENAI_API_KEY
@@ -82,6 +83,63 @@ function parseMetadata(text: string): CollectibleMetadata | null {
   return null
 }
 
+// Step 3: draw the idea the curator chose — straight to the image model with a short brief and the style pictures
+// (medium quality by default; "Polish" redraws at high quality). The book cover is deliberately not sent, so nothing gets copied.
+const DRAW_STYLE = `Create ONE collectible object for "Bonky's Universe", a children's library world. Match the style of the reference images: richly dimensional modern 3D storybook fantasy, tactile handcrafted materials (wood grain, creased cardboard, fluffy feathers, soft fabric, subtle wear and tiny imperfections), whimsical proportions, soft depth and shadows. Not flat, not cartoon clipart, not plastic CGI, not Pixar/Disney style, not photoreal, not anime.`
+const DRAW_RULES = `Rules:
+- One standalone object, with no decorative base.
+- Magical, dimensional, beautifully textured 3D storybook aesthetic.
+- Warm, balanced lighting that works across different planets.
+- Transparent background with preserved alpha.
+- No environmental scenery, unless the object itself is a building or location.
+- Consistent framing: the whole object visible, with sensible transparent padding.
+- No writing unless essential to the object.
+- Never a recognisable copyrighted character.`
+
+async function drawIdea(bookId: string, idea: Idea, direction: string, quality: 'medium' | 'high' = 'medium') {
+  const sb = getSupabaseAdmin()
+  const found = await bookDetails(bookId)
+  if (!found) throw new Error('Book not found')
+  const { book } = found
+  const statusBefore = (await sb.from('books').select('collectible_status').eq('id', bookId).single()).data?.collectible_status
+  await sb.from('books').update({ collectible_status: 'generating' }).eq('id', bookId)
+  try {
+    const prompt = [
+      DRAW_STYLE,
+      `THE OBJECT: ${idea.collectible_name} — ${idea.concept}`,
+      direction.trim() && `Extra direction: ${direction.trim()}`,
+      DRAW_RULES,
+    ].filter(Boolean).join('\n\n')
+    const references = await Promise.all(['bonkys-home.png', 'my-collection.png', 'penguin-parcel.png']
+      .filter(f => fs.existsSync(path.join(process.cwd(), 'public', 'reference-assets', f)))
+      .map(f => toFile(fs.readFileSync(path.join(process.cwd(), 'public', 'reference-assets', f)), f, { type: 'image/png' })))
+    const result: any = await getOpenAIClient().images.edit({
+      model: IMAGE_MODEL, image: references, prompt, quality, size: '1024x1024', background: 'transparent', output_format: 'png',
+    } as any)
+    const imageBase64 = result.data?.[0]?.b64_json
+    if (!imageBase64) throw new Error('No image came back — try drawing it again.')
+    const version = (book.collectible_version || 0) + 1
+    const imageUrl = await uploadCollectible(bookId, version, imageBase64)
+    const update = {
+      collectible_status: 'awaiting_approval', collectible_version: version,
+      collectible_openai_response_id: null, collectible_generated_at: new Date().toISOString(),
+      collectible_name: idea.collectible_name, collectible_concept: idea.concept, collectible_lore: idea.lore || null,
+      collectible_source_moment: idea.source_moment || null, collectible_image_url: imageUrl,
+      collectible_prompt: prompt.slice(0, 2000),
+    }
+    await sb.from('books').update(update).eq('id', bookId)
+    return {
+      ok: true, collectible_name: idea.collectible_name, collectible_concept: idea.concept, collectible_lore: idea.lore,
+      collectible_source_moment: idea.source_moment, collectible_image_url: imageUrl, collectible_version: version,
+      collectible_openai_response_id: null,
+      collectible_research: book.collectible_research ? JSON.parse(book.collectible_research) : [],
+    }
+  } catch (e) {
+    await sb.from('books').update({ collectible_status: statusBefore || 'options' }).eq('id', bookId)
+    throw e
+  }
+}
+
 export async function POST(req: NextRequest) {
   let bookId: string | undefined
   try {
@@ -93,6 +151,26 @@ export async function POST(req: NextRequest) {
     const customPrompt: string | undefined = body.customPrompt
 
     if (!bookId) return NextResponse.json({ error: 'bookId required' }, { status: 400 })
+
+    // ── The 3-step flow: research → 3 ideas → draw the chosen one ───────
+    const step: 'research' | 'ideas' | 'draw' | 'polish' | undefined = body.step
+    if (step === 'research') {
+      return NextResponse.json(await researchBook(bookId, String(body.notes || ''), (Array.isArray(body.photos) ? body.photos : []).filter((p: unknown) => typeof p === 'string' && p.startsWith('data:image/'))))
+    }
+    if (step === 'ideas') {
+      return NextResponse.json(await suggestIdeas(bookId, String(body.factSheet || ''), String(body.notes || ''), String(body.direction || ''), !!body.more))
+    }
+    if (step === 'draw') {
+      const idea: Idea | undefined = body.idea
+      if (!idea?.collectible_name || !idea?.concept) return NextResponse.json({ error: 'Choose an idea first' }, { status: 400 })
+      return NextResponse.json(await drawIdea(bookId, idea, String(body.direction || '')))
+    }
+    if (step === 'polish') {
+      // redraw the current collectible at high quality
+      const { data: cur } = await getSupabaseAdmin().from('books').select('collectible_name, collectible_concept, collectible_lore, collectible_source_moment').eq('id', bookId).single()
+      if (!cur?.collectible_name || !cur?.collectible_concept) return NextResponse.json({ error: 'Nothing to polish yet' }, { status: 400 })
+      return NextResponse.json(await drawIdea(bookId, { collectible_name: cur.collectible_name, concept: cur.collectible_concept, lore: cur.collectible_lore || '', source_moment: cur.collectible_source_moment || '' }, String(body.direction || ''), 'high'))
+    }
 
     const supabaseAdmin = getSupabaseAdmin()
 
@@ -198,6 +276,7 @@ export async function POST(req: NextRequest) {
         { type: 'web_search_preview' },
         {
           type: 'image_generation',
+          model: IMAGE_MODEL,
           quality: 'high',
           size: '1024x1024',
           output_format: 'png',
@@ -310,11 +389,16 @@ export async function PATCH(req: NextRequest) {
   const { bookId, action } = await req.json()
   if (!bookId) return NextResponse.json({ error: 'bookId required' }, { status: 400 })
 
+  let backToIdeas = false
+  if (action === 'reject') {
+    const { data } = await getSupabaseAdmin().from('books').select('collectible_options').eq('id', bookId).single()
+    backToIdeas = Array.isArray(data?.collectible_options) && data.collectible_options.length > 0
+  }
   const payload = action === 'reject'
-    ? { collectible_status: null, collectible_name: null, collectible_concept: null, collectible_lore: null, collectible_image_url: null, collectible_openai_response_id: null, collectible_prompt: null }
+    ? { collectible_status: backToIdeas ? 'options' : null, collectible_name: null, collectible_concept: null, collectible_lore: null, collectible_image_url: null, collectible_openai_response_id: null, collectible_prompt: null }
     : { collectible_status: 'approved', collectible_approved_at: new Date().toISOString() }
 
   const { error } = await getSupabaseAdmin().from('books').update(payload).eq('id', bookId)
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, status: action === 'reject' ? (backToIdeas ? 'options' : null) : 'approved' })
 }
