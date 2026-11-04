@@ -192,6 +192,7 @@ export default function AdminBooksPage() {
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [fetchResults, setFetchResults] = useState<any[]>([])
   const [fetchedCoverBase64, setFetchedCoverBase64] = useState<string | null>(null)
+  const [descNeedsCheck, setDescNeedsCheck] = useState(false)   // the AI had too little to go on for the description
 
   // ── Load ───────────────────────────────────────────────────────────────────
 
@@ -448,6 +449,7 @@ export default function AdminBooksPage() {
   }
 
   function applyFetchedBook(book: any, enrichment: any) {
+    setDescNeedsCheck(!!enrichment?.description_needs_check || !enrichment?.description || !book?.publisherBlurb)   // no publisher blurb = less reliable
     setFetchResults([])
 
     // Match series in DB
@@ -1072,7 +1074,8 @@ export default function AdminBooksPage() {
 
                 <div>
                   <label style={lbl}>Description</label>
-                  <textarea style={{ ...inp, minHeight: '80px', resize: 'vertical' }} placeholder="A short description of the book…" value={addForm.description} onChange={e => setAddForm(f => ({ ...f, description: e.target.value }))} />
+                  <textarea style={{ ...inp, minHeight: '80px', resize: 'vertical' }} placeholder="A short description of the book…" value={addForm.description} onChange={e => { setDescNeedsCheck(false); setAddForm(f => ({ ...f, description: e.target.value })) }} />
+                  {descNeedsCheck && addForm.title && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#b45309' }}>⚠ No publisher blurb was found for this book, so the AI had less to go on. Please check the description against the back cover.</p>}
                 </div>
 
                 <div>

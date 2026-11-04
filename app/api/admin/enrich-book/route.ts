@@ -42,8 +42,8 @@ function prettyDate(d: string | undefined | null): string {
 }
 const flipName = (n: string) => { const p = n.replace(/,?\s*ill(ustrator)?\.?$/i, '').split(',').map(x => x.trim()).filter(Boolean); return p.length === 2 ? `${p[1]} ${p[0]}` : p.join(' ') }
 
-async function editionDetails(isbn: string): Promise<{ publisher: string; publicationDate: string; illustrator: string; googleAuthors: string[]; byStatement: string }> {
-  const out = { publisher: '', publicationDate: '', illustrator: '', googleAuthors: [] as string[], byStatement: '' }
+async function editionDetails(isbn: string): Promise<{ publisher: string; publicationDate: string; illustrator: string; googleAuthors: string[]; byStatement: string; publisherBlurb: string }> {
+  const out = { publisher: '', publicationDate: '', illustrator: '', googleAuthors: [] as string[], byStatement: '', publisherBlurb: '' }
   const clean = (isbn || '').replace(/[^0-9X]/gi, '')
   if (!clean) return out
   const key = process.env.GOOGLE_GEOCODING_KEY
@@ -55,6 +55,8 @@ async function editionDetails(isbn: string): Promise<{ publisher: string; public
   out.publisher = v?.publisher || ol?.publishers?.[0] || ''
   out.publicationDate = prettyDate(v?.publishedDate || ol?.publish_date)
   out.googleAuthors = v?.authors || []
+  // Google's description is usually the publisher's back-cover blurb — the most reliable description we can get
+  out.publisherBlurb = (v?.description || '').replace(/<[^>]+>/g, ' ').replace(/s+/g, ' ').trim()
   out.byStatement = ol?.by_statement || ''
   const ill = (ol?.contributions || []).find((c: string) => /\bill(ustrator)?\b/i.test(c))
   const byIll = out.byStatement.match(/illustrated by ([^;.]+)/i)?.[1]
@@ -82,7 +84,7 @@ async function enrichWithClaude(book: ReturnType<typeof parseDoc> & { categoryNa
         content: `You are cataloguing children's books for a library called The Curious Library.
 
 Book: "${book.title}" by ${book.author}
-${book.description ? `Description: ${book.description.slice(0, 600)}` : ''}
+${book.description ? `Description (from the publisher or a library catalogue): ${book.description.slice(0, 1200)}` : 'Description: none found.'}
 ${book.subjects.length ? `Subjects: ${book.subjects.slice(0, 10).join(', ')}` : ''}
 ${book.pageCount ? `Pages: ${book.pageCount}` : ''}
 ${book.googleAuthors?.length ? `People credited on this edition: ${book.googleAuthors.join(', ')}` : ''}
@@ -96,7 +98,8 @@ Examples: a shark facts book = Animals + Facts. A planets book = Science + Facts
 
 Return ONLY valid JSON (no markdown, no other text):
 {
-  "description": "2-3 sentence engaging description of the book suitable for a children's library — what it is about, what makes it special, written to excite a child",
+  "description": "2-3 sentences written FOR KIDS to read themselves (simple words, warm and exciting, speaking to the child): what the book is about and what makes it fun. Use ONLY facts from the description and subjects above — never invent characters, names, events or endings, and no spoilers. If there is too little information, write one short, safe sentence instead and set description_needs_check to true",
+  "description_needs_check": false,
   "tags": ["up to 8 short discovery tags like dragons, friendship, funny, adventure"],
   "book_type": "one of: Picture Book, Board Book, Flap Book, Early Reader, Chapter Book, Illustrated Book, Graphic Novel, Novel — the FORMAT only, or null",
   "reading_levels": ["subset of: 3-5, 5-7, 8-10 — pick all that apply"],
@@ -131,6 +134,7 @@ export async function POST(req: NextRequest) {
     const book = { ...bookData, description: '', categoryNames: categoryNames || [] }
     book.description = await fetchDescription(volumeId)
     Object.assign(book, await editionDetails(book.isbn))
+    if (book.publisherBlurb) book.description = book.publisherBlurb
     const coverBase64 = book.coverId ? await fetchCoverBase64(book.coverId) : null
     const { result: enrichment, error: claudeError } = apiKey ? await enrichWithClaude(book, apiKey) : { result: null, error: undefined }
     return NextResponse.json({ book: { ...book, coverBase64 }, enrichment, claudeError })
@@ -153,6 +157,7 @@ export async function POST(req: NextRequest) {
     const book: any = { ...parseDoc(docs[0]), categoryNames: categoryNames || [] }
     book.description = await fetchDescription(book.volumeId)
     Object.assign(book, await editionDetails(isIsbn ? query : book.isbn))
+    if (book.publisherBlurb) book.description = book.publisherBlurb
     const coverBase64 = book.coverId ? await fetchCoverBase64(book.coverId) : null
     const { result: enrichment, error: claudeError } = apiKey ? await enrichWithClaude(book, apiKey) : { result: null, error: undefined }
     return NextResponse.json({ book: { ...book, coverBase64 }, enrichment, claudeError })
