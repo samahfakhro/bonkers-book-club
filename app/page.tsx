@@ -296,13 +296,13 @@ export default function LandingPage() {
                 const age = AGE_MAP[key] ?? ''
                 return (
                   <button key={level.id} onClick={() => toggleLevel(level)}
-                    style={{ background: 'transparent', border: `1.5px solid ${isSelected ? '#f9ce71' : 'rgba(26,47,81,0.25)'}`, borderRadius: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'row', alignItems: 'center', overflow: 'hidden', transition: 'border-color 0.15s', flex: 1, padding: isTablet ? '18px 12px' : '18px 2px', gap: isTablet ? '10px' : '0px' }}>
+                    style={{ background: isSelected ? '#1a2f51' : 'transparent', border: `1.5px solid ${isSelected ? '#1a2f51' : 'rgba(26,47,81,0.25)'}`, borderRadius: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'row', alignItems: 'center', overflow: 'hidden', transition: 'background-color 0.25s, border-color 0.25s', flex: 1, padding: isTablet ? '18px 12px' : '18px 2px', gap: isTablet ? '10px' : '0px' }}>
                     <div style={{ height: '60px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: isTablet ? 'center' : 'flex-start' }}>
                       <img src={art} alt={level.name} style={{ width: isTablet ? (key.startsWith('hatchling') || key === '3-5' ? '70px' : key.startsWith('chick') || key === '5-7' ? '66px' : '88px') : (key.startsWith('hatchling') ? '34px' : key.startsWith('chick') ? '32px' : '46px'), height: isTablet ? (key.startsWith('hatchling') || key === '3-5' ? '70px' : key.startsWith('chick') || key === '5-7' ? '66px' : '88px') : (key.startsWith('hatchling') ? '34px' : key.startsWith('chick') ? '32px' : '46px'), objectFit: 'contain', display: 'block' }} />
                     </div>
                     <div style={{ textAlign: 'left', marginLeft: isTablet ? '-10px' : '-4px' }}>
-                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.86rem' : '0.78rem', fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{displayName}</p>
-                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.88rem' : '0.76rem', fontWeight: 400, margin: 0 }}>{age}</p>
+                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: isSelected ? '#fefaf2' : '#1a2f51', fontSize: isTablet ? '0.86rem' : '0.78rem', fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{displayName}</p>
+                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: isSelected ? '#fefaf2' : '#1a2f51', fontSize: isTablet ? '0.88rem' : '0.76rem', fontWeight: 400, margin: 0 }}>{age}</p>
                     </div>
                   </button>
                 )
@@ -327,7 +327,7 @@ export default function LandingPage() {
                     return (
                       <button key={cat.id} onClick={() => toggleCategory(cat.id)}
                         style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                        <div style={{ borderRadius: '50%', padding: '3px', boxShadow: isSelected ? '0 0 0 2px #eddbc3' : 'none', transition: 'box-shadow 0.15s', display: 'inline-flex', position: 'relative' }}>
+                        <div style={{ borderRadius: '50%', padding: isTablet ? '6px' : '4px', backgroundColor: isSelected ? '#1a2f51' : 'transparent', transition: 'background-color 0.25s', display: 'inline-flex', position: 'relative' }}>
                           <img src={blob} alt={cat.name} style={{ width: isTablet ? '96px' : '54px', height: isTablet ? '96px' : '54px', objectFit: 'contain', display: 'block' }} />
                           <CategorySymbol name={cat.name} />
                         </div>
