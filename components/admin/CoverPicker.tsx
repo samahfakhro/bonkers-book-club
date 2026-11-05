@@ -21,6 +21,7 @@ async function cropToDataUrl(src: string, area: Area): Promise<string> {
 }
 
 const btn: React.CSSProperties = { fontSize: '12px', fontWeight: 600, color: '#1a2f51', border: '1px solid #d4d4d4', borderRadius: '8px', padding: '7px 10px', cursor: 'pointer', backgroundColor: '#fff' }
+const pickBtn: React.CSSProperties = { ...btn, backgroundColor: '#1a2f51', color: '#fff', border: 'none', padding: '9px 14px', display: 'inline-block' }
 
 export default function CoverPicker({ onPicked, busy = false }: { onPicked: (dataUrl: string) => void; busy?: boolean }) {
   const [src, setSrc] = useState<string | null>(null)
@@ -40,11 +41,11 @@ export default function CoverPicker({ onPicked, busy = false }: { onPicked: (dat
   return (
     <>
       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-        <label style={{ ...btn, opacity: busy ? 0.5 : 1 }}>
+        <label style={{ ...pickBtn, opacity: busy ? 0.5 : 1 }}>
           📷 Take photo
           <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} disabled={busy} onChange={e => { choose(e.target.files?.[0]); e.target.value = '' }} />
         </label>
-        <label style={{ ...btn, opacity: busy ? 0.5 : 1 }}>
+        <label style={{ ...pickBtn, opacity: busy ? 0.5 : 1 }}>
           ⬆ Upload image
           <input type="file" accept="image/*" style={{ display: 'none' }} disabled={busy} onChange={e => { choose(e.target.files?.[0]); e.target.value = '' }} />
         </label>

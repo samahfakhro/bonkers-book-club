@@ -192,7 +192,6 @@ export default function AdminBooksPage() {
   const [savingDetails, setSavingDetails] = useState(false)
   const [savedOk, setSavedOk] = useState(false)
   const [uploadingCoverFor, setUploadingCoverFor] = useState<string | null>(null)
-  const [uploadingAssetFor, setUploadingAssetFor] = useState<string | null>(null)
 
   // Series edit state
   const [newSeriesMode, setNewSeriesMode] = useState(false)
@@ -220,14 +219,12 @@ export default function AdminBooksPage() {
   const [addForm, setAddForm] = useState({ title: '', author: '', isbn: '', publisher: '', illustrator: '', publication_date: '', is_non_fiction: false, page_count: '', book_type: '', series_number: '', reading_level_id: '', tags: '', description: '', age_min: '', age_max: '' })
   const [addMainSeriesId, setAddMainSeriesId] = useState('')
   const [addCoverFile, setAddCoverFile] = useState<File | null>(null)
-  const [addAssetFile, setAddAssetFile] = useState<File | null>(null)
   const [addingBook, setAddingBook] = useState(false)
   const [addNewSeriesMode, setAddNewSeriesMode] = useState(false)
   const [addNewSeriesName, setAddNewSeriesName] = useState('')
   const [addSubSeriesName, setAddSubSeriesName] = useState('')
   const [addSubSeriesNumber, setAddSubSeriesNumber] = useState('')
   const addCoverRef = useRef<HTMLInputElement>(null)
-  const addAssetRef = useRef<HTMLInputElement>(null)
 
   // Add form chips
   const [addLevelIds, setAddLevelIds] = useState<Set<string>>(new Set())
@@ -502,17 +499,6 @@ export default function AdminBooksPage() {
     setUploadingCoverFor(null)
   }
 
-  async function uploadAsset(file: File, bookId: string) {
-    setUploadingAssetFor(bookId); setError(null)
-    const base64 = await fileToBase64(file)
-    const res = await fetch('/api/admin/books', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: bookId, bucket: 'book-assets', base64, field: 'discovery_asset_url' }) })
-    const json = await res.json()
-    if (json.error) { setError(`Asset upload failed: ${json.error}`); setUploadingAssetFor(null); return }
-    setBooks(prev => prev.map(b => b.id === bookId ? { ...b, discovery_asset_url: json.publicUrl } : b))
-    setSelectedBook(prev => prev?.id === bookId ? { ...prev, discovery_asset_url: json.publicUrl } : prev)
-    setUploadingAssetFor(null)
-  }
-
   // ── Fetch & enrich book ────────────────────────────────────────────────────
 
   async function fetchBookInfo(query: string, isIsbn: boolean, volumeId?: string) {
@@ -696,12 +682,6 @@ export default function AdminBooksPage() {
       const u = await r.json()
       if (u.publicUrl) finalBook = { ...finalBook, cover_image_url: u.publicUrl }
     }
-    if (addAssetFile) {
-      const base64 = await fileToBase64(addAssetFile)
-      const r = await fetch('/api/admin/books', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: newBook.id, bucket: 'book-assets', base64, field: 'discovery_asset_url' }) })
-      const u = await r.json()
-      if (u.publicUrl) finalBook = { ...finalBook, discovery_asset_url: u.publicUrl }
-    }
 
     if (addLevelIds.size > 0) {
       const rows = [...addLevelIds].map(lid => ({ book_id: newBook.id, reading_level_id: lid }))
@@ -744,9 +724,8 @@ export default function AdminBooksPage() {
     setAddMainSeriesId('')
     setAddNewSeriesMode(false); setAddNewSeriesName('')
     setAddSubSeriesName(''); setAddSubSeriesNumber('')
-    setAddCoverFile(null); setAddAssetFile(null)
+    setAddCoverFile(null)
     if (addCoverRef.current) addCoverRef.current.value = ''
-    if (addAssetRef.current) addAssetRef.current.value = ''
     setFetchQuery(''); setFetchedCoverBase64(null); setFetchResults([]); setAddLabel(''); setAllowDuplicate(false)
     setAddLevelIds(new Set()); setAddCategoryIds(new Set())
     setAddCategoryIds(new Set())
@@ -1187,10 +1166,7 @@ export default function AdminBooksPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div><label style={lbl}>Cover image {fetchedCoverBase64 ? '(replace)' : ''}</label><CoverPicker onPicked={url => { setFetchedCoverBase64(url); setCoverMayBeOther(false) }} /></div>
-                  <div><label style={lbl}>Discovery asset</label><input ref={addAssetRef} type="file" accept="image/*" onChange={e => setAddAssetFile(e.target.files?.[0] || null)} style={{ fontSize: '13px', color: '#1a1a1a' }} /></div>
-                </div>
+                <div><label style={lbl}>Cover image {fetchedCoverBase64 ? '(replace)' : ''}</label><CoverPicker onPicked={url => { setFetchedCoverBase64(url); setCoverMayBeOther(false) }} /></div>
 
                 <div style={{ backgroundColor: '#f7f7f7', borderRadius: '10px', padding: '14px' }}>
                   <label style={lbl}>Copy label (the CUR sticker on this book)</label>
@@ -1232,14 +1208,8 @@ export default function AdminBooksPage() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
                     <div>
-                      <label style={lbl}>{selectedBook.cover_image_url ? 'Replace cover' : 'Add a cover'}</label>
+                      <label style={lbl}>{selectedBook.cover_image_url ? 'Cover — change it:' : 'Cover — add one:'}</label>
                       <CoverPicker busy={uploadingCoverFor === selectedBook.id} onPicked={url => uploadCoverDataUrl(url, selectedBook.id)} />
-                    </div>
-                    <div>
-                      <label style={lbl}>Discovery asset {selectedBook.discovery_asset_url ? '(replace)' : ''}</label>
-                      {selectedBook.discovery_asset_url && <img src={selectedBook.discovery_asset_url} alt="" style={{ width: '28px', height: '28px', objectFit: 'contain', display: 'block', marginBottom: '4px' }} />}
-                      <input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) uploadAsset(f, selectedBook.id) }} style={{ fontSize: '12px', color: '#1a1a1a' }} />
-                      {uploadingAssetFor === selectedBook.id && <span style={{ fontSize: '11px', color: '#9b9b9b' }}>Uploading…</span>}
                     </div>
                   </div>
                 </div>
