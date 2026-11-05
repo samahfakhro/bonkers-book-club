@@ -1,9 +1,12 @@
 'use client'
+// Collectibles in bulk: generate for many books at once (a few at a time, in this browser tab), then scroll through
+// everything waiting and approve, redo, tweak, polish or reject each one. Nothing is ever approved automatically,
+// and lore is still reviewed and published on each book's page in Admin → Books.
 
-import { useState, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
-type CollectibleBook = {
+type Book = {
   id: string
   title: string
   author: string
@@ -12,259 +15,219 @@ type CollectibleBook = {
   collectible_name: string | null
   collectible_concept: string | null
   collectible_lore: string | null
-  collectible_image_url: string | null
-  collectible_openai_response_id: string | null
-  collectible_version: number | null
   collectible_source_moment: string | null
-  collectible_research: string | null
+  collectible_image_url: string | null
+  collectible_kind: string | null
 }
 
-const btn: React.CSSProperties = {
-  padding: '8px 18px', borderRadius: '6px', fontSize: '13px', fontWeight: 600,
-  cursor: 'pointer', border: 'none', letterSpacing: '0.02em',
-}
+const FIELDS = 'id, title, author, cover_image_url, collectible_status, collectible_name, collectible_concept, collectible_lore, collectible_source_moment, collectible_image_url, collectible_kind'
+const AT_ONCE = 3
+
+const navy = '#1a2f51'
+const btn: React.CSSProperties = { padding: '7px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: '1px solid #d4d4d4', backgroundColor: '#fff', color: navy }
+const primary: React.CSSProperties = { ...btn, backgroundColor: navy, color: '#fff', border: 'none' }
+const green: React.CSSProperties = { ...btn, backgroundColor: '#16a34a', color: '#fff', border: 'none' }
+
+const needsOne = (b: Book) => !b.collectible_status || b.collectible_status === 'options'
 
 export default function CollectiblesPage() {
-  const [books, setBooks] = useState<CollectibleBook[]>([])
+  const [books, setBooks] = useState<Book[]>([])
   const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState<CollectibleBook | null>(null)
-  const [working, setWorking] = useState(false)
-  const [feedback, setFeedback] = useState('')
-  const [showFeedback, setShowFeedback] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [working, setWorking] = useState<Set<string>>(new Set())   // books being drawn right now
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [batch, setBatch] = useState<{ total: number; done: number } | null>(null)
+  const [showPick, setShowPick] = useState(false)
+  const [tweakFor, setTweakFor] = useState<string | null>(null)
+  const [tweakNote, setTweakNote] = useState('')
+  const stopRef = useRef(false)
 
-  async function load() {
-    setLoading(true)
-    const { data } = await supabase
-      .from('books')
-      .select('id, title, author, cover_image_url, collectible_status, collectible_name, collectible_concept, collectible_lore, collectible_image_url, collectible_openai_response_id, collectible_version, collectible_source_moment, collectible_research')
-      .eq('collectible_status', 'awaiting_approval')
-      .order('title')
-    setBooks(data || [])
-    setLoading(false)
-  }
-
-  useEffect(() => { load() }, [])
-
-  function showToast(msg: string) {
-    setToast(msg)
-    setTimeout(() => setToast(null), 3000)
-  }
-
-  async function approve(book: CollectibleBook) {
-    setWorking(true)
-    const res = await fetch('/api/admin/generate-collectible', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookId: book.id, action: 'approve' }),
+  useEffect(() => {
+    supabase.from('books').select(FIELDS).order('title').then(({ data }) => {
+      const list = (data || []) as Book[]
+      setBooks(list)
+      setPicked(new Set(list.filter(b => needsOne(b) && b.cover_image_url).map(b => b.id)))
+      setLoading(false)
     })
-    if (res.ok) {
-      showToast(`✓ Approved "${book.collectible_name}"`)
-      setSelected(null)
-      setBooks(prev => prev.filter(b => b.id !== book.id))
+  }, [])
+
+  // warn before closing the tab while collectibles are still being drawn
+  useEffect(() => {
+    if (!working.size) return
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault() }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [working.size])
+
+  const mark = (id: string, on: boolean) => setWorking(prev => { const n = new Set(prev); if (on) n.add(id); else n.delete(id); return n })
+  const refresh = async (id: string) => {
+    const { data } = await supabase.from('books').select(FIELDS).eq('id', id).single()
+    if (data) setBooks(prev => prev.map(b => b.id === id ? data as Book : b))
+  }
+
+  async function step(book: Book, which: 'generate' | 'draw' | 'polish', extra: Record<string, unknown> = {}) {
+    mark(book.id, true)
+    setErrors(prev => { const n = { ...prev }; delete n[book.id]; return n })
+    try {
+      const res = await fetch('/api/admin/generate-collectible', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookId: book.id, step: which, ...extra }),
+      })
+      const json = await res.json().catch(() => ({ error: 'The server took too long — try again.' }))
+      if (!res.ok) setErrors(prev => ({ ...prev, [book.id]: json.error || 'Something went wrong' }))
+    } catch {
+      setErrors(prev => ({ ...prev, [book.id]: 'Connection lost — try again.' }))
+    } finally {
+      await refresh(book.id)
+      mark(book.id, false)
     }
-    setWorking(false)
   }
 
-  async function reject(book: CollectibleBook) {
-    setWorking(true)
-    const res = await fetch('/api/admin/generate-collectible', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookId: book.id, action: 'reject' }),
-    })
-    if (res.ok) {
-      showToast(`Rejected — collectible cleared for "${book.title}"`)
-      setSelected(null)
-      setBooks(prev => prev.filter(b => b.id !== book.id))
-    }
-    setWorking(false)
-  }
-
-  async function regenerate(book: CollectibleBook, mode: 'retry' | 'revise', feedbackText?: string) {
-    setWorking(true)
-    setShowFeedback(false)
-    setFeedback('')
-    const res = await fetch('/api/admin/generate-collectible', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        bookId: book.id,
-        mode,
-        previousResponseId: book.collectible_openai_response_id,
-        feedback: feedbackText,
-      }),
-    })
-    const json = await res.json()
-    if (res.ok) {
-      const updated: CollectibleBook = {
-        ...book,
-        collectible_name: json.collectible_name,
-        collectible_concept: json.collectible_concept,
-        collectible_lore: json.collectible_lore,
-        collectible_image_url: json.collectible_image_url,
-        collectible_openai_response_id: json.collectible_openai_response_id,
-        collectible_version: json.collectible_version,
-        collectible_source_moment: json.collectible_source_moment || null,
-        collectible_research: json.collectible_research ? JSON.stringify(json.collectible_research) : null,
+  async function generateAll() {
+    const queue = books.filter(b => picked.has(b.id) && needsOne(b) && !working.has(b.id))
+    if (!queue.length) return
+    stopRef.current = false
+    setShowPick(false)
+    setBatch({ total: queue.length, done: 0 })
+    let next = 0
+    const worker = async () => {
+      while (!stopRef.current && next < queue.length) {
+        const book = queue[next++]
+        await step(book, 'generate')
+        setBatch(prev => prev && { ...prev, done: prev.done + 1 })
       }
-      setSelected(updated)
-      setBooks(prev => prev.map(b => b.id === book.id ? updated : b))
-    } else {
-      showToast(`Generation failed: ${json.error}`)
     }
-    setWorking(false)
+    await Promise.all(Array.from({ length: Math.min(AT_ONCE, queue.length) }, worker))
+    setBatch(null)
   }
+
+  async function decide(book: Book, action: 'approve' | 'reject') {
+    const res = await fetch('/api/admin/generate-collectible', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId: book.id, action }) })
+    if (res.ok) await refresh(book.id)
+    else setErrors(prev => ({ ...prev, [book.id]: 'Could not save — try again.' }))
+  }
+
+  async function setKind(book: Book, kind: 'creature' | 'thing') {
+    await fetch('/api/admin/books', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: book.id, collectible_kind: kind }) })
+    setBooks(prev => prev.map(b => b.id === book.id ? { ...b, collectible_kind: kind } : b))
+  }
+
+  function sendTweak(book: Book) {
+    const note = tweakNote.trim()
+    if (!note) return
+    setTweakFor(null); setTweakNote('')
+    step(book, 'draw', { idea: { collectible_name: book.collectible_name, concept: book.collectible_concept, lore: book.collectible_lore || '', source_moment: book.collectible_source_moment || '' }, direction: note })
+  }
+
+  if (loading) return <div style={{ padding: '40px', fontFamily: 'var(--font-montserrat)', color: '#6b6b6b' }}>Loading…</div>
+
+  const withoutOne = books.filter(needsOne)
+  const noCover = withoutOne.filter(b => !b.cover_image_url)
+  const canGenerate = withoutOne.filter(b => b.cover_image_url)
+  const pickedCount = canGenerate.filter(b => picked.has(b.id)).length
+  const review = books.filter(b => b.collectible_status === 'awaiting_approval' || working.has(b.id) || errors[b.id])
+  const approvedCount = books.filter(b => b.collectible_status === 'approved').length
 
   return (
-    <div style={{ padding: '32px', fontFamily: 'ui-sans-serif, system-ui, sans-serif', maxWidth: '1200px', margin: '0 auto' }}>
-      {toast && (
-        <div style={{ position: 'fixed', top: '20px', right: '20px', backgroundColor: '#1a1a1a', color: '#fff', padding: '10px 18px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, zIndex: 100 }}>
-          {toast}
-        </div>
-      )}
+    <div style={{ padding: '28px 32px', fontFamily: 'var(--font-montserrat)', color: '#1a1a1a', maxWidth: '1200px' }}>
+      <h1 style={{ fontSize: '22px', fontWeight: 700, margin: '0 0 4px', color: navy }}>Collectibles</h1>
+      <p style={{ fontSize: '13px', color: '#6b6b6b', margin: '0 0 20px' }}>
+        {approvedCount} approved · {books.filter(b => b.collectible_status === 'awaiting_approval').length} waiting for you · {withoutOne.length} without one yet
+      </p>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 700, color: '#1a1a1a' }}>Awaiting Approval</h1>
-          <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#9b9b9b' }}>{books.length} collectible{books.length !== 1 ? 's' : ''} waiting for review</p>
-        </div>
-        <a href="/admin/books" style={{ fontSize: '13px', color: '#6b7280', textDecoration: 'none' }}>← Back to Books</a>
-      </div>
-
-      {loading ? (
-        <p style={{ color: '#9b9b9b', fontSize: '14px' }}>Loading…</p>
-      ) : books.length === 0 ? (
-        <p style={{ color: '#9b9b9b', fontSize: '14px' }}>No collectibles awaiting approval.</p>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
-          {books.map(book => (
-            <button key={book.id} onClick={() => { setSelected(book); setShowFeedback(false); setFeedback('') }}
-              style={{ background: 'none', border: '1.5px solid #e5e5e5', borderRadius: '12px', cursor: 'pointer', padding: '14px', textAlign: 'left', transition: 'border-color 0.15s', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <div style={{ width: '44px', height: '66px', borderRadius: '4px', overflow: 'hidden', flexShrink: 0, backgroundColor: '#f0f0f0' }}>
-                  {book.cover_image_url && <img src={book.cover_image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                </div>
-                <div style={{ width: '66px', height: '66px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, backgroundColor: '#f7f0ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {book.collectible_image_url
-                    ? <img src={book.collectible_image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                    : <span style={{ fontSize: '24px' }}>✦</span>}
-                </div>
+      {/* ── Generate in bulk ── */}
+      <div style={{ backgroundColor: '#f7f7f7', borderRadius: '12px', padding: '16px 18px', marginBottom: '28px' }}>
+        {batch ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <p style={{ margin: '0 0 6px', fontSize: '13px', fontWeight: 600 }}>
+                {stopRef.current ? 'Stopping after the ones already drawing…' : `Generating… ${batch.done} of ${batch.total} done`}
+              </p>
+              <div style={{ height: '8px', borderRadius: '4px', backgroundColor: '#e5e5e5', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${(batch.done / batch.total) * 100}%`, backgroundColor: '#16a34a', transition: 'width 0.4s' }} />
               </div>
-              <div>
-                <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: '#1a1a1a', lineHeight: 1.3 }}>{book.title}</p>
-                <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#7c3aed', fontWeight: 600 }}>{book.collectible_name || '—'}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* ── Detail modal ── */}
-      {selected && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
-          onClick={e => { if (e.target === e.currentTarget) setSelected(null) }}>
-          <div style={{ backgroundColor: '#fff', borderRadius: '16px', maxWidth: '680px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '28px' }}>
-            <div style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
-              {/* Book cover */}
-              <div style={{ flexShrink: 0 }}>
-                <p style={{ margin: '0 0 6px', fontSize: '11px', fontWeight: 600, color: '#9b9b9b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Book</p>
-                <div style={{ width: '80px', height: '120px', borderRadius: '6px', overflow: 'hidden', backgroundColor: '#f0f0f0' }}>
-                  {selected.cover_image_url && <img src={selected.cover_image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                </div>
-                <p style={{ margin: '8px 0 0', fontSize: '12px', fontWeight: 700, color: '#1a1a1a', maxWidth: '80px', lineHeight: 1.3 }}>{selected.title}</p>
-              </div>
-
-              {/* Collectible */}
-              <div style={{ flexShrink: 0 }}>
-                <p style={{ margin: '0 0 6px', fontSize: '11px', fontWeight: 600, color: '#9b9b9b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Collectible</p>
-                <div style={{ width: '160px', height: '160px', borderRadius: '10px', overflow: 'hidden', backgroundColor: '#f7f0ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {selected.collectible_image_url
-                    ? <img src={selected.collectible_image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                    : <span style={{ fontSize: '48px' }}>✦</span>}
-                </div>
-                {selected.collectible_version && <p style={{ margin: '4px 0 0', fontSize: '10px', color: '#9b9b9b', textAlign: 'center' }}>v{selected.collectible_version}</p>}
-              </div>
-
-              {/* Metadata */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: '0 0 4px', fontSize: '11px', fontWeight: 600, color: '#9b9b9b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Name</p>
-                <p style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 700, color: '#7c3aed' }}>{selected.collectible_name || '—'}</p>
-
-                <p style={{ margin: '0 0 4px', fontSize: '11px', fontWeight: 600, color: '#9b9b9b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Concept</p>
-                <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#1a1a1a', lineHeight: 1.5 }}>{selected.collectible_concept || '—'}</p>
-
-                <p style={{ margin: '0 0 4px', fontSize: '11px', fontWeight: 600, color: '#9b9b9b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Lore</p>
-                <p style={{ margin: 0, fontSize: '13px', color: '#1a1a1a', fontStyle: 'italic' }}>"{selected.collectible_lore || '—'}"</p>
-
-                {selected.collectible_source_moment && (
-                  <div style={{ marginTop: '12px', padding: '8px 12px', backgroundColor: '#f9fafb', borderRadius: '6px', borderLeft: '3px solid #e5e5e5' }}>
-                    <p style={{ margin: '0 0 3px', fontSize: '10px', fontWeight: 700, color: '#9b9b9b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Source moment</p>
-                    <p style={{ margin: 0, fontSize: '12px', color: '#4a4a4a', lineHeight: 1.5 }}>{selected.collectible_source_moment}</p>
-                  </div>
-                )}
-                {selected.collectible_research && (() => {
-                  try {
-                    const urls: string[] = JSON.parse(selected.collectible_research)
-                    if (!urls.length) return null
-                    return (
-                      <div style={{ marginTop: '10px' }}>
-                        <p style={{ margin: '0 0 4px', fontSize: '10px', fontWeight: 700, color: '#9b9b9b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Research</p>
-                        {urls.map((url, i) => (
-                          <a key={i} href={url} target="_blank" rel="noreferrer" style={{ display: 'block', fontSize: '11px', color: '#7c3aed', wordBreak: 'break-all', lineHeight: 1.5, marginBottom: '3px' }}>{url}</a>
-                        ))}
-                      </div>
-                    )
-                  } catch { return null }
-                })()}
-              </div>
+              <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#6b6b6b' }}>Keep this page open. Finished ones appear below as they arrive, ready to review.</p>
             </div>
-
-            {/* Buttons */}
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <button onClick={() => approve(selected)} disabled={working}
-                style={{ ...btn, backgroundColor: '#7c3aed', color: '#fff', opacity: working ? 0.6 : 1 }}>
-                {working ? 'Working…' : '✓ Approve'}
+            <button style={btn} onClick={() => { stopRef.current = true; setBatch(b => b && { ...b }) }}>Stop</button>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <button style={{ ...primary, padding: '10px 16px', fontSize: '13px', opacity: pickedCount ? 1 : 0.5 }} disabled={!pickedCount} onClick={generateAll}>
+                Generate for {pickedCount === canGenerate.length ? 'all books without one' : 'the ticked books'} ({pickedCount})
               </button>
-              <button onClick={() => regenerate(selected, 'retry')} disabled={working}
-                style={{ ...btn, backgroundColor: '#f3f4f6', color: '#1a1a1a', opacity: working ? 0.6 : 1 }}>
-                ↻ Another Idea
-              </button>
-              <button onClick={() => { setShowFeedback(s => !s); setFeedback('') }} disabled={working}
-                style={{ ...btn, backgroundColor: '#f3f4f6', color: '#1a1a1a' }}>
-                ✦ Tweak This
-              </button>
-              <button onClick={() => reject(selected)} disabled={working}
-                style={{ ...btn, backgroundColor: '#f3f4f6', color: '#dc2626', opacity: working ? 0.6 : 1 }}>
-                ✕ Reject
-              </button>
-              <button onClick={() => setSelected(null)}
-                style={{ ...btn, backgroundColor: 'transparent', color: '#9b9b9b', marginLeft: 'auto' }}>
-                Close
-              </button>
+              {canGenerate.length > 0 && <button style={{ ...btn, border: 'none', background: 'none', textDecoration: 'underline' }} onClick={() => setShowPick(s => !s)}>{showPick ? 'Hide the list' : 'Choose which books'}</button>}
             </div>
-
-            {showFeedback && (
-              <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <p style={{ margin: 0, fontSize: '12px', color: '#9b9b9b' }}>Keep the concept, refine the execution — e.g. "make the box turquoise" or "the penguins need to be crazier"</p>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <textarea
-                    value={feedback}
-                    onChange={e => setFeedback(e.target.value)}
-                    placeholder='e.g. "Make the box turquoise and the penguins wilder"'
-                    style={{ flex: 1, padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '13px', fontFamily: 'inherit', resize: 'vertical', minHeight: '72px' }}
-                  />
-                  <button onClick={() => feedback.trim() && regenerate(selected, 'revise', feedback.trim())}
-                    disabled={working || !feedback.trim()}
-                    style={{ ...btn, backgroundColor: '#7c3aed', color: '#fff', alignSelf: 'flex-end', opacity: (!feedback.trim() || working) ? 0.5 : 1 }}>
-                    Send
-                  </button>
+            <p style={{ margin: '8px 0 0', fontSize: '11px', color: '#6b6b6b' }}>
+              {AT_ONCE} at a time, about a minute each.{noCover.length ? ` ${noCover.length} book${noCover.length === 1 ? '' : 's'} without a cover ${noCover.length === 1 ? 'is' : 'are'} left out (add a cover first).` : ''}
+            </p>
+            {showPick && (
+              <div style={{ marginTop: '12px', maxHeight: '320px', overflowY: 'auto', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e5e5', padding: '8px 12px' }}>
+                <div style={{ display: 'flex', gap: '12px', fontSize: '12px', marginBottom: '6px' }}>
+                  <button style={{ ...btn, padding: '4px 8px' }} onClick={() => setPicked(new Set(canGenerate.map(b => b.id)))}>Tick all</button>
+                  <button style={{ ...btn, padding: '4px 8px' }} onClick={() => setPicked(new Set())}>Untick all</button>
                 </div>
+                {canGenerate.map(b => (
+                  <label key={b.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0', fontSize: '13px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={picked.has(b.id)} onChange={e => setPicked(prev => { const n = new Set(prev); if (e.target.checked) n.add(b.id); else n.delete(b.id); return n })} />
+                    <img src={b.cover_image_url!} alt="" style={{ width: '20px', height: '30px', objectFit: 'cover', borderRadius: '2px' }} />
+                    <span>{b.title}</span><span style={{ color: '#9b9b9b' }}>· {b.author}</span>
+                  </label>
+                ))}
               </div>
             )}
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
+
+      {/* ── Review ── */}
+      <h2 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 12px', color: navy }}>Waiting for your approval</h2>
+      {review.length === 0 && <p style={{ fontSize: '13px', color: '#6b6b6b' }}>Nothing to review right now.</p>}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
+        {review.map(book => {
+          const busy = working.has(book.id)
+          const ready = book.collectible_status === 'awaiting_approval' && book.collectible_image_url
+          return (
+            <div key={book.id} style={{ border: '1px solid #e5e5e5', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#fff', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ position: 'relative', aspectRatio: '1', backgroundColor: navy, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {ready && <img src={book.collectible_image_url!} alt={book.collectible_name || ''} style={{ width: '88%', height: '88%', objectFit: 'contain', opacity: busy ? 0.35 : 1 }} />}
+                {busy && <span style={{ position: 'absolute', color: '#fff', fontSize: '13px', fontWeight: 600 }}>Drawing…</span>}
+                {!busy && !ready && <span style={{ color: '#fff', fontSize: '12px', opacity: 0.7 }}>No collectible yet</span>}
+                {book.cover_image_url && <img src={book.cover_image_url} alt="" style={{ position: 'absolute', left: '10px', top: '10px', width: '40px', height: '60px', objectFit: 'cover', borderRadius: '3px', boxShadow: '0 2px 8px rgba(0,0,0,0.4)' }} />}
+              </div>
+              <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>{ready ? book.collectible_name : '—'}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6b6b6b' }}>{book.title}</p>
+                </div>
+                {errors[book.id] && <p style={{ margin: 0, fontSize: '12px', color: '#dc2626' }}>⚠ {errors[book.id]}</p>}
+                {ready && (
+                  <div style={{ display: 'flex', gap: '4px', fontSize: '12px' }}>
+                    {(['creature', 'thing'] as const).map(k => {
+                      const on = (book.collectible_kind || 'thing') === k
+                      return <button key={k} disabled={busy} onClick={() => setKind(book, k)} style={{ ...btn, padding: '4px 8px', backgroundColor: on ? navy : '#fff', color: on ? '#fff' : navy }}>{k === 'creature' ? '🥚 Egg' : '🎁 Parcel'}</button>
+                    })}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: 'auto' }}>
+                  {ready && <button style={green} disabled={busy} onClick={() => decide(book, 'approve')}>✓ Approve</button>}
+                  <button style={btn} disabled={busy} onClick={() => step(book, 'generate')}>↻ Another idea</button>
+                  {ready && <button style={btn} disabled={busy} onClick={() => { setTweakFor(tweakFor === book.id ? null : book.id); setTweakNote('') }}>Tweak</button>}
+                  {ready && <button style={btn} disabled={busy} onClick={() => step(book, 'polish')}>✨ Polish</button>}
+                  {ready && <button style={{ ...btn, color: '#dc2626' }} disabled={busy} onClick={() => decide(book, 'reject')}>Reject</button>}
+                </div>
+                {tweakFor === book.id && (
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <input autoFocus value={tweakNote} onChange={e => setTweakNote(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') sendTweak(book) }}
+                      placeholder="e.g. make it rounder, no hat" style={{ flex: 1, fontSize: '12px', padding: '6px 8px', border: '1px solid #d4d4d4', borderRadius: '6px' }} />
+                    <button style={primary} disabled={!tweakNote.trim()} onClick={() => sendTweak(book)}>Send</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

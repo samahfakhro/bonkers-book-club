@@ -7,6 +7,7 @@ import { canUsePage, ROLE_LABEL } from '@/lib/team'
 
 const NAV = [
   { label: 'Books', path: '/admin/books' },
+  { label: 'Collectibles', path: '/admin/collectibles' },
   { label: 'Operations', path: '/admin/operations' },
   { label: 'Members', path: '/admin/members' },
   { label: 'Reviews', path: '/admin/reviews' },
