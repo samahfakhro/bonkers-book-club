@@ -228,6 +228,7 @@ export default function AdminBooksPage() {
   const [addSubSeriesName, setAddSubSeriesName] = useState('')
   const [addSubSeriesNumber, setAddSubSeriesNumber] = useState('')
   const addCoverRef = useRef<HTMLInputElement>(null)
+  const lookupIdRef = useRef(0)   // only the latest lookup may fill the form; an older one finishing late is ignored
 
   // Add form chips
   const [addLevelIds, setAddLevelIds] = useState<Set<string>>(new Set())
@@ -522,6 +523,7 @@ export default function AdminBooksPage() {
   // ── Fetch & enrich book ────────────────────────────────────────────────────
 
   async function fetchBookInfo(query: string, isIsbn: boolean, volumeId?: string) {
+    const myLookup = ++lookupIdRef.current
     setFetchLoading(true); setFetchError(null); setFetchResults([])
     try {
       const res = await fetch('/api/admin/enrich-book', {
@@ -532,6 +534,7 @@ export default function AdminBooksPage() {
           : { query, isIsbn, categoryNames: categories.map(c => c.name) }),
       })
       const data = await res.json()
+      if (myLookup !== lookupIdRef.current) return   // a newer lookup (or Clear) has replaced this one
 
       if (data.results) {
         if (data.results.length === 0) { setFetchError('No books found. Try a different title or ISBN.') }
@@ -543,9 +546,9 @@ export default function AdminBooksPage() {
       const { book, enrichment } = data
       applyFetchedBook(book, enrichment)
     } catch {
-      setFetchError('Fetch failed. Check your connection and try again.')
+      if (myLookup === lookupIdRef.current) setFetchError('Fetch failed. Check your connection and try again.')
     }
-    setFetchLoading(false)
+    if (myLookup === lookupIdRef.current) setFetchLoading(false)
   }
 
   function applyFetchedBook(book: any, enrichment: any) {
@@ -739,7 +742,14 @@ export default function AdminBooksPage() {
       age_max: finalBook.age_max != null ? String(finalBook.age_max) : '',
     })
 
-    // Reset add form
+    resetAddForm()
+    setAddingBook(false)
+  }
+
+  // empty the add form (after adding, or "Clear and start again" when a lookup found the wrong book)
+  function resetAddForm() {
+    lookupIdRef.current++   // a lookup still running won't refill the form
+    setFetchLoading(false); setFetchError(null)
     setAddForm({ title: '', author: '', isbn: '', publisher: '', illustrator: '', publication_date: '', is_non_fiction: false, page_count: '', book_type: '', series_number: '', reading_level_id: '', tags: '', description: '', age_min: '', age_max: '' })
     setAddMainSeriesId('')
     setAddNewSeriesMode(false); setAddNewSeriesName('')
@@ -748,8 +758,7 @@ export default function AdminBooksPage() {
     if (addCoverRef.current) addCoverRef.current.value = ''
     setFetchQuery(''); setFetchedCoverBase64(null); setFetchResults([]); setAddLabel(''); setAllowDuplicate(false)
     setAddLevelIds(new Set()); setAddCategoryIds(new Set())
-    setAddCategoryIds(new Set())
-    setAddingBook(false)
+    setDescNeedsCheck(false); setCoverMayBeOther(false); setSuggestions([])
   }
 
   // ── Collectible generation ─────────────────────────────────────────────────
@@ -1225,7 +1234,12 @@ export default function AdminBooksPage() {
                     Add as a new book anyway (only for a genuinely different edition)
                   </label>
                 )}
-                <Btn onClick={handleAddBook} disabled={addingBook || fetchLoading}>{addingBook ? 'Adding…' : fetchLoading ? 'Looking it up…' : 'Add Book'}</Btn>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <Btn onClick={handleAddBook} disabled={addingBook || fetchLoading} style={{ flex: 1 }}>{addingBook ? 'Adding…' : fetchLoading ? 'Looking it up…' : 'Add Book'}</Btn>
+                  {(addForm.title || addForm.isbn || fetchedCoverBase64 || fetchLoading || fetchQuery) && !addingBook && (
+                    <Btn variant="secondary" onClick={() => { resetAddForm(); panelScrollRef.current?.scrollTo({ top: 0 }) }}>✕ Clear and start again</Btn>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1597,7 +1611,7 @@ export default function AdminBooksPage() {
                   </Btn>
                   {!confirmDelete ? (
                     <button onClick={() => setConfirmDelete(true)}
-                      style={{ background: 'none', border: 'none', color: '#9b9b9b', fontSize: '12px', cursor: 'pointer', padding: '4px 0' }}>
+                      style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: '12px', cursor: 'pointer', padding: '4px 0', textDecoration: 'underline' }}>
                       Delete book
                     </button>
                   ) : (

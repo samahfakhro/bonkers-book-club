@@ -111,6 +111,29 @@ async function findCover(book: any, apiKey: string | null): Promise<{ coverBase6
   return await coverIsEnglish(cover, apiKey) ? { coverBase64: cover, coverNotEnglish: false } : { coverBase64: null, coverNotEnglish: true }
 }
 
+// Google titles often carry shop marketing: "Dog Man: From the Creator of Captain Underpants (Dog Man #1), 1" → "Dog Man"
+function cleanTitle(t: string): string {
+  return t
+    .replace(/\s*\([^)]*#\s*\d+[^)]*\)/g, '')                 // (Dog Man #1)
+    .replace(/:\s*(?:a graphic novel|from the creator of [^:(]*|the [a-z ]*bestseller[^:(]*)/gi, '')
+    .replace(/,\s*\d+\s*$/, '')                               // trailing ", 1"
+    .replace(/\s+/g, ' ').replace(/[\s:,]+$/, '').trim()
+}
+
+// The number of a book in its series, read from the title only (e.g. "(Dog Man #1)", "Dog Man 13: Big Jim Begins", "Book 3").
+// Never guessed: if the title doesn't say, it stays empty for the team to fill in.
+function numberFromTitle(title: string, seriesName?: string | null): number | null {
+  const t = title || ''
+  const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const patterns = [
+    /#\s*(\d{1,3})\b/,
+    /\b(?:book|volume|vol\.?|no\.?|number|part|episode)\s*(\d{1,3})\b/i,
+    ...(seriesName ? [new RegExp('^' + esc(seriesName) + '\\s+(\\d{1,3})\\b', 'i')] : []),
+  ]
+  for (const p of patterns) { const m = t.match(p); if (m) return Number(m[1]) }
+  return null
+}
+
 async function enrichWithClaude(book: ReturnType<typeof parseDoc> & { categoryNames?: string[]; googleAuthors?: string[]; byStatement?: string }, apiKey: string): Promise<{ result: any; error?: string }> {
   try {
     const client = new Anthropic({ apiKey })
@@ -150,7 +173,6 @@ Return ONLY valid JSON (no markdown, no other text):
   "non_fiction": false,
   "series_name": "main series name or null",
   "sub_series_name": "sub-series name or null",
-  "book_number": 1,
   "age_min": 7,
   "age_max": 10,
   "illustrator": "the illustrator's name if the credits above name one; if not, the illustrator of this book when it is a well-known, certain pairing (e.g. David Walliams → Tony Ross, Roald Dahl → Quentin Blake, Julia Donaldson picture books → Axel Scheffler or whoever illustrated this title). Null if you are not certain"
@@ -160,7 +182,9 @@ Return ONLY valid JSON (no markdown, no other text):
     if (msg.stop_reason === 'refusal') return { result: null, error: 'The AI declined this book — fill the details in by hand' }
     const raw = ((msg.content.find((b: any) => b.type === 'text')?.text || '') as string).trim()
     const text = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '')
-    return { result: JSON.parse(text) }
+    const result = JSON.parse(text)
+    result.book_number = numberFromTitle((book as any).fullTitle || book.title, result.series_name)   // never the AI's guess
+    return { result }
   } catch (e: any) {
     return { result: null, error: e?.message || String(e) }
   }
@@ -179,7 +203,7 @@ export async function POST(req: NextRequest) {
     book.description = await fetchDescription(volumeId)
     Object.assign(book, await editionDetails(book.isbn))
     if (book.publisherBlurb) book.description = book.publisherBlurb
-    if (book.googleTitle) book.title = book.googleTitle
+    if (book.googleTitle) { book.fullTitle = book.googleTitle; book.title = cleanTitle(book.googleTitle) || book.googleTitle }
     if (!book.author && book.googleAuthors?.length) book.author = book.googleAuthors.slice(0, 2).join(', ')
     if (!book.pageCount && book.googlePageCount) book.pageCount = book.googlePageCount
     // cover (this edition only, English only) is checked while the AI writes the details
@@ -207,12 +231,13 @@ export async function POST(req: NextRequest) {
   // ISBN or single result → enrich immediately
   if (isIsbn || docs.length === 1) {
     const book: any = { ...parseDoc(docs[0]), categoryNames: categoryNames || [] }
+    if (isIsbn) book.isbn = String(query).replace(/[^0-9X]/gi, '')
     book.description = book.volumeId ? await fetchDescription(book.volumeId) : ''
     Object.assign(book, await editionDetails(isIsbn ? query : book.isbn))
     if (!book.title && !book.googleTitle) return NextResponse.json({ results: [] })
     if (!book.subjects.length && book.googleCategories?.length) book.subjects = book.googleCategories
     if (book.publisherBlurb) book.description = book.publisherBlurb
-    if (book.googleTitle) book.title = book.googleTitle
+    if (book.googleTitle) { book.fullTitle = book.googleTitle; book.title = cleanTitle(book.googleTitle) || book.googleTitle }
     if (!book.author && book.googleAuthors?.length) book.author = book.googleAuthors.slice(0, 2).join(', ')
     if (!book.pageCount && book.googlePageCount) book.pageCount = book.googlePageCount
     // cover (this edition only, English only) is checked while the AI writes the details
