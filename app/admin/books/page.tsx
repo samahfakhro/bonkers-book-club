@@ -209,6 +209,7 @@ export default function AdminBooksPage() {
   const [fetchResults, setFetchResults] = useState<any[]>([])
   const [fetchedCoverBase64, setFetchedCoverBase64] = useState<string | null>(null)
   const [coverMayBeOther, setCoverMayBeOther] = useState(false)   // cover found only for a different edition (could be another language)
+  const [justAdded, setJustAdded] = useState<{ id: string; title: string; code: string | null } | null>(null)   // confirmation after Add Book
   const [descNeedsCheck, setDescNeedsCheck] = useState(false)   // the AI had too little to go on for the description
 
   // ── Load ───────────────────────────────────────────────────────────────────
@@ -306,6 +307,7 @@ export default function AdminBooksPage() {
   }
 
   function openBook(book: Book) {
+    setJustAdded(null)
     if (selectedBook?.id === book.id && panelMode === 'detail') {
       closePanel(); return
     }
@@ -482,6 +484,7 @@ export default function AdminBooksPage() {
   }
 
   function applyFetchedBook(book: any, enrichment: any) {
+    setError(null)
     setDescNeedsCheck(!!enrichment?.description_needs_check || !enrichment?.description || !book?.publisherBlurb)   // no publisher blurb = less reliable
     setFetchResults([])
 
@@ -548,6 +551,7 @@ export default function AdminBooksPage() {
   // ── Add book ───────────────────────────────────────────────────────────────
 
   async function handleAddBook() {
+    if (fetchLoading) { setError('Still looking the book up. One moment, then add it.'); return }
     if (!addForm.title.trim() || !addForm.author.trim()) { setError('Title and author are required.'); return }
     const same = bookWithIsbn(addForm.isbn)
     if (same && !allowDuplicate) { setError(`"${same.title}" with this ISBN is already in the library — open it and add a copy instead, or tick "Add as a new book anyway".`); return }
@@ -653,7 +657,8 @@ export default function AdminBooksPage() {
     setBooks(prev => [...prev, finalBook].sort((a, b) => a.title.localeCompare(b.title)))
     if (newCopy) setCopies(prev => ({ ...prev, [newBook.id]: [newCopy] }))
 
-    // Open new book in detail panel
+    // Open new book in detail panel, with a clear "added" message
+    setJustAdded({ id: finalBook.id, title: finalBook.title, code: newCopy?.internal_id ?? null })
     setSelectedBook(finalBook)
     setPanelMode('detail')
     setExpandedCopyId(null)
@@ -1138,7 +1143,7 @@ export default function AdminBooksPage() {
                     Add as a new book anyway (only for a genuinely different edition)
                   </label>
                 )}
-                <Btn onClick={handleAddBook} disabled={addingBook}>{addingBook ? 'Adding…' : 'Add Book'}</Btn>
+                <Btn onClick={handleAddBook} disabled={addingBook || fetchLoading}>{addingBook ? 'Adding…' : fetchLoading ? 'Looking it up…' : 'Add Book'}</Btn>
               </div>
             )}
 
@@ -1146,6 +1151,12 @@ export default function AdminBooksPage() {
             {panelMode === 'detail' && selectedBook && detailsForm && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '620px' }}>
 
+                {justAdded?.id === selectedBook.id && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', padding: '10px 12px', borderRadius: '8px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: '13px', color: '#166534' }}>
+                    <span style={{ flex: 1 }}>✓ <strong>{justAdded.title}</strong> added{justAdded.code ? ` with copy ${justAdded.code}` : ''}.</span>
+                    <Btn onClick={() => { setJustAdded(null); setSelectedBook(null); setPanelMode('add') }} style={{ fontSize: '12px', padding: '6px 12px' }}>+ Add the next book</Btn>
+                  </div>
+                )}
                 {/* Cover + uploads */}
                 <div style={{ display: 'flex', gap: '16px' }}>
                   <div style={{ width: '72px', height: '108px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, backgroundColor: '#e8e8e8', position: 'relative' }}>
