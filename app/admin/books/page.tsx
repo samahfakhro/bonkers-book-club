@@ -180,6 +180,8 @@ export default function AdminBooksPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [suggestions, setSuggestions] = useState<{ isbn: string; title: string; author: string; year: string; publisher: string; thumbnail: string }[]>([])
+  const [suggestOpen, setSuggestOpen] = useState(false)
   const [onlyNoAsset, setOnlyNoAsset] = useState(false)   // book list: just the books without an approved collectible
   const [onlyNoCover, setOnlyNoCover] = useState(false)   // book list: just the books still missing a cover
   const [sortNewest, setSortNewest] = useState(false)   // book list: A–Z or newest first
@@ -338,6 +340,23 @@ export default function AdminBooksPage() {
     const c = cleanIsbn(isbn)
     return c.length >= 10 ? books.find(b => cleanIsbn(b.isbn || '') === c) ?? null : null
   }
+  // title suggestions while typing (not for ISBNs): Google Books, English editions only
+  useEffect(() => {
+    const q = fetchQuery.trim()
+    if (q.length < 3 || /^\d[\d\-]*$/.test(q)) { setSuggestions([]); return }
+    let cancelled = false
+    const t = setTimeout(async () => {
+      const r = await fetch('/api/admin/book-suggest?q=' + encodeURIComponent(q)).then(x => x.json()).catch(() => ({ results: [] }))
+      if (!cancelled) setSuggestions(r.results || [])
+    }, 400)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [fetchQuery])
+
+  function pickSuggestion(isbn: string) {
+    setSuggestOpen(false); setSuggestions([]); setFetchQuery(isbn)
+    lookUpOrOpen(isbn, true)
+  }
+
   function lookUpOrOpen(q: string, isIsbn: boolean) {
     const existing = isIsbn ? bookWithIsbn(q) : null
     if (existing) {
@@ -1004,14 +1023,30 @@ export default function AdminBooksPage() {
                 {/* Search bar */}
                 <div style={{ backgroundColor: '#f7f7f7', borderRadius: '10px', padding: '14px' }}>
                   <label style={lbl}>Search by title or ISBN</label>
-                  <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '4px', position: 'relative' }}>
                     <input
                       style={{ ...inp, flex: 1 }}
                       placeholder="e.g. Harry Potter or 9780747532699"
                       value={fetchQuery}
-                      onChange={e => setFetchQuery(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && fetchQuery.trim()) { const q = fetchQuery.trim(); lookUpOrOpen(q, /^\d[\d\-]{8,}$/.test(q)) } }}
+                      onChange={e => { setFetchQuery(e.target.value); setSuggestOpen(true) }}
+                      onFocus={() => setSuggestOpen(true)}
+                      onBlur={() => setTimeout(() => setSuggestOpen(false), 200)}
+                      onKeyDown={e => { if (e.key === 'Escape') setSuggestOpen(false); if (e.key === 'Enter' && fetchQuery.trim()) { setSuggestOpen(false); const q = fetchQuery.trim(); lookUpOrOpen(q, /^\d[\d\-]{8,}$/.test(q)) } }}
                     />
+                    {suggestOpen && suggestions.length > 0 && !fetchLoading && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px', zIndex: 50, backgroundColor: '#fff', border: '1px solid #e5e5e5', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '420px', overflowY: 'auto' }}>
+                        {suggestions.map(sg => (
+                          <button key={sg.isbn} type="button" onMouseDown={e => e.preventDefault()} onClick={() => pickSuggestion(sg.isbn)}
+                            style={{ display: 'flex', gap: '10px', alignItems: 'center', width: '100%', padding: '8px 10px', border: 'none', borderBottom: '1px solid #f0f0f0', backgroundColor: '#fff', cursor: 'pointer', textAlign: 'left' }}>
+                            {sg.thumbnail ? <img src={sg.thumbnail} alt="" style={{ width: '30px', height: '45px', objectFit: 'cover', borderRadius: '3px', flexShrink: 0 }} /> : <div style={{ width: '30px', height: '45px', borderRadius: '3px', backgroundColor: '#eee', flexShrink: 0 }} />}
+                            <div style={{ minWidth: 0 }}>
+                              <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#1a1a1a' }}>{sg.title}</p>
+                              <p style={{ margin: '1px 0 0', fontSize: '12px', color: '#6b6b6b' }}>{[sg.author, sg.year, sg.publisher].filter(Boolean).join(' · ')}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <Btn variant="secondary" onClick={() => setScanFor('isbn')}>📷 Scan</Btn>
                     <Btn
                       onClick={() => { const q = fetchQuery.trim(); if (q) lookUpOrOpen(q, /^\d[\d\-]{8,}$/.test(q)) }}

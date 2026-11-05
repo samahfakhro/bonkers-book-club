@@ -42,8 +42,8 @@ function prettyDate(d: string | undefined | null): string {
 }
 const flipName = (n: string) => { const p = n.replace(/,?\s*ill(ustrator)?\.?$/i, '').split(',').map(x => x.trim()).filter(Boolean); return p.length === 2 ? `${p[1]} ${p[0]}` : p.join(' ') }
 
-async function editionDetails(isbn: string): Promise<{ publisher: string; publicationDate: string; illustrator: string; googleAuthors: string[]; byStatement: string; publisherBlurb: string; googleCoverUrl: string }> {
-  const out = { publisher: '', publicationDate: '', illustrator: '', googleAuthors: [] as string[], byStatement: '', publisherBlurb: '', googleCoverUrl: '' }
+async function editionDetails(isbn: string): Promise<{ publisher: string; publicationDate: string; illustrator: string; googleAuthors: string[]; byStatement: string; publisherBlurb: string; googleCoverUrl: string; googleTitle: string; googlePageCount: number | null; googleCategories: string[] }> {
+  const out = { publisher: '', publicationDate: '', illustrator: '', googleAuthors: [] as string[], byStatement: '', publisherBlurb: '', googleCoverUrl: '', googleTitle: '', googlePageCount: null as number | null, googleCategories: [] as string[] }
   const clean = (isbn || '').replace(/[^0-9X]/gi, '')
   if (!clean) return out
   const key = process.env.GOOGLE_GEOCODING_KEY
@@ -54,7 +54,11 @@ async function editionDetails(isbn: string): Promise<{ publisher: string; public
   const v = g?.items?.[0]?.volumeInfo
   out.publisher = v?.publisher || ol?.publishers?.[0] || ''
   out.publicationDate = prettyDate(v?.publishedDate || ol?.publish_date)
-  out.googleAuthors = v?.authors || []
+  out.googleAuthors = ((v?.authors || []) as string[]).filter(a => !/fictitious character/i.test(a))
+  // Google's title for this edition is usually the full one (e.g. "Dog Man 5: Lord of the Fleas"); Open Library often has just the series name
+  out.googleTitle = v?.title ? [v.title, v.subtitle].filter(Boolean).join(': ').replace(/\s+(PB|HB)$/i, '') : ''
+  out.googlePageCount = v?.pageCount || null
+  out.googleCategories = v?.categories || []
   // Google's description is usually the publisher's back-cover blurb — the most reliable description we can get
   out.publisherBlurb = (v?.description || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
   // the cover of THIS edition from Google, and only when Google lists the edition as English
@@ -175,6 +179,9 @@ export async function POST(req: NextRequest) {
     book.description = await fetchDescription(volumeId)
     Object.assign(book, await editionDetails(book.isbn))
     if (book.publisherBlurb) book.description = book.publisherBlurb
+    if (book.googleTitle) book.title = book.googleTitle
+    if (!book.author && book.googleAuthors?.length) book.author = book.googleAuthors.slice(0, 2).join(', ')
+    if (!book.pageCount && book.googlePageCount) book.pageCount = book.googlePageCount
     // cover (this edition only, English only) is checked while the AI writes the details
     const [{ coverBase64, coverNotEnglish }, { result: enrichment, error: claudeError }] = await Promise.all([
       findCover(book, apiKey),
@@ -194,14 +201,20 @@ export async function POST(req: NextRequest) {
   const data = await res.json()
   const docs: any[] = data.docs || []
 
+  if (docs.length === 0 && isIsbn) docs.push({ key: '', title: '', author_name: [], isbn: [String(query).replace(/[^0-9X]/gi, '')], subject: [] })
   if (docs.length === 0) return NextResponse.json({ results: [] })
 
   // ISBN or single result → enrich immediately
   if (isIsbn || docs.length === 1) {
     const book: any = { ...parseDoc(docs[0]), categoryNames: categoryNames || [] }
-    book.description = await fetchDescription(book.volumeId)
+    book.description = book.volumeId ? await fetchDescription(book.volumeId) : ''
     Object.assign(book, await editionDetails(isIsbn ? query : book.isbn))
+    if (!book.title && !book.googleTitle) return NextResponse.json({ results: [] })
+    if (!book.subjects.length && book.googleCategories?.length) book.subjects = book.googleCategories
     if (book.publisherBlurb) book.description = book.publisherBlurb
+    if (book.googleTitle) book.title = book.googleTitle
+    if (!book.author && book.googleAuthors?.length) book.author = book.googleAuthors.slice(0, 2).join(', ')
+    if (!book.pageCount && book.googlePageCount) book.pageCount = book.googlePageCount
     // cover (this edition only, English only) is checked while the AI writes the details
     const [{ coverBase64, coverNotEnglish }, { result: enrichment, error: claudeError }] = await Promise.all([
       findCover(book, apiKey),
