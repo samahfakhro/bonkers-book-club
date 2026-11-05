@@ -31,6 +31,7 @@ Good examples:
 Rules:
 - ONE simple subject a child instantly recognises from the cover or title. Keep it simple: no scenes, no clever concepts.
 - Take the IDEA, never the exact character: never reproduce the illustrator's character design, a named copyrighted character or the cover artwork. A generic version is perfect (a penguin, a naughty child, a dragon), with its own personality.
+- ONE NOD ALLOWED: you may keep a single simple, generic detail from a cover character so children make the link, e.g. a big pink bow, round glasses, a crown, red wellies, a stripy jumper. Everything else (face, hair, body, outfit, pose) must be newly invented. Never combine several of the character's features, never its name, and never a famous character (Gruffalo, Dog Man, Peppa Pig and the like), even with changes.
 - Give it a touch of humour or personality in pose and expression.
 - If the curator gives a suggestion, use it as the subject.
 
