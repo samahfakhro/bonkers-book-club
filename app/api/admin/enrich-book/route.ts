@@ -76,9 +76,14 @@ async function fetchCoverBase64(coverId: number): Promise<string | null> {
 async function enrichWithClaude(book: ReturnType<typeof parseDoc> & { categoryNames?: string[]; googleAuthors?: string[]; byStatement?: string }, apiKey: string): Promise<{ result: any; error?: string }> {
   try {
     const client = new Anthropic({ apiKey })
-    const msg = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 600,
+    // Claude Opus 5.5 at low effort: richer, more accurate descriptions; thinking is always on, so leave room in max_tokens.
+    // If a safety check ever declines the request, "fallbacks: default" lets the API retry it on a suitable model.
+    const msg: any = await (client.beta.messages.create as any)({
+      model: 'claude-opus-5-5',
+      max_tokens: 8000,
+      output_config: { effort: 'low' },
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
       messages: [{
         role: 'user',
         content: `You are cataloguing children's books for a library called The Curious Library.
@@ -98,7 +103,7 @@ Examples: a shark facts book = Animals + Facts. A planets book = Science + Facts
 
 Return ONLY valid JSON (no markdown, no other text):
 {
-  "description": "2-3 sentences written FOR KIDS to read themselves (simple words, warm and exciting, speaking to the child): what the book is about and what makes it fun. Use ONLY facts from the description and subjects above — never invent characters, names, events or endings, and no spoilers. If there is too little information, write one short, safe sentence instead and set description_needs_check to true",
+  "description": "2-3 sentences written FOR KIDS to read themselves (simple words, warm and exciting, speaking to the child): what the book is about and what makes it fun. Base it on the description and subjects above; you may add a fun, specific detail (e.g. a character's name or a funny situation) ONLY if you are certain it is true of this exact book. Never invent characters, names, events or endings, and no spoilers. If there is too little information, write one short, safe sentence instead and set description_needs_check to true",
   "description_needs_check": false,
   "tags": ["up to 8 short discovery tags like dragons, friendship, funny, adventure"],
   "book_type": "one of: Picture Book, Board Book, Flap Book, Early Reader, Chapter Book, Illustrated Book, Graphic Novel, Novel — the FORMAT only, or null",
@@ -110,11 +115,12 @@ Return ONLY valid JSON (no markdown, no other text):
   "book_number": 1,
   "age_min": 7,
   "age_max": 10,
-  "illustrator": "the illustrator's name ONLY if you are certain (e.g. the credits above name one, or it is a famous pairing like Julia Donaldson and Axel Scheffler) — otherwise null"
+  "illustrator": "the illustrator's name if the credits above name one; if not, the illustrator of this book when it is a well-known, certain pairing (e.g. David Walliams → Tony Ross, Roald Dahl → Quentin Blake, Julia Donaldson picture books → Axel Scheffler or whoever illustrated this title). Null if you are not certain"
 }`,
       }],
     })
-    const raw = ((msg.content[0] as any).text as string).trim()
+    if (msg.stop_reason === 'refusal') return { result: null, error: 'The AI declined this book — fill the details in by hand' }
+    const raw = ((msg.content.find((b: any) => b.type === 'text')?.text || '') as string).trim()
     const text = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '')
     return { result: JSON.parse(text) }
   } catch (e: any) {
