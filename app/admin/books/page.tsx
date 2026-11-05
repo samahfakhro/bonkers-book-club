@@ -109,6 +109,27 @@ async function labelInUse(code: string): Promise<boolean> {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+// A book cover thumbnail that shows a big version beside it while the mouse is over it (computers only; touch screens ignore it).
+function HoverCover({ src }: { src: string }) {
+  const [box, setBox] = useState<DOMRect | null>(null)
+  const canHover = typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches
+  const W = 300, H = 450
+  const pos = box && {
+    left: box.right + 16 + W < window.innerWidth ? box.right + 16 : Math.max(8, box.left - 16 - W),
+    top: Math.min(Math.max(8, box.top + box.height / 2 - H / 2), window.innerHeight - H - 8),
+  }
+  return (
+    <>
+      <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: canHover ? 'zoom-in' : undefined }}
+        onMouseEnter={e => canHover && setBox(e.currentTarget.getBoundingClientRect())} onMouseLeave={() => setBox(null)} />
+      {pos && (
+        <img src={src} alt="" style={{ position: 'fixed', left: pos.left, top: pos.top, width: W, height: H, objectFit: 'contain', zIndex: 1000, pointerEvents: 'none',
+          backgroundColor: '#fff', borderRadius: '10px', boxShadow: '0 12px 40px rgba(0,0,0,0.3)', border: '1px solid #e5e5e5' }} />
+      )}
+    </>
+  )
+}
+
 export default function AdminBooksPage() {
   const [books, setBooks] = useState<Book[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -876,7 +897,7 @@ export default function AdminBooksPage() {
                 }}
               >
                 <div style={{ width: '36px', height: '54px', borderRadius: '4px', overflow: 'hidden', flexShrink: 0, backgroundColor: '#e8e8e8' }}>
-                  {book.cover_image_url && <img src={book.cover_image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                  {book.cover_image_url && <HoverCover src={book.cover_image_url} />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#1a1a1a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{book.title}</p>
@@ -1124,7 +1145,7 @@ export default function AdminBooksPage() {
                 {/* Cover + uploads */}
                 <div style={{ display: 'flex', gap: '16px' }}>
                   <div style={{ width: '72px', height: '108px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, backgroundColor: '#e8e8e8', position: 'relative' }}>
-                    {selectedBook.cover_image_url && <img src={selectedBook.cover_image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                    {selectedBook.cover_image_url && <HoverCover src={selectedBook.cover_image_url} />}
                     {uploadingCoverFor === selectedBook.id && (
                       <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px' }}>…</div>
                     )}
