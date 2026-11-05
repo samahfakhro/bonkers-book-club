@@ -109,22 +109,23 @@ async function labelInUse(code: string): Promise<boolean> {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-// A book cover thumbnail that shows a big version beside it while the mouse is over it (computers only; touch screens ignore it).
-function HoverCover({ src }: { src: string }) {
+// A thumbnail that shows a big version beside it while the mouse is over it (computers only; touch screens ignore it).
+// Book covers by default; collectibles use the square, see-through version.
+function HoverCover({ src, square = false }: { src: string; square?: boolean }) {
   const [box, setBox] = useState<DOMRect | null>(null)
   const canHover = typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches
-  const W = 300, H = 450
+  const W = square ? 420 : 300, H = square ? 420 : 450
   const pos = box && {
     left: box.right + 16 + W < window.innerWidth ? box.right + 16 : Math.max(8, box.left - 16 - W),
     top: Math.min(Math.max(8, box.top + box.height / 2 - H / 2), window.innerHeight - H - 8),
   }
   return (
     <>
-      <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: canHover ? 'zoom-in' : undefined }}
+      <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: square ? 'contain' : 'cover', cursor: canHover ? 'zoom-in' : undefined }}
         onMouseEnter={e => canHover && setBox(e.currentTarget.getBoundingClientRect())} onMouseLeave={() => setBox(null)} />
       {pos && (
         <img src={src} alt="" style={{ position: 'fixed', left: pos.left, top: pos.top, width: W, height: H, objectFit: 'contain', zIndex: 1000, pointerEvents: 'none',
-          backgroundColor: '#fff', borderRadius: '10px', boxShadow: '0 12px 40px rgba(0,0,0,0.3)', border: '1px solid #e5e5e5' }} />
+          backgroundColor: square ? '#1a2f51' : '#fff', padding: square ? '16px' : 0, boxSizing: 'border-box', borderRadius: '10px', boxShadow: '0 12px 40px rgba(0,0,0,0.3)', border: '1px solid #e5e5e5' }} />
       )}
     </>
   )
@@ -1353,7 +1354,7 @@ export default function AdminBooksPage() {
                           {/* Collectible image */}
                           <div style={{ width: '80px', height: '80px', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#f7f0ff', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {book.collectible_image_url
-                              ? <img src={book.collectible_image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                              ? <HoverCover src={book.collectible_image_url} square />
                               : <span style={{ fontSize: '28px' }}>✦</span>}
                           </div>
 
