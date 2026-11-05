@@ -195,7 +195,9 @@ export default function AdminBooksPage() {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   // Collectible generation
-  const [generatingCollectibleFor, setGeneratingCollectibleFor] = useState<string | null>(null)
+  const [generatingCollectibleFor, setGeneratingCollectibleFor] = useState<Set<string>>(new Set())   // books with a collectible being made (several can run at once)
+  const startGenerating = (id: string) => setGeneratingCollectibleFor(prev => new Set(prev).add(id))
+  const stopGenerating = (id: string) => setGeneratingCollectibleFor(prev => { const n = new Set(prev); n.delete(id); return n })
   const [collectibleFeedback, setCollectibleFeedback] = useState('')
   const [showCollectibleFeedback, setShowCollectibleFeedback] = useState(false)
   const [collectibleCustomPrompt, setCollectibleCustomPrompt] = useState('')
@@ -700,7 +702,7 @@ export default function AdminBooksPage() {
   // ── Collectible generation ─────────────────────────────────────────────────
 
   async function generateCollectible(book: Book, mode: 'new' | 'retry' | 'revise', feedbackText?: string, customPrompt?: string) {
-    setGeneratingCollectibleFor(book.id)
+    startGenerating(book.id)
     setShowCollectibleFeedback(false)
     setCollectibleFeedback('')
     const res = await fetch('/api/admin/generate-collectible', {
@@ -729,15 +731,15 @@ export default function AdminBooksPage() {
         collectible_research: json.collectible_research ? JSON.stringify(json.collectible_research) : null,
       }
       setBooks(prev => prev.map(b => b.id === book.id ? updated : b))
-      setSelectedBook(updated)
+      setSelectedBook(prev => prev?.id === book.id ? updated : prev)
     } else {
       setError(`Collectible generation failed: ${json.error}`)
     }
-    setGeneratingCollectibleFor(null)
+    stopGenerating(book.id)
   }
 
   async function collectibleStepCall(book: Book, step: 'generate' | 'draw' | 'polish', extra: Record<string, unknown>) {
-    setCollectibleStep(step); setGeneratingCollectibleFor(book.id); setError(null)
+    setCollectibleStep(step); startGenerating(book.id); setError(null)
     try {
       const res = await fetch('/api/admin/generate-collectible', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -752,8 +754,8 @@ export default function AdminBooksPage() {
         collectible_version: json.collectible_version, collectible_source_moment: json.collectible_source_moment || null,
         collectible_research: json.collectible_research ? JSON.stringify(json.collectible_research) : book.collectible_research,
       }
-      setBooks(prev => prev.map(b => b.id === book.id ? updated : b)); setSelectedBook(updated)
-    } finally { setGeneratingCollectibleFor(null); setCollectibleStep(null) }
+      setBooks(prev => prev.map(b => b.id === book.id ? updated : b)); setSelectedBook(prev => prev?.id === book.id ? updated : prev)   // only if that book is still open
+    } finally { stopGenerating(book.id); setCollectibleStep(null) }
   }
 
   async function approveCollectible(bookId: string) {
@@ -1324,7 +1326,7 @@ export default function AdminBooksPage() {
 
                   {(() => {
                     const book = selectedBook
-                    const isGenerating = generatingCollectibleFor === book.id
+                    const isGenerating = generatingCollectibleFor.has(book.id)
                     const status = book.collectible_status
 
                     if (isGenerating) {
