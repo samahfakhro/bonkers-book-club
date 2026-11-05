@@ -23,6 +23,7 @@ type Book = {
   collectible_version: number | null; collectible_source_moment: string | null
   collectible_research: string | null
   collectible_fact_sheet?: string | null; collectible_notes?: string | null
+  collectible_kind?: string | null   // creature → hatches from an egg; thing → comes in a parcel
   collectible_options?: { collectible_name: string; concept: string; lore: string; source_moment: string }[] | null
 }
 
@@ -227,7 +228,7 @@ export default function AdminBooksPage() {
       { data: bookData }, { data: catData }, { data: bcData },
       { data: levelData }, seriesRes, { data: copyData }, { data: brlData }
     ] = await Promise.all([
-      supabase.from('books').select('id, created_at, collectible_fact_sheet, collectible_notes, collectible_options, title, author, cover_image_url, discovery_asset_url, isbn, publisher, illustrator, publication_date, is_non_fiction, page_count, book_type, series_id, series_number, reading_level_id, search_tags, description, age_min, age_max, collectible_status, collectible_name, collectible_concept, collectible_lore, collectible_image_url, collectible_openai_response_id, collectible_version, collectible_source_moment, collectible_research').eq('is_active', true).order('title'),
+      supabase.from('books').select('id, created_at, collectible_kind, collectible_fact_sheet, collectible_notes, collectible_options, title, author, cover_image_url, discovery_asset_url, isbn, publisher, illustrator, publication_date, is_non_fiction, page_count, book_type, series_id, series_number, reading_level_id, search_tags, description, age_min, age_max, collectible_status, collectible_name, collectible_concept, collectible_lore, collectible_image_url, collectible_openai_response_id, collectible_version, collectible_source_moment, collectible_research').eq('is_active', true).order('title'),
       supabase.from('categories').select('id, name').order('display_order'),
       supabase.from('book_categories').select('book_id, category_id'),
       supabase.from('reading_levels').select('id, name').order('display_order'),
@@ -1395,6 +1396,21 @@ export default function AdminBooksPage() {
                             </div>
                             {book.collectible_concept && <p style={{ margin: '0 0 3px', fontSize: '12px', color: '#4a4a4a', lineHeight: 1.4 }}>{book.collectible_concept}</p>}
                             {book.collectible_lore && <p style={{ margin: 0, fontSize: '11px', color: '#9b9b9b', fontStyle: 'italic' }}>"{book.collectible_lore}"</p>}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', fontSize: '11px', color: '#6b6b6b' }}>
+                              Arrives in:
+                              {(['creature', 'thing'] as const).map(k => {
+                                const on = (book.collectible_kind || 'thing') === k
+                                return (
+                                  <button key={k} type="button" onClick={async () => {
+                                    await fetch('/api/admin/books', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: book.id, collectible_kind: k }) })
+                                    setBooks(prev => prev.map(b => b.id === book.id ? { ...b, collectible_kind: k } : b))
+                                    setSelectedBook(prev => prev?.id === book.id ? { ...prev, collectible_kind: k } : prev)
+                                  }} style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '999px', cursor: 'pointer', border: '1px solid ' + (on ? '#7c3aed' : '#e5e5e5'), backgroundColor: on ? '#ede9fe' : '#fff', color: on ? '#7c3aed' : '#6b6b6b', fontWeight: on ? 700 : 400 }}>
+                                    {k === 'creature' ? '🥚 an egg' : '🎁 a parcel'}
+                                  </button>
+                                )
+                              })}
+                            </div>
                             {book.collectible_source_moment && (
                               <div style={{ marginTop: '8px', padding: '7px 10px', backgroundColor: '#f9fafb', borderRadius: '6px', borderLeft: '3px solid #e5e5e5' }}>
                                 <p style={{ margin: '0 0 2px', fontSize: '10px', fontWeight: 700, color: '#9b9b9b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Source moment</p>

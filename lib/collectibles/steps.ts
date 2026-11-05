@@ -12,7 +12,7 @@ export function openai() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 }
 
-export type Idea = { collectible_name: string; concept: string; lore: string; source_moment: string }
+export type Idea = { collectible_name: string; concept: string; lore: string; source_moment: string; kind?: 'creature' | 'thing' }
 
 export async function bookForCollectible(bookId: string) {
   const { data } = await supabaseAdmin().from('books')
@@ -36,7 +36,7 @@ Rules:
 - If the curator gives a suggestion, use it as the subject.
 
 Reply with ONLY this JSON:
-{ "collectible_name": "short fun name, 2–4 words", "concept": "one or two sentences describing exactly what to draw: the subject, its pose, expression and a detail or two", "lore": "one short deadpan line", "source_moment": "what on the cover or in the title it comes from" }`
+{ "collectible_name": "short fun name, 2–4 words", "concept": "one or two sentences describing exactly what to draw: the subject, its pose, expression and a detail or two", "lore": "one short deadpan line", "source_moment": "what on the cover or in the title it comes from", "kind": "creature if it is an animal or creature (dragons, monsters, robots with faces count), otherwise thing (objects AND people)" }`
 
 // pick the subject from the cover + title (or the curator's own suggestion)
 export async function pickFromCover(bookId: string, suggestion: string): Promise<Idea> {
@@ -62,5 +62,5 @@ export async function pickFromCover(bookId: string, suggestion: string): Promise
   let idea: any = null
   try { idea = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1)) } catch { /* handled below */ }
   if (!idea?.collectible_name || !idea?.concept) throw new Error('No idea came back. Try again.')
-  return { collectible_name: idea.collectible_name, concept: idea.concept, lore: idea.lore || '', source_moment: idea.source_moment || '' }
+  return { collectible_name: idea.collectible_name, concept: idea.concept, lore: idea.lore || '', source_moment: idea.source_moment || '', kind: idea.kind === 'creature' ? 'creature' : 'thing' }
 }

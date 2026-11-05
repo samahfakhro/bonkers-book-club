@@ -124,6 +124,7 @@ async function drawIdea(bookId: string, idea: Idea, direction: string, quality: 
       collectible_openai_response_id: null, collectible_generated_at: new Date().toISOString(),
       collectible_name: idea.collectible_name, collectible_concept: idea.concept, collectible_lore: idea.lore || null,
       collectible_source_moment: idea.source_moment || null, collectible_image_url: imageUrl,
+      ...(idea.kind ? { collectible_kind: idea.kind } : {}),   // egg (creature) or parcel (thing) when a child unlocks it
       collectible_prompt: prompt.slice(0, 2000),
     }
     await sb.from('books').update(update).eq('id', bookId)
