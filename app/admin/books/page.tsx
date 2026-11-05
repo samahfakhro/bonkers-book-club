@@ -180,6 +180,7 @@ export default function AdminBooksPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [onlyNoAsset, setOnlyNoAsset] = useState(false)   // book list: just the books without an approved collectible
   const [onlyNoCover, setOnlyNoCover] = useState(false)   // book list: just the books still missing a cover
   const [sortNewest, setSortNewest] = useState(false)   // book list: A–Z or newest first
   const [saving, setSaving] = useState<string | null>(null)
@@ -874,7 +875,7 @@ export default function AdminBooksPage() {
   }
 
   const filtered = books.filter(b =>
-    (!onlyNoCover || !b.cover_image_url) && (
+    (!onlyNoCover || !b.cover_image_url) && (!onlyNoAsset || b.collectible_status !== 'approved') && (
     b.title.toLowerCase().includes(search.toLowerCase()) ||
     b.author.toLowerCase().includes(search.toLowerCase()))
   ).sort((a, b) => sortNewest ? (b.created_at || '').localeCompare(a.created_at || '') : a.title.localeCompare(b.title))
@@ -911,6 +912,10 @@ export default function AdminBooksPage() {
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', fontSize: '12px', color: '#4a4a4a', cursor: 'pointer' }}>
             <input type="checkbox" checked={onlyNoCover} onChange={e => setOnlyNoCover(e.target.checked)} />
             Only books without a cover ({books.filter(b => !b.cover_image_url).length})
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', fontSize: '12px', color: '#4a4a4a', cursor: 'pointer' }}>
+            <input type="checkbox" checked={onlyNoAsset} onChange={e => setOnlyNoAsset(e.target.checked)} />
+            Only books without an approved collectible ({books.filter(b => b.collectible_status !== 'approved').length})
           </label>
         </div>
         {/* Error bar */}
