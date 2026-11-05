@@ -173,6 +173,8 @@ export default function AdminBooksPage() {
   const [addingCopyOf, setAddingCopyOf] = useState<string | null>(null)   // book opened because its ISBN was scanned again
   const [allowDuplicate, setAllowDuplicate] = useState(false)            // "add as a new book anyway"
   const copyLabelRef = useRef<HTMLInputElement>(null)
+  // the side panel always opens at the top (after adding a book, opening one, or starting a new one)
+  const panelScrollRef = useRef<HTMLDivElement>(null)
 
   // Add form
   const [addForm, setAddForm] = useState({ title: '', author: '', isbn: '', publisher: '', illustrator: '', publication_date: '', is_non_fiction: false, page_count: '', book_type: '', series_number: '', reading_level_id: '', tags: '', description: '', age_min: '', age_max: '' })
@@ -305,6 +307,8 @@ export default function AdminBooksPage() {
     }
     fetchBookInfo(q, isIsbn, undefined)
   }
+
+  useEffect(() => { panelScrollRef.current?.scrollTo({ top: 0 }) }, [selectedBook?.id, panelMode])
 
   function openBook(book: Book) {
     setJustAdded(null)
@@ -932,7 +936,7 @@ export default function AdminBooksPage() {
             <button onClick={closePanel} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.4rem', color: '#9b9b9b', padding: 0, lineHeight: 1, display: 'flex', alignItems: 'center' }}>×</button>
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+          <div ref={panelScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
 
             {scanFor && (
               <EnvelopeScanner
