@@ -176,18 +176,10 @@ export default function AdminBooksPage() {
   const [collectibleFeedback, setCollectibleFeedback] = useState('')
   const [showCollectibleFeedback, setShowCollectibleFeedback] = useState(false)
   const [collectibleCustomPrompt, setCollectibleCustomPrompt] = useState('')
-  // 3-step collectibles: research → 3 ideas → draw
-  const [collectibleStep, setCollectibleStep] = useState<'research' | 'ideas' | 'draw' | 'polish' | null>(null)
-  const [factSheetDraft, setFactSheetDraft] = useState('')
-  const [curatorNotes, setCuratorNotes] = useState('')
-  const [bookPhotos, setBookPhotos] = useState<string[]>([])
-  const [ideaDirection, setIdeaDirection] = useState('')
-  const [drawDirection, setDrawDirection] = useState('')
-  useEffect(() => {
-    setFactSheetDraft(selectedBook?.collectible_fact_sheet || '')
-    setCuratorNotes(selectedBook?.collectible_notes || '')
-    setBookPhotos([]); setIdeaDirection(''); setDrawDirection('')
-  }, [selectedBook?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  // simple collectibles: one thing from the cover, redrawn
+  const [collectibleStep, setCollectibleStep] = useState<'generate' | 'draw' | 'polish' | null>(null)
+  const [collectibleSuggestion, setCollectibleSuggestion] = useState('')
+  useEffect(() => { setCollectibleSuggestion('') }, [selectedBook?.id])
 
   // Fetch / enrich
   const [fetchQuery, setFetchQuery] = useState('')
@@ -712,24 +704,7 @@ export default function AdminBooksPage() {
     setGeneratingCollectibleFor(null)
   }
 
-  // photos of the actual book (back-cover blurb, a favourite page) → small JPEGs for the research step
-  async function addBookPhotos(files: FileList | null) {
-    const picked = Array.from(files || []).slice(0, 3 - bookPhotos.length)
-    const shrunk = await Promise.all(picked.map(file => new Promise<string>((resolve, reject) => {
-      const img = new Image()
-      img.onload = () => {
-        const scale = Math.min(1, 1400 / Math.max(img.width, img.height))
-        const c = document.createElement('canvas'); c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale)
-        c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height)
-        resolve(c.toDataURL('image/jpeg', 0.82)); URL.revokeObjectURL(img.src)
-      }
-      img.onerror = reject
-      img.src = URL.createObjectURL(file)
-    })))
-    setBookPhotos(prev => [...prev, ...shrunk].slice(0, 3))
-  }
-
-  async function collectibleStepCall(book: Book, step: 'research' | 'ideas' | 'draw' | 'polish', extra: Record<string, unknown>) {
+  async function collectibleStepCall(book: Book, step: 'generate' | 'draw' | 'polish', extra: Record<string, unknown>) {
     setCollectibleStep(step); setGeneratingCollectibleFor(book.id); setError(null)
     try {
       const res = await fetch('/api/admin/generate-collectible', {
@@ -739,9 +714,7 @@ export default function AdminBooksPage() {
       const json = await res.json().catch(() => ({ error: 'The server took too long — try again.' }))
       if (!res.ok) { setError(`Collectible: ${json.error || 'something went wrong'}`); return }
       let updated: Book = book
-      if (step === 'research') { updated = { ...book, collectible_status: 'fact_sheet', collectible_fact_sheet: json.fact_sheet, collectible_research: JSON.stringify(json.sources || []), collectible_options: null, collectible_notes: curatorNotes }; setFactSheetDraft(json.fact_sheet) }
-      if (step === 'ideas') updated = { ...book, collectible_status: 'options', collectible_options: json.options, collectible_fact_sheet: factSheetDraft, collectible_notes: curatorNotes }
-      if (step === 'draw' || step === 'polish') updated = {
+      updated = {
         ...book, collectible_status: 'awaiting_approval', collectible_name: json.collectible_name, collectible_concept: json.collectible_concept,
         collectible_lore: json.collectible_lore, collectible_image_url: json.collectible_image_url, collectible_openai_response_id: json.collectible_openai_response_id,
         collectible_version: json.collectible_version, collectible_source_moment: json.collectible_source_moment || null,
@@ -1315,76 +1288,19 @@ export default function AdminBooksPage() {
                     const status = book.collectible_status
 
                     if (isGenerating) {
-                      return <p style={{ color: '#9b9b9b', fontSize: '13px', margin: 0 }}>{collectibleStep === 'research' ? 'Researching the book online… this can take up to 2 minutes' : collectibleStep === 'ideas' ? 'Thinking up 3 ideas… about 30 seconds' : collectibleStep === 'draw' ? 'Drawing it… about 20 seconds' : collectibleStep === 'polish' ? 'Polishing at high quality… about a minute' : 'Generating… this takes ~30 seconds'}</p>
+                      return <p style={{ color: '#9b9b9b', fontSize: '13px', margin: 0 }}>{collectibleStep === 'polish' ? 'Polishing at high quality… about a minute' : 'Making it… about 30 seconds'}</p>
                     }
 
-                    if (!status || status === 'generation_failed' || status === 'needs_book_context') {
+                    if (!status || status === 'generation_failed' || status === 'needs_book_context' || status === 'fact_sheet' || status === 'options') {
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <p style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 700, color: '#7c3aed' }}>Step 1 of 3 · Research the book</p>
-                          {status === 'generation_failed' && <p style={{ color: '#dc2626', fontSize: '12px', margin: 0 }}>Last attempt failed — try again.</p>}
-                          <p style={{ margin: 0, fontSize: '12px', color: '#6b6b6b', lineHeight: 1.5 }}>The AI looks the book up online and writes a fact sheet of what actually happens in it. You check it before any ideas are made.</p>
-                          <label style={lbl}>Your notes (optional) — you have the book in your hands</label>
-                          <textarea value={curatorNotes} onChange={e => setCuratorNotes(e.target.value)} rows={3} style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }}
-                            placeholder='e.g. "The funniest bit is when the dog eats the homework. Kids love the wobbly bridge."' />
-                          <label style={lbl}>Photos of the book (optional, up to 3) — back-cover blurb or a favourite page</label>
-                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                            {bookPhotos.map((p, i) => (
-                              <div key={i} style={{ position: 'relative' }}>
-                                <img src={p} alt="" style={{ width: '54px', height: '72px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e5e5e5' }} />
-                                <button onClick={() => setBookPhotos(prev => prev.filter((_, j) => j !== i))} style={{ position: 'absolute', top: '-6px', right: '-6px', width: '18px', height: '18px', borderRadius: '50%', border: 'none', background: '#1a1a1a', color: '#fff', fontSize: '11px', cursor: 'pointer', lineHeight: 1 }}>×</button>
-                              </div>
-                            ))}
-                            {bookPhotos.length < 3 && (
-                              <label style={{ fontSize: '12px', fontWeight: 600, color: '#1a2f51', border: '1px dashed #c7c7c7', borderRadius: '8px', padding: '10px 12px', cursor: 'pointer' }}>
-                                📷 Add photo
-                                <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={e => { addBookPhotos(e.target.files); e.target.value = '' }} />
-                              </label>
-                            )}
-                          </div>
-                          <Btn onClick={() => collectibleStepCall(book, 'research', { notes: curatorNotes, photos: bookPhotos })} style={{ alignSelf: 'flex-start' }}>Research this book</Btn>
-                        </div>
-                      )
-                    }
-
-                    if (status === 'fact_sheet') {
-                      return (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <p style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 700, color: '#7c3aed' }}>Step 2 of 3 · Check the fact sheet</p>
-                          <p style={{ margin: 0, fontSize: '12px', color: '#6b6b6b', lineHeight: 1.5 }}>Fix anything wrong and add anything missing — the ideas are built only from this.</p>
-                          <textarea value={factSheetDraft} onChange={e => setFactSheetDraft(e.target.value)} rows={16} style={{ ...inp, resize: 'vertical', fontFamily: 'inherit', fontSize: '12px', lineHeight: 1.5 }} />
-                          {(() => { try { const urls: string[] = JSON.parse(book.collectible_research || '[]'); return urls.length ? <div>{urls.map((u, i) => <a key={i} href={u} target="_blank" rel="noreferrer" style={{ display: 'block', fontSize: '10px', color: '#7c3aed', wordBreak: 'break-all', lineHeight: 1.4 }}>{u}</a>)}</div> : null } catch { return null } })()}
-                          <label style={lbl}>Your notes (optional)</label>
-                          <textarea value={curatorNotes} onChange={e => setCuratorNotes(e.target.value)} rows={2} style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }} />
-                          <label style={lbl}>Direction for the ideas (optional)</label>
-                          <input value={ideaDirection} onChange={e => setIdeaDirection(e.target.value)} style={inp} placeholder='e.g. "Something to do with the flying bathtub"' />
-                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                            <Btn onClick={() => collectibleStepCall(book, 'ideas', { factSheet: factSheetDraft, notes: curatorNotes, direction: ideaDirection })} disabled={!factSheetDraft.trim()}>Suggest 3 ideas</Btn>
-                            <Btn variant="secondary" onClick={() => collectibleStepCall(book, 'research', { notes: curatorNotes, photos: bookPhotos })}>↻ Research again</Btn>
-                          </div>
-                        </div>
-                      )
-                    }
-
-                    if (status === 'options') {
-                      return (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                          <p style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 700, color: '#7c3aed' }}>Step 3 of 3 · Pick an idea to draw</p>
-                          {(book.collectible_options || []).map((idea, i) => (
-                            <div key={i} style={{ border: '1px solid #e9e3fb', borderRadius: '10px', padding: '12px 14px', backgroundColor: '#fbfaff' }}>
-                              <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: 700, color: '#7c3aed' }}>{idea.collectible_name}</p>
-                              <p style={{ margin: '0 0 6px', fontSize: '12px', color: '#4a4a4a', lineHeight: 1.45 }}>{idea.concept}</p>
-                              {idea.lore && <p style={{ margin: '0 0 6px', fontSize: '11px', color: '#9b9b9b', fontStyle: 'italic' }}>"{idea.lore}"</p>}
-                              {idea.source_moment && <p style={{ margin: '0 0 8px', fontSize: '11px', color: '#6b6b6b', lineHeight: 1.4 }}><strong>From the book:</strong> {idea.source_moment}</p>}
-                              <Btn onClick={() => collectibleStepCall(book, 'draw', { idea, direction: drawDirection })} style={{ fontSize: '12px', padding: '6px 12px' }}>Draw this one</Btn>
-                            </div>
-                          ))}
-                          <label style={lbl}>Direction for the drawing (optional)</label>
-                          <input value={drawDirection} onChange={e => setDrawDirection(e.target.value)} style={inp} placeholder='e.g. "Warm sunset colours, make it wobbly"' />
-                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                            <Btn variant="secondary" onClick={() => collectibleStepCall(book, 'ideas', { factSheet: factSheetDraft || book.collectible_fact_sheet || '', notes: curatorNotes, direction: ideaDirection, more: true })}>↻ 3 different ideas</Btn>
-                            <Btn variant="secondary" onClick={() => setSelectedBook({ ...book, collectible_status: 'fact_sheet' })}>← Back to the fact sheet</Btn>
-                          </div>
+                          {status === 'generation_failed' && <p style={{ color: '#dc2626', fontSize: '12px', margin: 0 }}>Last attempt failed. Try again.</p>}
+                          <p style={{ margin: 0, fontSize: '12px', color: '#6b6b6b', lineHeight: 1.5 }}>The AI picks one simple thing from the cover and redraws it in the Curious style (about 30 seconds).</p>
+                          <label style={lbl}>Your idea (optional)</label>
+                          <input value={collectibleSuggestion} onChange={e => setCollectibleSuggestion(e.target.value)} style={inp}
+                            placeholder='e.g. "a mad penguin" or "a spoilt child picking its nose"'
+                            onKeyDown={e => { if (e.key === 'Enter') collectibleStepCall(book, 'generate', { suggestion: collectibleSuggestion }) }} />
+                          <Btn onClick={() => collectibleStepCall(book, 'generate', { suggestion: collectibleSuggestion })} style={{ alignSelf: 'flex-start' }}>Generate collectible</Btn>
                         </div>
                       )
                     }
@@ -1438,7 +1354,7 @@ export default function AdminBooksPage() {
                           {status === 'awaiting_approval' && (
                             <Btn onClick={() => approveCollectible(book.id)} style={{ backgroundColor: '#7c3aed', color: '#fff' }}>✓ Approve</Btn>
                           )}
-                          <Btn variant="secondary" onClick={() => (book.collectible_options || []).length ? setSelectedBook({ ...book, collectible_status: 'options' }) : generateCollectible(book, 'retry', undefined, collectibleCustomPrompt || undefined)} disabled={isGenerating}>↻ Pick another idea</Btn>
+                          <Btn variant="secondary" onClick={() => collectibleStepCall(book, 'generate', {})} disabled={isGenerating}>↻ Another idea</Btn>
                           <Btn variant="secondary" onClick={() => { setShowCollectibleFeedback(s => !s); setCollectibleFeedback('') }}>✦ Tweak This</Btn>
                           <Btn variant="secondary" onClick={() => collectibleStepCall(book, 'polish', {})}>✨ Polish (high quality)</Btn>
                           <Btn variant="secondary" onClick={() => rejectCollectible(book.id)} style={{ color: '#dc2626' }}>✕ Reject</Btn>

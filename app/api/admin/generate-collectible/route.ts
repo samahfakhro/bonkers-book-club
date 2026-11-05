@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js'
 import fs from 'fs'
 import path from 'path'
 import { BONKERS_BIBLE } from '@/lib/bonkers-bible'
-import { researchBook, suggestIdeas, bookDetails, type Idea } from '@/lib/collectibles/steps'
+import { pickFromCover, bookForCollectible, type Idea } from '@/lib/collectibles/steps'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -98,9 +98,8 @@ const DRAW_RULES = `Rules:
 
 async function drawIdea(bookId: string, idea: Idea, direction: string, quality: 'medium' | 'high' = 'medium') {
   const sb = getSupabaseAdmin()
-  const found = await bookDetails(bookId)
-  if (!found) throw new Error('Book not found')
-  const { book } = found
+  const book = await bookForCollectible(bookId)
+  if (!book) throw new Error('Book not found')
   const statusBefore = (await sb.from('books').select('collectible_status').eq('id', bookId).single()).data?.collectible_status
   await sb.from('books').update({ collectible_status: 'generating' }).eq('id', bookId)
   try {
@@ -132,10 +131,9 @@ async function drawIdea(bookId: string, idea: Idea, direction: string, quality: 
       ok: true, collectible_name: idea.collectible_name, collectible_concept: idea.concept, collectible_lore: idea.lore,
       collectible_source_moment: idea.source_moment, collectible_image_url: imageUrl, collectible_version: version,
       collectible_openai_response_id: null,
-      collectible_research: book.collectible_research ? JSON.parse(book.collectible_research) : [],
     }
   } catch (e) {
-    await sb.from('books').update({ collectible_status: statusBefore || 'options' }).eq('id', bookId)
+    await sb.from('books').update({ collectible_status: statusBefore === 'generating' ? null : statusBefore }).eq('id', bookId)
     throw e
   }
 }
@@ -152,13 +150,12 @@ export async function POST(req: NextRequest) {
 
     if (!bookId) return NextResponse.json({ error: 'bookId required' }, { status: 400 })
 
-    // ── The 3-step flow: research → 3 ideas → draw the chosen one ───────
-    const step: 'research' | 'ideas' | 'draw' | 'polish' | undefined = body.step
-    if (step === 'research') {
-      return NextResponse.json(await researchBook(bookId, String(body.notes || ''), (Array.isArray(body.photos) ? body.photos : []).filter((p: unknown) => typeof p === 'string' && p.startsWith('data:image/'))))
-    }
-    if (step === 'ideas') {
-      return NextResponse.json(await suggestIdeas(bookId, String(body.factSheet || ''), String(body.notes || ''), String(body.direction || ''), !!body.more))
+    // ── Simple collectibles: one thing from the cover, redrawn ───────────
+    const step: 'generate' | 'draw' | 'polish' | undefined = body.step
+    if (step === 'generate') {
+      // the AI picks one simple subject from the cover / title (or uses the curator's suggestion), then it's drawn
+      const idea = await pickFromCover(bookId, String(body.suggestion || ''))
+      return NextResponse.json(await drawIdea(bookId, idea, ''))
     }
     if (step === 'draw') {
       const idea: Idea | undefined = body.idea
