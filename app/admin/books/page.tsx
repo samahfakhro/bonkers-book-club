@@ -149,6 +149,9 @@ export default function AdminBooksPage() {
   const [addLabel, setAddLabel] = useState('')          // copy label for a new book (scanned or typed)
   const [copyLabel, setCopyLabel] = useState('')        // copy label for "+ Add copy"
   const [scanFor, setScanFor] = useState<'isbn' | 'addLabel' | 'copyLabel' | null>(null)
+  const [addingCopyOf, setAddingCopyOf] = useState<string | null>(null)   // book opened because its ISBN was scanned again
+  const [allowDuplicate, setAllowDuplicate] = useState(false)            // "add as a new book anyway"
+  const copyLabelRef = useRef<HTMLInputElement>(null)
 
   // Add form
   const [addForm, setAddForm] = useState({ title: '', author: '', isbn: '', publisher: '', illustrator: '', publication_date: '', is_non_fiction: false, page_count: '', book_type: '', series_number: '', reading_level_id: '', tags: '', description: '', age_min: '', age_max: '' })
@@ -271,6 +274,22 @@ export default function AdminBooksPage() {
   }
 
   // ── Book selection / panel ─────────────────────────────────────────────────
+
+  // a scanned ISBN that's already in the library → open that book, ready to scan the new copy's label (no lookup, no duplicate)
+  const cleanIsbn = (v: string) => (v || '').replace(/[^0-9X]/gi, '').toUpperCase()
+  function bookWithIsbn(isbn: string) {
+    const c = cleanIsbn(isbn)
+    return c.length >= 10 ? books.find(b => cleanIsbn(b.isbn || '') === c) ?? null : null
+  }
+  function lookUpOrOpen(q: string, isIsbn: boolean) {
+    const existing = isIsbn ? bookWithIsbn(q) : null
+    if (existing) {
+      openBook(existing); setAddingCopyOf(existing.id); setFetchQuery('')
+      setTimeout(() => copyLabelRef.current?.focus(), 300)
+      return
+    }
+    fetchBookInfo(q, isIsbn, undefined)
+  }
 
   function openBook(book: Book) {
     if (selectedBook?.id === book.id && panelMode === 'detail') {
@@ -515,6 +534,8 @@ export default function AdminBooksPage() {
 
   async function handleAddBook() {
     if (!addForm.title.trim() || !addForm.author.trim()) { setError('Title and author are required.'); return }
+    const same = bookWithIsbn(addForm.isbn)
+    if (same && !allowDuplicate) { setError(`"${same.title}" with this ISBN is already in the library — open it and add a copy instead, or tick "Add as a new book anyway".`); return }
     setAddingBook(true); setError(null)
 
     let seriesId: string | null = null
@@ -646,7 +667,7 @@ export default function AdminBooksPage() {
     setAddCoverFile(null); setAddAssetFile(null)
     if (addCoverRef.current) addCoverRef.current.value = ''
     if (addAssetRef.current) addAssetRef.current.value = ''
-    setFetchQuery(''); setFetchedCoverBase64(null); setFetchResults([]); setAddLabel('')
+    setFetchQuery(''); setFetchedCoverBase64(null); setFetchResults([]); setAddLabel(''); setAllowDuplicate(false)
     setAddLevelIds(new Set()); setAddCategoryIds(new Set())
     setAddCategoryIds(new Set())
     setAddingBook(false)
@@ -772,7 +793,7 @@ export default function AdminBooksPage() {
       .select('id, book_id, internal_id, status, created_at').single()
     if (e) { setError(`Add copy failed: ${e.message}`); setAddingCopy(false); return }
     setCopies(prev => ({ ...prev, [bookId]: [...(prev[bookId] || []), data] }))
-    setAddingCopy(false); setCopyLabel('')
+    setAddingCopy(false); setCopyLabel(''); setAddingCopyOf(null)
     // anyone waiting on this book (Notify Me) hears it's back
     fetch('/api/admin/notify-me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookIds: [bookId] }) }).catch(() => {})
   }
@@ -920,7 +941,7 @@ export default function AdminBooksPage() {
                 onCode={code => {
                   const target = scanFor
                   setScanFor(null)
-                  if (target === 'isbn') { setFetchQuery(code); fetchBookInfo(code, true, undefined) }
+                  if (target === 'isbn') { setFetchQuery(code); lookUpOrOpen(code, true) }
                   else if (target === 'addLabel') setAddLabel(code)
                   else setCopyLabel(code)
                 }} />
@@ -939,11 +960,11 @@ export default function AdminBooksPage() {
                       placeholder="e.g. Harry Potter or 9780747532699"
                       value={fetchQuery}
                       onChange={e => setFetchQuery(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && fetchQuery.trim()) { const q = fetchQuery.trim(); fetchBookInfo(q, /^\d[\d\-]{8,}$/.test(q), undefined) } }}
+                      onKeyDown={e => { if (e.key === 'Enter' && fetchQuery.trim()) { const q = fetchQuery.trim(); lookUpOrOpen(q, /^\d[\d\-]{8,}$/.test(q)) } }}
                     />
                     <Btn variant="secondary" onClick={() => setScanFor('isbn')}>📷 Scan</Btn>
                     <Btn
-                      onClick={() => { const q = fetchQuery.trim(); if (q) fetchBookInfo(q, /^\d[\d\-]{8,}$/.test(q), undefined) }}
+                      onClick={() => { const q = fetchQuery.trim(); if (q) lookUpOrOpen(q, /^\d[\d\-]{8,}$/.test(q)) }}
                       disabled={fetchLoading || !fetchQuery.trim()}
                     >
                       {fetchLoading ? 'Fetching…' : 'Fetch'}
@@ -1113,6 +1134,12 @@ export default function AdminBooksPage() {
                   <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#6b6b6b' }}>Left empty, the next free number is used — print that label afterwards.</p>
                 </div>
                 {error && <p style={{ color: '#dc2626', fontSize: '13px', margin: 0 }}>⚠ {error}</p>}
+                {bookWithIsbn(addForm.isbn) && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#6b6b6b', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={allowDuplicate} onChange={e => setAllowDuplicate(e.target.checked)} />
+                    Add as a new book anyway (only for a genuinely different edition)
+                  </label>
+                )}
                 <Btn onClick={handleAddBook} disabled={addingBook}>{addingBook ? 'Adding…' : 'Add Book'}</Btn>
               </div>
             )}
@@ -1439,11 +1466,16 @@ export default function AdminBooksPage() {
 
                 {/* Copies */}
                 <div>
+                  {addingCopyOf === selectedBook.id && (
+                    <div style={{ marginBottom: '12px', padding: '10px 12px', borderRadius: '8px', backgroundColor: '#fff7e6', border: '1px solid #f3d18a', fontSize: '13px', color: '#1a1a1a' }}>
+                      This book is already in the library. <strong>Scan the new copy's CUR label</strong> (or type it) and press Enter to add it.
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
                     <p style={{ ...secHead, marginBottom: 0, flex: 1 }}>
                       Copies ({(copies[selectedBook.id] || []).filter(c => c.status !== 'retired').length})
                     </p>
-                    <input style={{ ...inp, width: '150px', fontSize: '12px', padding: '5px 8px', marginRight: '6px' }} placeholder="CUR label" value={copyLabel}
+                    <input ref={copyLabelRef} style={{ ...inp, width: '150px', fontSize: '12px', padding: '5px 8px', marginRight: '6px', boxShadow: addingCopyOf === selectedBook.id ? '0 0 0 3px #fde68a' : undefined }} placeholder="CUR label" value={copyLabel}
                       onChange={e => setCopyLabel(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && copyLabel.trim()) addCopy(selectedBook.id) }} />
                     <Btn variant="secondary" onClick={() => setScanFor('copyLabel')} style={{ fontSize: '12px', padding: '5px 10px', marginRight: '6px' }}>📷</Btn>
                     <Btn variant="secondary" onClick={() => addCopy(selectedBook.id)} disabled={addingCopy} style={{ fontSize: '12px', padding: '5px 10px' }}>
