@@ -208,6 +208,7 @@ export default function AdminBooksPage() {
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [fetchResults, setFetchResults] = useState<any[]>([])
   const [fetchedCoverBase64, setFetchedCoverBase64] = useState<string | null>(null)
+  const [coverMayBeOther, setCoverMayBeOther] = useState(false)   // cover found only for a different edition (could be another language)
   const [descNeedsCheck, setDescNeedsCheck] = useState(false)   // the AI had too little to go on for the description
 
   // ── Load ───────────────────────────────────────────────────────────────────
@@ -510,6 +511,7 @@ export default function AdminBooksPage() {
     setAddSubSeriesName(enrichment?.sub_series_name || '')
     setAddSubSeriesNumber(enrichment?.sub_series_number ? String(enrichment.sub_series_number) : '')
     setFetchedCoverBase64(book.coverBase64 || null)
+    setCoverMayBeOther(!!book.coverMayBeOtherEdition)
 
     // Map Claude's reading level names to IDs
     const levelIds = new Set<string>(
@@ -993,7 +995,9 @@ export default function AdminBooksPage() {
                   {fetchedCoverBase64 && (
                     <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <img src={fetchedCoverBase64} alt="cover" style={{ width: '36px', height: '54px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #e5e5e5' }} />
-                      <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 600 }}>Cover fetched ✓</span>
+                      {coverMayBeOther
+                        ? <span style={{ fontSize: '12px', color: '#b45309', fontWeight: 600 }}>⚠ No cover for this exact edition: this one may be another edition or language. Check it, or upload a photo of your copy below.</span>
+                        : <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 600 }}>Cover fetched ✓</span>}
                       <button onClick={() => setFetchedCoverBase64(null)} style={{ background: 'none', border: 'none', color: '#9b9b9b', cursor: 'pointer', fontSize: '12px', marginLeft: '4px' }}>remove</button>
                     </div>
                   )}

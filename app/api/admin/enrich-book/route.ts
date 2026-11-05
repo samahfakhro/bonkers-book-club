@@ -42,8 +42,8 @@ function prettyDate(d: string | undefined | null): string {
 }
 const flipName = (n: string) => { const p = n.replace(/,?\s*ill(ustrator)?\.?$/i, '').split(',').map(x => x.trim()).filter(Boolean); return p.length === 2 ? `${p[1]} ${p[0]}` : p.join(' ') }
 
-async function editionDetails(isbn: string): Promise<{ publisher: string; publicationDate: string; illustrator: string; googleAuthors: string[]; byStatement: string; publisherBlurb: string }> {
-  const out = { publisher: '', publicationDate: '', illustrator: '', googleAuthors: [] as string[], byStatement: '', publisherBlurb: '' }
+async function editionDetails(isbn: string): Promise<{ publisher: string; publicationDate: string; illustrator: string; googleAuthors: string[]; byStatement: string; publisherBlurb: string; googleCoverUrl: string }> {
+  const out = { publisher: '', publicationDate: '', illustrator: '', googleAuthors: [] as string[], byStatement: '', publisherBlurb: '', googleCoverUrl: '' }
   const clean = (isbn || '').replace(/[^0-9X]/gi, '')
   if (!clean) return out
   const key = process.env.GOOGLE_GEOCODING_KEY
@@ -56,12 +56,25 @@ async function editionDetails(isbn: string): Promise<{ publisher: string; public
   out.publicationDate = prettyDate(v?.publishedDate || ol?.publish_date)
   out.googleAuthors = v?.authors || []
   // Google's description is usually the publisher's back-cover blurb — the most reliable description we can get
-  out.publisherBlurb = (v?.description || '').replace(/<[^>]+>/g, ' ').replace(/s+/g, ' ').trim()
+  out.publisherBlurb = (v?.description || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  // the cover of THIS edition (its language and artwork) from Google; Open Library's cover can be any edition, any language
+  out.googleCoverUrl = v?.imageLinks && g?.items?.[0]?.id ? `https://books.google.com/books/content?id=${g.items[0].id}&printsec=frontcover&img=1&zoom=3` : ''
   out.byStatement = ol?.by_statement || ''
   const ill = (ol?.contributions || []).find((c: string) => /\bill(ustrator)?\b/i.test(c))
   const byIll = out.byStatement.match(/illustrated by ([^;.]+)/i)?.[1]
   out.illustrator = ill ? flipName(ill) : byIll ? byIll.trim() : ''
   return out
+}
+
+// any image URL → data URL (null if missing or a tiny "image not available" placeholder)
+async function fetchImageBase64(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return null
+    const buf = Buffer.from(await res.arrayBuffer())
+    if (buf.length < 15000) return null
+    return `data:${res.headers.get('content-type') || 'image/jpeg'};base64,${buf.toString('base64')}`
+  } catch { return null }
 }
 
 async function fetchCoverBase64(coverId: number): Promise<string | null> {
@@ -141,7 +154,11 @@ export async function POST(req: NextRequest) {
     book.description = await fetchDescription(volumeId)
     Object.assign(book, await editionDetails(book.isbn))
     if (book.publisherBlurb) book.description = book.publisherBlurb
-    const coverBase64 = book.coverId ? await fetchCoverBase64(book.coverId) : null
+    // cover: this exact edition first (Google, then Open Library by ISBN); otherwise Open Library's general cover, flagged for checking
+    const editionCover = (book.googleCoverUrl ? await fetchImageBase64(book.googleCoverUrl) : null)
+      ?? (book.isbn ? await fetchImageBase64(`https://covers.openlibrary.org/b/isbn/${String(book.isbn).replace(/[^0-9X]/gi, '')}-L.jpg?default=false`) : null)
+    const coverBase64 = editionCover ?? (book.coverId ? await fetchCoverBase64(book.coverId) : null)
+    book.coverMayBeOtherEdition = !editionCover && !!coverBase64
     const { result: enrichment, error: claudeError } = apiKey ? await enrichWithClaude(book, apiKey) : { result: null, error: undefined }
     return NextResponse.json({ book: { ...book, coverBase64 }, enrichment, claudeError })
   }
@@ -164,7 +181,11 @@ export async function POST(req: NextRequest) {
     book.description = await fetchDescription(book.volumeId)
     Object.assign(book, await editionDetails(isIsbn ? query : book.isbn))
     if (book.publisherBlurb) book.description = book.publisherBlurb
-    const coverBase64 = book.coverId ? await fetchCoverBase64(book.coverId) : null
+    // cover: this exact edition first (Google, then Open Library by ISBN); otherwise Open Library's general cover, flagged for checking
+    const editionCover = (book.googleCoverUrl ? await fetchImageBase64(book.googleCoverUrl) : null)
+      ?? (book.isbn ? await fetchImageBase64(`https://covers.openlibrary.org/b/isbn/${String(book.isbn).replace(/[^0-9X]/gi, '')}-L.jpg?default=false`) : null)
+    const coverBase64 = editionCover ?? (book.coverId ? await fetchCoverBase64(book.coverId) : null)
+    book.coverMayBeOtherEdition = !editionCover && !!coverBase64
     const { result: enrichment, error: claudeError } = apiKey ? await enrichWithClaude(book, apiKey) : { result: null, error: undefined }
     return NextResponse.json({ book: { ...book, coverBase64 }, enrichment, claudeError })
   }
