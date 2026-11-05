@@ -57,8 +57,8 @@ async function editionDetails(isbn: string): Promise<{ publisher: string; public
   out.googleAuthors = v?.authors || []
   // Google's description is usually the publisher's back-cover blurb — the most reliable description we can get
   out.publisherBlurb = (v?.description || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-  // the cover of THIS edition (its language and artwork) from Google; Open Library's cover can be any edition, any language
-  out.googleCoverUrl = v?.imageLinks && g?.items?.[0]?.id ? `https://books.google.com/books/content?id=${g.items[0].id}&printsec=frontcover&img=1&zoom=3` : ''
+  // the cover of THIS edition from Google, and only when Google lists the edition as English
+  out.googleCoverUrl = v?.imageLinks && g?.items?.[0]?.id && (!v.language || v.language === 'en') ? `https://books.google.com/books/content?id=${g.items[0].id}&printsec=frontcover&img=1&zoom=3` : ''
   out.byStatement = ol?.by_statement || ''
   const ill = (ol?.contributions || []).find((c: string) => /\bill(ustrator)?\b/i.test(c))
   const byIll = out.byStatement.match(/illustrated by ([^;.]+)/i)?.[1]
@@ -77,13 +77,34 @@ async function fetchImageBase64(url: string): Promise<string | null> {
   } catch { return null }
 }
 
-async function fetchCoverBase64(coverId: number): Promise<string | null> {
+// Is the writing on this cover in English? Covers in another language must never be added.
+// Anything other than a clear "yes" (another language, or the check failing) rejects the cover.
+async function coverIsEnglish(dataUrl: string, apiKey: string | null): Promise<boolean> {
+  if (!apiKey) return false
+  const m = dataUrl.match(/^data:(image\/(?:jpeg|png|gif|webp));base64,(.+)$/)
+  if (!m) return false
   try {
-    const res = await fetch(`${OL_COVERS}/${coverId}-L.jpg`, { signal: AbortSignal.timeout(8000) })
-    if (!res.ok) return null
-    const buf = await res.arrayBuffer()
-    return `data:image/jpeg;base64,${Buffer.from(buf).toString('base64')}`
-  } catch { return null }
+    const client = new Anthropic({ apiKey })
+    const msg: any = await client.messages.create({
+      model: 'claude-haiku-5-5',
+      max_tokens: 1500,
+      messages: [{ role: 'user', content: [
+        { type: 'image', source: { type: 'base64', media_type: m[1] as any, data: m[2] } },
+        { type: 'text', text: 'This is a children\'s book cover. Is the title and other writing on it in English? Reply with exactly one word: ENGLISH, OTHER (another language, even partly), or NOTEXT (no writing at all).' },
+      ] }],
+    })
+    const answer = ((msg.content.find((b: any) => b.type === 'text')?.text || '') as string).toUpperCase()
+    return answer.includes('ENGLISH') || answer.includes('NOTEXT')
+  } catch { return false }
+}
+
+// The cover of THIS edition only (Google, then Open Library by ISBN). Open Library's general cover is never used:
+// it can belong to any edition in any language. No cover found → the team photographs their own copy.
+async function findCover(book: any, apiKey: string | null): Promise<{ coverBase64: string | null; coverNotEnglish: boolean }> {
+  const cover = (book.googleCoverUrl ? await fetchImageBase64(book.googleCoverUrl) : null)
+    ?? (book.isbn ? await fetchImageBase64(`https://covers.openlibrary.org/b/isbn/${String(book.isbn).replace(/[^0-9X]/gi, '')}-L.jpg?default=false`) : null)
+  if (!cover) return { coverBase64: null, coverNotEnglish: false }
+  return await coverIsEnglish(cover, apiKey) ? { coverBase64: cover, coverNotEnglish: false } : { coverBase64: null, coverNotEnglish: true }
 }
 
 async function enrichWithClaude(book: ReturnType<typeof parseDoc> & { categoryNames?: string[]; googleAuthors?: string[]; byStatement?: string }, apiKey: string): Promise<{ result: any; error?: string }> {
@@ -154,13 +175,13 @@ export async function POST(req: NextRequest) {
     book.description = await fetchDescription(volumeId)
     Object.assign(book, await editionDetails(book.isbn))
     if (book.publisherBlurb) book.description = book.publisherBlurb
-    // cover: this exact edition first (Google, then Open Library by ISBN); otherwise Open Library's general cover, flagged for checking
-    const editionCover = (book.googleCoverUrl ? await fetchImageBase64(book.googleCoverUrl) : null)
-      ?? (book.isbn ? await fetchImageBase64(`https://covers.openlibrary.org/b/isbn/${String(book.isbn).replace(/[^0-9X]/gi, '')}-L.jpg?default=false`) : null)
-    const coverBase64 = editionCover ?? (book.coverId ? await fetchCoverBase64(book.coverId) : null)
-    book.coverMayBeOtherEdition = !editionCover && !!coverBase64
-    const { result: enrichment, error: claudeError } = apiKey ? await enrichWithClaude(book, apiKey) : { result: null, error: undefined }
-    return NextResponse.json({ book: { ...book, coverBase64 }, enrichment, claudeError })
+    // cover (this edition only, English only) is checked while the AI writes the details
+    const [{ coverBase64, coverNotEnglish }, { result: enrichment, error: claudeError }] = await Promise.all([
+      findCover(book, apiKey),
+      apiKey ? enrichWithClaude(book, apiKey) : Promise.resolve({ result: null, error: undefined } as { result: any; error?: string }),
+    ])
+    book.coverMayBeOtherEdition = false
+    return NextResponse.json({ book: { ...book, coverBase64, coverNotEnglish }, enrichment, claudeError })
   }
 
   if (!query) return NextResponse.json({ error: 'query required' }, { status: 400 })
@@ -181,13 +202,13 @@ export async function POST(req: NextRequest) {
     book.description = await fetchDescription(book.volumeId)
     Object.assign(book, await editionDetails(isIsbn ? query : book.isbn))
     if (book.publisherBlurb) book.description = book.publisherBlurb
-    // cover: this exact edition first (Google, then Open Library by ISBN); otherwise Open Library's general cover, flagged for checking
-    const editionCover = (book.googleCoverUrl ? await fetchImageBase64(book.googleCoverUrl) : null)
-      ?? (book.isbn ? await fetchImageBase64(`https://covers.openlibrary.org/b/isbn/${String(book.isbn).replace(/[^0-9X]/gi, '')}-L.jpg?default=false`) : null)
-    const coverBase64 = editionCover ?? (book.coverId ? await fetchCoverBase64(book.coverId) : null)
-    book.coverMayBeOtherEdition = !editionCover && !!coverBase64
-    const { result: enrichment, error: claudeError } = apiKey ? await enrichWithClaude(book, apiKey) : { result: null, error: undefined }
-    return NextResponse.json({ book: { ...book, coverBase64 }, enrichment, claudeError })
+    // cover (this edition only, English only) is checked while the AI writes the details
+    const [{ coverBase64, coverNotEnglish }, { result: enrichment, error: claudeError }] = await Promise.all([
+      findCover(book, apiKey),
+      apiKey ? enrichWithClaude(book, apiKey) : Promise.resolve({ result: null, error: undefined } as { result: any; error?: string }),
+    ])
+    book.coverMayBeOtherEdition = false
+    return NextResponse.json({ book: { ...book, coverBase64, coverNotEnglish }, enrichment, claudeError })
   }
 
   // Multiple results → return list for user to pick
