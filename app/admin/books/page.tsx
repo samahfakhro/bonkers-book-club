@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import CoverPicker from '@/components/admin/CoverPicker'
 import { copyCode, normaliseCopyLabel } from '@/lib/copy-codes'
 import EnvelopeScanner from '@/components/driver/EnvelopeScanner'
 
@@ -32,6 +33,7 @@ type BookCopy = { id: string; book_id: string; internal_id: string; status: stri
 type LoanEntry = { id: string; status: string; created_at: string; returned_at: string | null; child_name: string | null }
 
 type DetailsForm = {
+  title: string; author: string
   isbn: string; page_count: string; book_type: string
   publisher: string; illustrator: string; publication_date: string; is_non_fiction: boolean
   series_id: string; series_number: string
@@ -142,6 +144,7 @@ export default function AdminBooksPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [onlyNoCover, setOnlyNoCover] = useState(false)   // book list: just the books still missing a cover
   const [sortNewest, setSortNewest] = useState(false)   // book list: A–Z or newest first
   const [saving, setSaving] = useState<string | null>(null)
   const [savingLevel, setSavingLevel] = useState<string | null>(null)
@@ -327,6 +330,7 @@ export default function AdminBooksPage() {
     const s = seriesList.find(s => s.id === book.series_id)
     setEditMainSeriesId(s?.parent_series_id ? s.parent_series_id : (s?.id || ''))
     setDetailsForm({
+      title: book.title || '', author: book.author || '',
       isbn: book.isbn || '',
       publisher: book.publisher || '', illustrator: book.illustrator || '', publication_date: book.publication_date || '', is_non_fiction: !!book.is_non_fiction,
       page_count: book.page_count != null ? String(book.page_count) : '',
@@ -386,6 +390,7 @@ export default function AdminBooksPage() {
     const seriesNum = detailsForm.series_number.trim() ? Number(detailsForm.series_number.trim()) : null
     const patchBody = {
       id: selectedBook.id,
+      title: detailsForm.title.trim() || selectedBook.title, author: detailsForm.author.trim() || selectedBook.author,
       isbn: detailsForm.isbn.trim() || null,
       publisher: detailsForm.publisher.trim() || null, illustrator: detailsForm.illustrator.trim() || null, publication_date: detailsForm.publication_date.trim() || null, is_non_fiction: detailsForm.is_non_fiction,
       page_count: detailsForm.page_count.trim() ? Number(detailsForm.page_count.trim()) : null,
@@ -406,6 +411,7 @@ export default function AdminBooksPage() {
     if (patchJson.error) { console.error('[saveDetails] PATCH error:', patchJson.error); setError(`Save failed: ${patchJson.error}`); setSavingDetails(false); return }
     const updated = {
       ...selectedBook,
+      title: detailsForm.title.trim() || selectedBook.title, author: detailsForm.author.trim() || selectedBook.author,
       isbn: detailsForm.isbn.trim() || null,
       publisher: detailsForm.publisher.trim() || null, illustrator: detailsForm.illustrator.trim() || null, publication_date: detailsForm.publication_date.trim() || null, is_non_fiction: detailsForm.is_non_fiction,
       page_count: detailsForm.page_count.trim() ? Number(detailsForm.page_count.trim()) : null,
@@ -442,6 +448,16 @@ export default function AdminBooksPage() {
   async function uploadCover(file: File, bookId: string) {
     setUploadingCoverFor(bookId); setError(null)
     const base64 = await fileToBase64(file)
+    const res = await fetch('/api/admin/books', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: bookId, bucket: 'book-covers', base64, field: 'cover_image_url' }) })
+    const json = await res.json()
+    if (json.error) { setError(`Cover upload failed: ${json.error}`); setUploadingCoverFor(null); return }
+    setBooks(prev => prev.map(b => b.id === bookId ? { ...b, cover_image_url: json.publicUrl } : b))
+    setSelectedBook(prev => prev?.id === bookId ? { ...prev, cover_image_url: json.publicUrl } : prev)
+    setUploadingCoverFor(null)
+  }
+
+  async function uploadCoverDataUrl(base64: string, bookId: string) {
+    setUploadingCoverFor(bookId); setError(null)
     const res = await fetch('/api/admin/books', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: bookId, bucket: 'book-covers', base64, field: 'cover_image_url' }) })
     const json = await res.json()
     if (json.error) { setError(`Cover upload failed: ${json.error}`); setUploadingCoverFor(null); return }
@@ -673,6 +689,7 @@ export default function AdminBooksPage() {
     setNewSeriesMode(false); setNewSeriesName('')
     setNewSubSeriesMode(false); setNewSubSeriesName(''); setNewSubSeriesNumber('')
     setDetailsForm({
+      title: finalBook.title || '', author: finalBook.author || '',
       isbn: finalBook.isbn || '',
       publisher: finalBook.publisher || '', illustrator: finalBook.illustrator || '', publication_date: finalBook.publication_date || '', is_non_fiction: !!finalBook.is_non_fiction,
       page_count: finalBook.page_count != null ? String(finalBook.page_count) : '',
@@ -842,8 +859,9 @@ export default function AdminBooksPage() {
   }
 
   const filtered = books.filter(b =>
+    (!onlyNoCover || !b.cover_image_url) && (
     b.title.toLowerCase().includes(search.toLowerCase()) ||
-    b.author.toLowerCase().includes(search.toLowerCase())
+    b.author.toLowerCase().includes(search.toLowerCase()))
   ).sort((a, b) => sortNewest ? (b.created_at || '').localeCompare(a.created_at || '') : a.title.localeCompare(b.title))
 
   if (loading) return <div style={{ padding: '32px', fontSize: '14px', color: '#6b6b6b' }}>Loading…</div>
@@ -875,6 +893,10 @@ export default function AdminBooksPage() {
               <option value="new">Newest first</option>
             </select>
           </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', fontSize: '12px', color: '#4a4a4a', cursor: 'pointer' }}>
+            <input type="checkbox" checked={onlyNoCover} onChange={e => setOnlyNoCover(e.target.checked)} />
+            Only books without a cover ({books.filter(b => !b.cover_image_url).length})
+          </label>
         </div>
         {/* Error bar */}
         {error && (
@@ -1130,7 +1152,7 @@ export default function AdminBooksPage() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div><label style={lbl}>Cover image</label><input ref={addCoverRef} type="file" accept="image/*" onChange={e => setAddCoverFile(e.target.files?.[0] || null)} style={{ fontSize: '13px', color: '#1a1a1a' }} /></div>
+                  <div><label style={lbl}>Cover image {fetchedCoverBase64 ? '(replace)' : ''}</label><CoverPicker onPicked={url => { setFetchedCoverBase64(url); setCoverMayBeOther(false) }} /></div>
                   <div><label style={lbl}>Discovery asset</label><input ref={addAssetRef} type="file" accept="image/*" onChange={e => setAddAssetFile(e.target.files?.[0] || null)} style={{ fontSize: '13px', color: '#1a1a1a' }} /></div>
                 </div>
 
@@ -1174,8 +1196,8 @@ export default function AdminBooksPage() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
                     <div>
-                      <label style={lbl}>Replace cover</label>
-                      <input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) uploadCover(f, selectedBook.id) }} style={{ fontSize: '12px', color: '#1a1a1a' }} />
+                      <label style={lbl}>{selectedBook.cover_image_url ? 'Replace cover' : 'Add a cover'}</label>
+                      <CoverPicker busy={uploadingCoverFor === selectedBook.id} onPicked={url => uploadCoverDataUrl(url, selectedBook.id)} />
                     </div>
                     <div>
                       <label style={lbl}>Discovery asset {selectedBook.discovery_asset_url ? '(replace)' : ''}</label>
@@ -1191,6 +1213,10 @@ export default function AdminBooksPage() {
                   <p style={secHead}>Book details</p>
                   {error && <p style={{ color: '#dc2626', fontSize: '13px', margin: '0 0 8px', padding: '8px 12px', backgroundColor: '#fef2f2', borderRadius: '6px', border: '1px solid #fecaca' }}>⚠ {error}</p>}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div><label style={lbl}>Title</label><input style={inp} value={detailsForm.title} onChange={e => setDetailsForm(f => f && ({ ...f, title: e.target.value }))} /></div>
+                      <div><label style={lbl}>Author</label><input style={inp} value={detailsForm.author} onChange={e => setDetailsForm(f => f && ({ ...f, author: e.target.value }))} /></div>
+                    </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                       <div><label style={lbl}>Illustrator</label><input style={inp} value={detailsForm.illustrator} onChange={e => setDetailsForm(f => f && ({ ...f, illustrator: e.target.value }))} /></div>
                       <div><label style={lbl}>Publisher</label><input style={inp} value={detailsForm.publisher} onChange={e => setDetailsForm(f => f && ({ ...f, publisher: e.target.value }))} /></div>
