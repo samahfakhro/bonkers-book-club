@@ -24,6 +24,7 @@ type Book = {
   collectible_research: string | null
   collectible_fact_sheet?: string | null; collectible_notes?: string | null
   collectible_kind?: string | null   // creature → hatches from an egg; thing → comes in a parcel
+  collectible_lore_live?: boolean    // the lore line is shown to children only once published
   collectible_options?: { collectible_name: string; concept: string; lore: string; source_moment: string }[] | null
 }
 
@@ -111,6 +112,40 @@ async function labelInUse(code: string): Promise<boolean> {
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
+
+// The collectible's one-line lore. The AI's line is only a suggestion: children see it once it's published here.
+function LoreEditor({ book, onSaved }: { book: Book; onSaved: (lore: string | null, live: boolean) => void }) {
+  const [text, setText] = useState(book.collectible_lore || '')
+  const [saving, setSaving] = useState(false)
+  useEffect(() => { setText(book.collectible_lore || '') }, [book.id, book.collectible_lore])
+  const live = !!book.collectible_lore_live
+  const changed = text.trim() !== (book.collectible_lore || '').trim()
+  async function save(publish: boolean) {
+    setSaving(true)
+    const lore = text.trim() || null
+    const nowLive = publish && !!lore
+    await fetch('/api/admin/books', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: book.id, collectible_lore: lore, collectible_lore_live: nowLive }) })
+    setSaving(false); onSaved(lore, nowLive)
+  }
+  const small: React.CSSProperties = { fontSize: '11px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', border: '1px solid #e5e5e5', backgroundColor: '#fff', color: '#1a1a1a' }
+  return (
+    <div style={{ marginTop: '6px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+        <span style={{ fontSize: '10px', fontWeight: 700, color: '#9b9b9b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Lore</span>
+        <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '999px', backgroundColor: live && !changed ? '#dcfce7' : '#fef3c7', color: live && !changed ? '#16a34a' : '#b45309' }}>
+          {live && !changed ? 'Published: children see this' : 'Not published: children don’t see it'}
+        </span>
+      </div>
+      <textarea value={text} onChange={e => setText(e.target.value)} rows={2} placeholder="One short, funny line (optional)"
+        style={{ width: '100%', boxSizing: 'border-box', fontSize: '12px', fontStyle: 'italic', padding: '6px 8px', borderRadius: '6px', border: '1px solid #e5e5e5', resize: 'vertical', fontFamily: 'inherit' }} />
+      <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+        {(!live || changed) && <button type="button" disabled={saving || !text.trim()} onClick={() => save(true)} style={{ ...small, backgroundColor: '#7c3aed', color: '#fff', border: 'none' }}>{saving ? 'Saving…' : changed ? 'Save & publish' : 'Publish'}</button>}
+        {changed && <button type="button" disabled={saving} onClick={() => save(false)} style={small}>Save without publishing</button>}
+        {live && !changed && <button type="button" disabled={saving} onClick={() => save(false)} style={small}>Unpublish</button>}
+      </div>
+    </div>
+  )
+}
 
 // A thumbnail that shows a big version beside it while the mouse is over it (computers only; touch screens ignore it).
 // Book covers by default; collectibles use the square, see-through version.
@@ -228,7 +263,7 @@ export default function AdminBooksPage() {
       { data: bookData }, { data: catData }, { data: bcData },
       { data: levelData }, seriesRes, { data: copyData }, { data: brlData }
     ] = await Promise.all([
-      supabase.from('books').select('id, created_at, collectible_kind, collectible_fact_sheet, collectible_notes, collectible_options, title, author, cover_image_url, discovery_asset_url, isbn, publisher, illustrator, publication_date, is_non_fiction, page_count, book_type, series_id, series_number, reading_level_id, search_tags, description, age_min, age_max, collectible_status, collectible_name, collectible_concept, collectible_lore, collectible_image_url, collectible_openai_response_id, collectible_version, collectible_source_moment, collectible_research').eq('is_active', true).order('title'),
+      supabase.from('books').select('id, created_at, collectible_kind, collectible_lore_live, collectible_fact_sheet, collectible_notes, collectible_options, title, author, cover_image_url, discovery_asset_url, isbn, publisher, illustrator, publication_date, is_non_fiction, page_count, book_type, series_id, series_number, reading_level_id, search_tags, description, age_min, age_max, collectible_status, collectible_name, collectible_concept, collectible_lore, collectible_image_url, collectible_openai_response_id, collectible_version, collectible_source_moment, collectible_research').eq('is_active', true).order('title'),
       supabase.from('categories').select('id, name').order('display_order'),
       supabase.from('book_categories').select('book_id, category_id'),
       supabase.from('reading_levels').select('id, name').order('display_order'),
@@ -1395,7 +1430,10 @@ export default function AdminBooksPage() {
                               </span>
                             </div>
                             {book.collectible_concept && <p style={{ margin: '0 0 3px', fontSize: '12px', color: '#4a4a4a', lineHeight: 1.4 }}>{book.collectible_concept}</p>}
-                            {book.collectible_lore && <p style={{ margin: 0, fontSize: '11px', color: '#9b9b9b', fontStyle: 'italic' }}>"{book.collectible_lore}"</p>}
+                            <LoreEditor book={book} onSaved={(lore, live) => {
+                              setBooks(prev => prev.map(b => b.id === book.id ? { ...b, collectible_lore: lore, collectible_lore_live: live } : b))
+                              setSelectedBook(prev => prev?.id === book.id ? { ...prev, collectible_lore: lore, collectible_lore_live: live } : prev)
+                            }} />
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', fontSize: '11px', color: '#6b6b6b' }}>
                               Arrives in:
                               {(['creature', 'thing'] as const).map(k => {

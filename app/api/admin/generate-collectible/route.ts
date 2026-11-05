@@ -123,6 +123,8 @@ async function drawIdea(bookId: string, idea: Idea, direction: string, quality: 
       collectible_status: 'awaiting_approval', collectible_version: version,
       collectible_openai_response_id: null, collectible_generated_at: new Date().toISOString(),
       collectible_name: idea.collectible_name, collectible_concept: idea.concept, collectible_lore: idea.lore || null,
+      // a NEW lore line (fresh idea) waits for the team to publish it; Polish / Tweak keep the reviewed one as it is
+      ...((idea.lore || null) !== (book.collectible_lore || null) ? { collectible_lore_live: false } : {}),
       collectible_source_moment: idea.source_moment || null, collectible_image_url: imageUrl,
       ...(idea.kind ? { collectible_kind: idea.kind } : {}),   // egg (creature) or parcel (thing) when a child unlocks it
       collectible_prompt: prompt.slice(0, 2000),

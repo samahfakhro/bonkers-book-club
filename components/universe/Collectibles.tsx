@@ -15,9 +15,10 @@ export function useChildCollectibles(childId: string) {
   const [items, setItems] = useState<Collectible[]>([])
   const reload = useCallback(async () => {
     const { data } = await supabase.from('child_collectibles')
-      .select('id, name, image_url, lore, kind, wrapper, pos_x, pos_y, opened_at, books(title)')
+      .select('id, name, image_url, kind, wrapper, pos_x, pos_y, opened_at, books(title, collectible_lore, collectible_lore_live)')
       .eq('child_id', childId).order('unlocked_at')
-    setItems((data || []).map((c: any) => ({ ...c, book_title: c.books?.title ?? null })))
+    // the lore line only shows once the team has reviewed and published it (and it's always the current version)
+    setItems((data || []).map((c: any) => ({ ...c, book_title: c.books?.title ?? null, lore: c.books?.collectible_lore_live ? (c.books.collectible_lore || null) : null })))
   }, [childId])
   useEffect(() => { reload() }, [reload])
   return { items, setItems, reload }
@@ -25,7 +26,7 @@ export function useChildCollectibles(childId: string) {
 
 export const wrapperSrc = (w: string) => `/universe/${/^(egg|parcel)-[123]$/.test(w) ? w : 'parcel-1'}.png`
 
-const ITEM_HEIGHT = '11%'   // of the Universe picture's height
+const ITEM_HEIGHT = '16%'   // of the Universe picture's height (a little bigger than Bonky)
 
 // ── Placed collectibles, drawn inside the Universe picture (read-only on the home page) ──
 export function PlacedCollectibles({ items, onTap, hideId }: { items: Collectible[]; onTap?: (c: Collectible) => void; hideId?: string | null }) {
