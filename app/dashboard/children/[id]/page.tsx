@@ -11,6 +11,7 @@ import { householdDeliveryDay } from '@/lib/delivery-day'
 import { useTapOnly } from '@/hooks/useTapOnly'
 import CuriousLogo from '@/components/CuriousLogo'
 import ChildBottomNav from '@/components/ChildBottomNav'
+import { useChildCollectibles, PlacedCollectibles, wrapperSrc, COLLECTIBLE_CSS } from '@/components/universe/Collectibles'
 import KeepReturnToggle from '@/components/KeepReturnToggle'
 import ReviewSheet from '@/components/ReviewSheet'
 import WishCameTrue from '@/components/WishCameTrue'
@@ -229,6 +230,8 @@ export default function ChildProfilePage() {
   const [swapRequestStatus, setSwapRequestStatus] = useState<string | null>(null)
   const [householdId, setHouseholdId] = useState<string | null>(null)
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
+  const { items: collectibles } = useChildCollectibles(childId)   // unlocked by reading; still-wrapped ones wobble on the banner
+  const wrapped = collectibles.filter(c => !c.opened_at)
   const [userId, setUserId] = useState<string | null>(null)
   const [reviewingBook, setReviewingBook] = useState<ReadBook | null>(null)
   const [reviewStars, setReviewStars] = useState(0)
@@ -670,6 +673,7 @@ export default function ChildProfilePage() {
 
             {/* ── LAYER 4: Destination worlds ── */}
             <div className="universe-layer4" style={{ position: 'relative', height: '100%' }}>
+              <PlacedCollectibles items={collectibles} />
               {/* Bonky's Home — sets the canvas width */}
               <img
                 src="/universe_bonky_home.png"
@@ -783,6 +787,16 @@ export default function ChildProfilePage() {
             </div>
           </div>
         </div>
+
+        {/* A new collectible waiting to be opened: wobbles until tapped, then opens in the full Universe */}
+        {wrapped.length > 0 && (
+          <button onClick={() => router.push(`/dashboard/children/${childId}/universe`)} aria-label="Open your surprise"
+            style={{ position: 'absolute', bottom: '158px', right: '14px', zIndex: 21, background: 'none', border: 'none', padding: 0, cursor: 'pointer', width: '78px', height: '78px' }}>
+            <style>{COLLECTIBLE_CSS}</style>
+            <img src={wrapperSrc(wrapped[0].wrapper)} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', animation: 'cc-wobble 1.4s ease-in-out infinite', filter: 'drop-shadow(0 0 12px rgba(249,209,116,0.7))' }} />
+            <span style={{ position: 'absolute', top: '-4px', right: '-6px', backgroundColor: '#e8533a', color: '#fff', borderRadius: '999px', padding: '3px 8px', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.62rem', fontWeight: 800, whiteSpace: 'nowrap', boxShadow: '0 2px 6px rgba(0,0,0,0.4)' }}>{wrapped.length} new!</span>
+          </button>
+        )}
 
         {/* Enter My World button */}
         <button onClick={() => router.push(`/dashboard/children/${childId}/universe`)} style={{ position: 'absolute', bottom: '120px', right: '12px', zIndex: 20, background: 'rgba(8,4,2,0.6)', border: '1px solid rgba(237,219,195,0.3)', borderRadius: '20px', padding: '7px 13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>

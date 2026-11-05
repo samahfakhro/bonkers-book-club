@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import CuriousLogo from '@/components/CuriousLogo'
+import { useCollectibleFlow, PlacedCollectibles, PlacingCollectible, CollectibleOverlay, CollectibleControls, COLLECTIBLE_CSS } from '@/components/universe/Collectibles'
 
 // where the room opens: centred when the shelf is empty, otherwise so the newest book on the shelf is in view
 function roomScrollTarget(el: HTMLDivElement, booksOnShelf: number) {
@@ -66,6 +67,8 @@ export default function UniversePage() {
 
   const universeRef = useRef<HTMLDivElement>(null)
   const roomScrollRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLDivElement>(null)   // the Universe picture: collectibles are placed as % of it
+  const flow = useCollectibleFlow(childId, canvasRef, universeRef)
 
   const [readBooks, setReadBooks] = useState<ReadBook[]>([])
   const [childName, setChildName] = useState('')
@@ -145,6 +148,7 @@ export default function UniversePage() {
 
   return (
     <main style={{ width: '100dvw', height: '100dvh', backgroundColor: '#080402', position: 'relative', overflow: 'hidden' }}>
+      <style>{COLLECTIBLE_CSS}</style>
       <style>{`.uni-inner::-webkit-scrollbar{display:none} @keyframes bonky-z{0%{opacity:0;transform:translateY(0) scale(0.8)}15%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translateY(-32px) scale(1.1)}}`}</style>
 
       {/* Top left: logo */}
@@ -165,7 +169,9 @@ export default function UniversePage() {
             <div style={{ position: 'absolute', inset: 0, backgroundColor: '#080402' }} />
             <div style={{ position: 'absolute', inset: 0 }} />
             <div style={{ position: 'absolute', inset: 0 }} />
-            <div style={{ position: 'relative', height: '100%' }}>
+            <div ref={canvasRef} style={{ position: 'relative', height: '100%' }}>
+              <PlacedCollectibles items={flow.items} hideId={flow.stage === 'placing' ? flow.current?.id : null} onTap={c => { flow.setCurrent(c); flow.setStage('info') }} />
+              <PlacingCollectible flow={flow} />
               <img src="/universe_bonky_home.png" alt="Bonky's Home" onLoad={centreUniverse} style={{ display: 'block', height: '100%', width: 'auto', maxWidth: 'none', pointerEvents: 'none' }} />
               <div onClick={() => { if (doorOpen || insideHouse) return; setDoorOpen(true); setTimeout(() => { setInsideHouse(true); setDoorOpen(false); setTimeout(() => { if (roomScrollRef.current) { const el = roomScrollRef.current; el.scrollLeft = roomScrollTarget(el, readBooks.length) } }, 50) }, 700) }} style={{ position: 'absolute', left: '32.5%', top: '46.5%', height: '12.5%', cursor: 'pointer' }}>
                 <img src="/bonkyhouse_opendoor.png" alt="" style={{ height: '100%', width: 'auto', opacity: doorOpen ? 1 : 0, transition: doorOpen ? 'opacity 0.2s ease' : 'opacity 0.6s ease', pointerEvents: 'none', display: 'block' }} />
@@ -186,6 +192,10 @@ export default function UniversePage() {
           </div>
         </div>
       </div>
+
+      {/* Collectibles: opening a new one, placing it, and the info card */}
+      {!insideHouse && <CollectibleOverlay flow={flow} />}
+      {!insideHouse && <CollectibleControls flow={flow} />}
 
       {/* Room view */}
       <div style={{ position: 'absolute', inset: 0, opacity: insideHouse ? 1 : 0, transform: insideHouse ? 'scale(1)' : 'scale(1.2)', transformOrigin: '90% 50%', transition: 'transform 0.55s ease-in-out, opacity 0.55s ease-in-out', pointerEvents: insideHouse ? 'auto' : 'none' }}>
