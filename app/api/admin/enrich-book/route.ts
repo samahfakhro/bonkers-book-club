@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { cleanTitle } from '@/lib/book-titles'
 
 const OL_SEARCH = 'https://openlibrary.org/search.json'
 const OL_COVERS = 'https://covers.openlibrary.org/b/id'
@@ -109,15 +110,6 @@ async function findCover(book: any, apiKey: string | null): Promise<{ coverBase6
     ?? (book.isbn ? await fetchImageBase64(`https://covers.openlibrary.org/b/isbn/${String(book.isbn).replace(/[^0-9X]/gi, '')}-L.jpg?default=false`) : null)
   if (!cover) return { coverBase64: null, coverNotEnglish: false }
   return await coverIsEnglish(cover, apiKey) ? { coverBase64: cover, coverNotEnglish: false } : { coverBase64: null, coverNotEnglish: true }
-}
-
-// Google titles often carry shop marketing: "Dog Man: From the Creator of Captain Underpants (Dog Man #1), 1" → "Dog Man"
-function cleanTitle(t: string): string {
-  return t
-    .replace(/\s*\([^)]*#\s*\d+[^)]*\)/g, '')                 // (Dog Man #1)
-    .replace(/:\s*(?:a graphic novel|from the creator of [^:(]*|the [a-z ]*bestseller[^:(]*)/gi, '')
-    .replace(/,\s*\d+\s*$/, '')                               // trailing ", 1"
-    .replace(/\s+/g, ' ').replace(/[\s:,]+$/, '').trim()
 }
 
 // The number of a book in its series, read from the title only (e.g. "(Dog Man #1)", "Dog Man 13: Big Jim Begins", "Book 3").

@@ -212,6 +212,8 @@ export default function AdminBooksPage() {
   const [addLabel, setAddLabel] = useState('')          // copy label for a new book (scanned or typed)
   const [copyLabel, setCopyLabel] = useState('')        // copy label for "+ Add copy"
   const [scanFor, setScanFor] = useState<'isbn' | 'addLabel' | 'copyLabel' | null>(null)
+  const [sameBookPrompt, setSameBookPrompt] = useState<{ isbn: string; bookId: string; title: string; reason: string } | null>(null)   // a new barcode that looks like a book we already have
+  const [checkingIsbn, setCheckingIsbn] = useState(false)
   const [addingCopyOf, setAddingCopyOf] = useState<string | null>(null)   // book opened because its ISBN was scanned again
   const [allowDuplicate, setAllowDuplicate] = useState(false)            // "add as a new book anyway"
   const copyLabelRef = useRef<HTMLInputElement>(null)
@@ -358,14 +360,34 @@ export default function AdminBooksPage() {
     lookUpOrOpen(isbn, true)
   }
 
-  function lookUpOrOpen(q: string, isIsbn: boolean) {
-    const existing = isIsbn ? bookWithIsbn(q) : null
-    if (existing) {
-      openBook(existing); setAddingCopyOf(existing.id); setFetchQuery('')
-      setTimeout(() => copyLabelRef.current?.focus(), 300)
-      return
-    }
-    fetchBookInfo(q, isIsbn, undefined)
+  function openForNewCopy(book: Book) {
+    openBook(book); setAddingCopyOf(book.id); setFetchQuery(''); setSameBookPrompt(null)
+    setTimeout(() => copyLabelRef.current?.focus(), 300)
+  }
+
+  // A scanned barcode: already saved for a book → open it for the new copy. A new barcode that looks like a book we
+  // already have (another edition) → ask. Otherwise look it up as a new book.
+  async function lookUpOrOpen(q: string, isIsbn: boolean) {
+    setSameBookPrompt(null)
+    if (!isIsbn) { fetchBookInfo(q, false, undefined); return }
+    const existing = bookWithIsbn(q)
+    if (existing) { openForNewCopy(existing); return }
+    setCheckingIsbn(true)
+    const r = await fetch('/api/admin/book-isbns?isbn=' + encodeURIComponent(q)).then(x => x.json()).catch(() => ({}))
+    setCheckingIsbn(false)
+    const exact = r.exact && books.find(b => b.id === r.exact)
+    if (exact) { openForNewCopy(exact); return }
+    if (r.sameBook) { setSameBookPrompt({ isbn: cleanIsbn(q), bookId: r.sameBook.book_id, title: r.sameBook.title, reason: r.sameBook.reason }); return }
+    fetchBookInfo(q, true, undefined)
+  }
+
+  // "Add as another copy": remember this barcode for that book, then open it ready for the copy's sticker
+  async function confirmSameBook() {
+    if (!sameBookPrompt) return
+    const book = books.find(b => b.id === sameBookPrompt.bookId)
+    const res = await fetch('/api/admin/book-isbns', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId: sameBookPrompt.bookId, isbn: sameBookPrompt.isbn }) })
+    if (!res.ok) { const j = await res.json().catch(() => ({})); setFetchError(j.error || 'Could not save the barcode'); return }
+    if (book) openForNewCopy(book)
   }
 
   useEffect(() => { panelScrollRef.current?.scrollTo({ top: 0 }) }, [selectedBook?.id, panelMode])
@@ -696,6 +718,7 @@ export default function AdminBooksPage() {
     if (json.copyError) setError(`Book added, but copy creation failed: ${json.copyError}`)
 
     let finalBook = { ...newBook }
+    if (newBook.isbn) await fetch('/api/admin/book-isbns', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId: newBook.id, isbn: newBook.isbn }) }).catch(() => {})
 
     // cover was already uploaded server-side if fetchedCoverBase64 was passed
     // handle manually selected cover file
@@ -758,7 +781,7 @@ export default function AdminBooksPage() {
     if (addCoverRef.current) addCoverRef.current.value = ''
     setFetchQuery(''); setFetchedCoverBase64(null); setFetchResults([]); setAddLabel(''); setAllowDuplicate(false)
     setAddLevelIds(new Set()); setAddCategoryIds(new Set())
-    setDescNeedsCheck(false); setCoverMayBeOther(false); setSuggestions([])
+    setDescNeedsCheck(false); setCoverMayBeOther(false); setSuggestions([]); setSameBookPrompt(null)
   }
 
   // ── Collectible generation ─────────────────────────────────────────────────
@@ -926,6 +949,7 @@ export default function AdminBooksPage() {
         <div style={{ padding: '14px 16px', borderBottom: '1px solid #e5e5e5', display: 'flex', gap: '8px', alignItems: 'center' }}>
           <span style={{ flex: 1, fontWeight: 700, fontSize: '15px', color: '#1a1a1a' }}>Books</span>
           <a href="/admin/books/labels" style={{ fontSize: '13px', fontWeight: 600, color: '#1a2f51', textDecoration: 'none', padding: '8px 12px', border: '1px solid #e5e5e5', borderRadius: '8px', marginRight: '8px' }}>🏷 Print labels</a>
+          <a href="/admin/books/rescan" style={{ fontSize: '13px', fontWeight: 600, color: '#1a2f51', textDecoration: 'none', padding: '8px 12px', border: '1px solid #e5e5e5', borderRadius: '8px', marginRight: '8px' }}>🔁 Re-scan barcodes</a>
           <Btn onClick={() => { setSelectedBook(null); setPanelMode('add') }}>+ Add Book</Btn>
         </div>
         {/* Search */}
@@ -1065,6 +1089,16 @@ export default function AdminBooksPage() {
                     </Btn>
                   </div>
                   {fetchError && <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#dc2626' }}>{fetchError}</p>}
+                  {checkingIsbn && <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#6b6b6b' }}>Checking the library…</p>}
+                  {sameBookPrompt && (
+                    <div style={{ marginTop: '10px', padding: '12px', borderRadius: '8px', backgroundColor: '#fff7e6', border: '1px solid #f3d18a', fontSize: '13px', color: '#1a1a1a' }}>
+                      <p style={{ margin: '0 0 8px' }}>This looks like <strong>{sameBookPrompt.title}</strong>, which is already in the library <span style={{ color: '#6b6b6b' }}>({sameBookPrompt.reason})</span>.</p>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <Btn onClick={confirmSameBook}>Add as another copy</Btn>
+                        <Btn variant="secondary" onClick={() => { const i = sameBookPrompt.isbn; setSameBookPrompt(null); fetchBookInfo(i, true, undefined) }}>No, it's a different book</Btn>
+                      </div>
+                    </div>
+                  )}
                   {(() => {
                     const isbn = (addForm.isbn || fetchQuery).replace(/[^0-9X]/gi, '')
                     const already = isbn.length >= 10 ? books.find(b => (b.isbn || '').replace(/[^0-9X]/gi, '') === isbn) : null
