@@ -216,6 +216,7 @@ export default function AdminBooksPage() {
   const [sameBookPrompt, setSameBookPrompt] = useState<{ isbn: string; bookId: string; title: string; reason: string } | null>(null)   // a new barcode that looks like a book we already have
   const [checkingIsbn, setCheckingIsbn] = useState(false)
   const [numberSource, setNumberSource] = useState<{ label: string; url: string | null } | null>(null)   // where the book number was found
+  const [descSource, setDescSource] = useState<{ label: string; url: string } | null>(null)   // web page the description is based on
   const [addingCopyOf, setAddingCopyOf] = useState<string | null>(null)   // book opened because its ISBN was scanned again
   const [allowDuplicate, setAllowDuplicate] = useState(false)            // "add as a new book anyway"
   const copyLabelRef = useRef<HTMLInputElement>(null)
@@ -596,7 +597,8 @@ export default function AdminBooksPage() {
 
   function applyFetchedBook(book: any, enrichment: any) {
     setError(null)
-    setDescNeedsCheck(!!enrichment?.description_needs_check || !enrichment?.description || !book?.publisherBlurb)   // no publisher blurb = less reliable
+    setDescNeedsCheck(!!enrichment?.description_needs_check || !enrichment?.description || (!book?.publisherBlurb && !book?.descriptionSource))   // no blurb from any source = less reliable
+    setDescSource(book?.descriptionSource || null)
     setFetchResults([])
 
     // Match series in DB
@@ -803,7 +805,7 @@ export default function AdminBooksPage() {
     if (addCoverRef.current) addCoverRef.current.value = ''
     setFetchQuery(''); setFetchedCoverBase64(null); setFetchResults([]); setAddLabel(''); setAllowDuplicate(false)
     setAddLevelIds(new Set()); setAddCategoryIds(new Set())
-    setDescNeedsCheck(false); setCoverMayBeOther(false); setSuggestions([]); setSameBookPrompt(null); setNumberSource(null)
+    setDescNeedsCheck(false); setCoverMayBeOther(false); setSuggestions([]); setSameBookPrompt(null); setNumberSource(null); setDescSource(null)
   }
 
   // ── Collectible generation ─────────────────────────────────────────────────
@@ -1255,7 +1257,8 @@ export default function AdminBooksPage() {
                 <div>
                   <label style={lbl}>Description</label>
                   <textarea style={{ ...inp, minHeight: '80px', resize: 'vertical' }} placeholder="A short description of the book…" value={addForm.description} onChange={e => { setDescNeedsCheck(false); setAddForm(f => ({ ...f, description: e.target.value })) }} />
-                  {descNeedsCheck && addForm.title && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#b45309' }}>⚠ No publisher blurb was found for this book, so the AI had less to go on. Please check the description against the back cover.</p>}
+                  {descSource && addForm.description && <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#6b6b6b' }}>Based on: <a href={descSource.url} target="_blank" rel="noopener noreferrer" style={{ color: '#1a2f51' }}>{descSource.label} ↗</a></p>}
+                  {descNeedsCheck && addForm.title && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#b45309' }}>⚠ No description of this book was found in any source, so the AI had little to go on. Please check it against the back cover.</p>}
                 </div>
 
                 <div>

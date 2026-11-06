@@ -173,6 +173,41 @@ null` }]
   } catch { return null }
 }
 
+// No blurb from Google or Open Library: the AI finds what the book is about on the web (publisher, author's site,
+// library catalogue), in its own words, and must give the page it used. Nothing reliable found → null.
+async function blurbFromWeb(book: any, apiKey: string): Promise<{ facts: string; source: string; url: string } | null> {
+  try {
+    const client = new Anthropic({ apiKey })
+    const messages: any[] = [{ role: 'user', content: `Find out what this children's book is about.
+
+Book: "${book.title}" by ${book.author}${book.isbn ? ` (ISBN ${book.isbn})` : ''}${book.publisher ? `, published by ${book.publisher}` : ''}
+
+Search the web for the publisher's description (blurb) of THIS book: the publisher's site, the author's official site, or a library catalogue. Make sure the page is about this exact book (same title and author), not another book in the series.
+Then summarise what it says in your own words, 3–4 sentences: the main characters, what happens at the start, the kind of book it is. Do not copy sentences from the page. Do not add anything the page doesn't say. No spoilers.
+
+Reply with ONLY JSON, no other text:
+{"summary": "...", "source_url": "the page you used"}
+or
+null (if you can't find a reliable description of this exact book)` }]
+    let msg: any
+    for (let i = 0; i < 3; i++) {
+      msg = await client.messages.create({
+        model: 'claude-opus-5-5', max_tokens: 4000, output_config: { effort: 'low' },
+        tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }],
+        messages,
+      } as any)
+      if (msg.stop_reason !== 'pause_turn') break
+      messages.push({ role: 'assistant', content: msg.content })   // let the search finish
+    }
+    const text = ((msg.content || []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('') as string).trim()
+    const json = text.match(/\{[\s\S]*\}/)?.[0]
+    if (!json) return null
+    const r = JSON.parse(json)
+    if (!r?.summary || String(r.summary).length < 40 || !/^https?:\/\//.test(r?.source_url || '')) return null
+    return { facts: String(r.summary), source: new URL(r.source_url).hostname.replace(/^www\./, ''), url: r.source_url }
+  } catch { return null }
+}
+
 // The book's number in its series, from real sources in this order: the title, Open Library's record for this barcode,
 // Google's series details, then a sourced web lookup. Nothing found → null (the team fills it in).
 async function findSeriesNumber(book: any, aiSeries: string | null, aiSub: string | null, apiKey: string | null): Promise<SeriesFound | null> {
@@ -259,6 +294,11 @@ export async function POST(req: NextRequest) {
     if (book.googleTitle) { book.fullTitle = book.googleTitle; book.title = cleanTitle(book.googleTitle) || book.googleTitle }
     if (!book.author && book.googleAuthors?.length) book.author = book.googleAuthors.slice(0, 2).join(', ')
     if (!book.pageCount && book.googlePageCount) book.pageCount = book.googlePageCount
+    // no publisher blurb from Google / Open Library → look for one on the web (with its source) before the AI writes
+    if (!book.publisherBlurb && apiKey) {
+      const web = await blurbFromWeb(book, apiKey)
+      if (web) { book.description = web.facts; book.descriptionSource = { label: web.source, url: web.url } }
+    }
     // cover (this edition only, English only) is checked while the AI writes the details
     const [{ coverBase64, coverNotEnglish }, { result: enrichment, error: claudeError }] = await Promise.all([
       findCover(book, apiKey),
@@ -302,6 +342,11 @@ export async function POST(req: NextRequest) {
     if (book.googleTitle) { book.fullTitle = book.googleTitle; book.title = cleanTitle(book.googleTitle) || book.googleTitle }
     if (!book.author && book.googleAuthors?.length) book.author = book.googleAuthors.slice(0, 2).join(', ')
     if (!book.pageCount && book.googlePageCount) book.pageCount = book.googlePageCount
+    // no publisher blurb from Google / Open Library → look for one on the web (with its source) before the AI writes
+    if (!book.publisherBlurb && apiKey) {
+      const web = await blurbFromWeb(book, apiKey)
+      if (web) { book.description = web.facts; book.descriptionSource = { label: web.source, url: web.url } }
+    }
     // cover (this edition only, English only) is checked while the AI writes the details
     const [{ coverBase64, coverNotEnglish }, { result: enrichment, error: claudeError }] = await Promise.all([
       findCover(book, apiKey),
