@@ -65,9 +65,9 @@ export async function PUT(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const { id, ...fields } = await req.json()
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
-  const { error } = await supabaseAdmin.from('books').update(fields).eq('id', id)
+  const { data, error } = await supabaseAdmin.from('books').update(fields).eq('id', id).select('title').maybeSingle()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, title: data?.title ?? null })
 }
 
 export async function DELETE(req: NextRequest) {

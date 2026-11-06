@@ -30,7 +30,7 @@ type Book = {
 
 type Category = { id: string; name: string }
 type ReadingLevel = { id: string; name: string }
-type Series = { id: string; name: string; parent_series_id: string | null; series_number: number | null }
+type Series = { id: string; name: string; parent_series_id: string | null; series_number: number | null; name_in_title?: boolean }
 type BookCopy = { id: string; book_id: string; internal_id: string; status: string; created_at?: string }
 type LoanEntry = { id: string; status: string; created_at: string; returned_at: string | null; child_name: string | null }
 
@@ -427,6 +427,36 @@ export default function AdminBooksPage() {
 
   // ── Series helper ──────────────────────────────────────────────────────────
 
+  // a book's series and parent series names, for searching ("goosebumps" finds HorrorLand books too)
+  function seriesNames(seriesId: string | null) {
+    const s = seriesId ? seriesList.find(x => x.id === seriesId) : null
+    const p = s?.parent_series_id ? seriesList.find(x => x.id === s.parent_series_id) : null
+    return [s?.name, p?.name].filter(Boolean).join(' ')
+  }
+
+  // tick-box: put the series name in front of every title in this series (the database renames them)
+  async function setNameInTitle(seriesId: string, on: boolean) {
+    const res = await fetch('/api/admin/series', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: seriesId, name_in_title: on }) })
+    if (!res.ok) { const j = await res.json().catch(() => ({})); setError(j.error || 'Could not change the series'); return }
+    setSeriesList(prev => prev.map(s => s.id === seriesId ? { ...s, name_in_title: on } : s))
+    const { data } = await supabase.from('books').select('id, title')
+    const titles = new Map((data || []).map(b => [b.id, b.title as string]))
+    setBooks(prev => prev.map(b => titles.has(b.id) ? { ...b, title: titles.get(b.id)! } : b))
+    setSelectedBook(prev => prev && titles.has(prev.id) ? { ...prev, title: titles.get(prev.id)! } : prev)
+    setDetailsForm(f => f && selectedBook && titles.has(selectedBook.id) ? { ...f, title: titles.get(selectedBook.id)! } : f)
+  }
+
+  function NameInTitleBox({ seriesId }: { seriesId: string }) {
+    const s = seriesList.find(x => x.id === seriesId)
+    if (!s) return null
+    return (
+      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '12px', color: '#4a4a4a', cursor: 'pointer' }}>
+        <input type="checkbox" checked={!!s.name_in_title} onChange={e => setNameInTitle(s.id, e.target.checked)} />
+        Put “{s.name}” in front of every title in this series (e.g. “{s.name}: …”)
+      </label>
+    )
+  }
+
   async function createSeriesViaApi(body: object): Promise<{ id: string; name: string; parent_series_id: string | null; series_number: number | null } | null> {
     const res = await fetch('/api/admin/series', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     const json = await res.json()
@@ -485,9 +515,10 @@ export default function AdminBooksPage() {
     })
     const patchJson = await patchRes.json()
     if (patchJson.error) { console.error('[saveDetails] PATCH error:', patchJson.error); setError(`Save failed: ${patchJson.error}`); setSavingDetails(false); return }
+    if (patchJson.title) setDetailsForm(f => f && ({ ...f, title: patchJson.title }))
     const updated = {
       ...selectedBook,
-      title: detailsForm.title.trim() || selectedBook.title, author: detailsForm.author.trim() || selectedBook.author,
+      title: patchJson.title || detailsForm.title.trim() || selectedBook.title, author: detailsForm.author.trim() || selectedBook.author,
       isbn: detailsForm.isbn.trim() || null,
       publisher: detailsForm.publisher.trim() || null, illustrator: detailsForm.illustrator.trim() || null, publication_date: detailsForm.publication_date.trim() || null, is_non_fiction: detailsForm.is_non_fiction,
       page_count: detailsForm.page_count.trim() ? Number(detailsForm.page_count.trim()) : null,
@@ -928,7 +959,8 @@ export default function AdminBooksPage() {
   const filtered = books.filter(b =>
     (!onlyNoCover || !b.cover_image_url) && (!onlyNoAsset || b.collectible_status !== 'approved') && (
     b.title.toLowerCase().includes(search.toLowerCase()) ||
-    b.author.toLowerCase().includes(search.toLowerCase()))
+    b.author.toLowerCase().includes(search.toLowerCase()) ||
+    seriesNames(b.series_id).toLowerCase().includes(search.toLowerCase()))
   ).sort((a, b) => sortNewest ? (b.created_at || '').localeCompare(a.created_at || '') : a.title.localeCompare(b.title))
 
   if (loading) return <div style={{ padding: '32px', fontSize: '14px', color: '#6b6b6b' }}>Loading…</div>
@@ -1204,6 +1236,7 @@ export default function AdminBooksPage() {
                       <button onClick={() => { setAddNewSeriesMode(false); setAddNewSeriesName('') }} style={{ background: 'none', border: 'none', color: '#9b9b9b', cursor: 'pointer', fontSize: '17px' }}>×</button>
                     </div>
                   )}
+                  {!addNewSeriesMode && addMainSeriesId && <NameInTitleBox seriesId={addMainSeriesId} />}
                 </div>
                 {(addMainSeriesId || addNewSeriesMode) && (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
@@ -1373,6 +1406,7 @@ export default function AdminBooksPage() {
                             <button onClick={() => { setNewSeriesMode(false); setNewSeriesName('') }} style={{ background: 'none', border: 'none', color: '#9b9b9b', cursor: 'pointer', fontSize: '17px' }}>×</button>
                           </div>
                         )}
+                        {!newSeriesMode && editMainSeriesId && <NameInTitleBox seriesId={editMainSeriesId} />}
                       </div>
                       <div>
                         <label style={lbl}>Book Number</label>
