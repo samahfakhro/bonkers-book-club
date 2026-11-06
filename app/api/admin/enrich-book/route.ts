@@ -43,8 +43,8 @@ function prettyDate(d: string | undefined | null): string {
 }
 const flipName = (n: string) => { const p = n.replace(/,?\s*ill(ustrator)?\.?$/i, '').split(',').map(x => x.trim()).filter(Boolean); return p.length === 2 ? `${p[1]} ${p[0]}` : p.join(' ') }
 
-async function editionDetails(isbn: string): Promise<{ publisher: string; publicationDate: string; illustrator: string; googleAuthors: string[]; byStatement: string; publisherBlurb: string; googleCoverUrl: string; googleTitle: string; googlePageCount: number | null; googleCategories: string[] }> {
-  const out = { publisher: '', publicationDate: '', illustrator: '', googleAuthors: [] as string[], byStatement: '', publisherBlurb: '', googleCoverUrl: '', googleTitle: '', googlePageCount: null as number | null, googleCategories: [] as string[] }
+async function editionDetails(isbn: string): Promise<{ publisher: string; publicationDate: string; illustrator: string; googleAuthors: string[]; byStatement: string; publisherBlurb: string; googleCoverUrl: string; googleTitle: string; googlePageCount: number | null; googleCategories: string[]; olSeries: string[]; googleSeriesNumber: number | null }> {
+  const out = { publisher: '', publicationDate: '', illustrator: '', googleAuthors: [] as string[], byStatement: '', publisherBlurb: '', googleCoverUrl: '', googleTitle: '', googlePageCount: null as number | null, googleCategories: [] as string[], olSeries: [] as string[], googleSeriesNumber: null as number | null }
   const clean = (isbn || '').replace(/[^0-9X]/gi, '')
   if (!clean) return out
   const key = process.env.GOOGLE_GEOCODING_KEY
@@ -60,6 +60,9 @@ async function editionDetails(isbn: string): Promise<{ publisher: string; public
   out.googleTitle = v?.title ? [v.title, v.subtitle].filter(Boolean).join(': ').replace(/\s+(PB|HB)$/i, '') : ''
   out.googlePageCount = v?.pageCount || null
   out.googleCategories = v?.categories || []
+  out.olSeries = Array.isArray(ol?.series) ? ol.series : []                       // e.g. ["Goosebumps ; 27"]
+  const gNum = Number(v?.seriesInfo?.bookDisplayNumber)
+  out.googleSeriesNumber = Number.isInteger(gNum) && gNum > 0 && gNum < 1000 ? gNum : null
   // Google's description is usually the publisher's back-cover blurb — the most reliable description we can get
   out.publisherBlurb = (v?.description || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
   // the cover of THIS edition from Google, and only when Google lists the edition as English
@@ -126,6 +129,64 @@ function numberFromTitle(title: string, seriesName?: string | null): number | nu
   return null
 }
 
+type SeriesFound = { series: string | null; sub_series: string | null; number: number; source: string; url: string | null }
+
+// "Goosebumps ; 27", "Dog Man -- 5", "Goosebumps HorrorLand ; #4" → { name, number }
+function parseSeriesLine(line: string): { name: string; number: number } | null {
+  const m = (line || '').trim().match(/^(.*?)[\s,;:–—-]*(?:#|no\.?|vol\.?|volume|book|bk\.?|episode|part)?\s*#?\s*(\d{1,3})\s*\.?\s*$/i)
+  if (!m || !m[1].trim()) return null
+  return { name: m[1].replace(/[\s,;:–—-]+$/, '').trim(), number: Number(m[2]) }
+}
+
+// The AI looks the number up on the web and may only answer with a source that states it (link + quote). No source → null.
+async function seriesFromWeb(book: any, seriesHint: string | null, apiKey: string): Promise<SeriesFound | null> {
+  try {
+    const client = new Anthropic({ apiKey })
+    const messages: any[] = [{ role: 'user', content: `Find which series this children's book belongs to and its number in that series.
+
+Book: "${book.title}" by ${book.author}${book.isbn ? ` (ISBN ${book.isbn})` : ''}${seriesHint ? `\nPossibly part of: ${seriesHint}` : ''}
+
+Search the web. Use only a reliable source that explicitly states the number: the publisher, the author's official site, Wikipedia, or a library catalogue. If the series has sub-series (e.g. Goosebumps → Goosebumps HorrorLand), give the sub-series the number belongs to.
+Never work the number out yourself, count, or assume. If no source explicitly states it, answer with null.
+
+Reply with ONLY JSON, no other text:
+{"series": "main series name", "sub_series": "sub-series name or null", "number": 5, "source_url": "the page that states it", "quote": "the exact words on that page that give the number"}
+or
+null` }]
+    let msg: any
+    for (let i = 0; i < 3; i++) {
+      msg = await client.messages.create({
+        model: 'claude-opus-5-5', max_tokens: 4000, output_config: { effort: 'low' },
+        tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }],
+        messages,
+      } as any)
+      if (msg.stop_reason !== 'pause_turn') break
+      messages.push({ role: 'assistant', content: msg.content })   // let the search finish
+    }
+    const text = ((msg.content || []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('') as string).trim()
+    const json = text.match(/\{[\s\S]*\}/)?.[0]
+    if (!json) return null
+    const r = JSON.parse(json)
+    const n = Number(r?.number)
+    if (!Number.isInteger(n) || n < 1 || n > 999 || !/^https?:\/\//.test(r?.source_url || '') || !r?.quote) return null
+    return { series: r.series || null, sub_series: r.sub_series || null, number: n, source: new URL(r.source_url).hostname.replace(/^www\./, ''), url: r.source_url }
+  } catch { return null }
+}
+
+// The book's number in its series, from real sources in this order: the title, Open Library's record for this barcode,
+// Google's series details, then a sourced web lookup. Nothing found → null (the team fills it in).
+async function findSeriesNumber(book: any, aiSeries: string | null, aiSub: string | null, apiKey: string | null): Promise<SeriesFound | null> {
+  const fromTitle = numberFromTitle(book.fullTitle || book.title, aiSub || aiSeries)
+  if (fromTitle) return { series: aiSeries, sub_series: aiSub, number: fromTitle, source: 'the title', url: null }
+  for (const line of (book.olSeries || []) as string[]) {
+    const p = parseSeriesLine(line)
+    if (p) return { series: aiSeries || p.name, sub_series: aiSub, number: p.number, source: 'Open Library', url: book.isbn ? `https://openlibrary.org/isbn/${book.isbn}` : null }
+  }
+  if (book.googleSeriesNumber && (aiSeries || aiSub)) return { series: aiSeries, sub_series: aiSub, number: book.googleSeriesNumber, source: 'Google Books', url: null }
+  if (!apiKey || !(aiSeries || (book.olSeries || []).length)) return null   // not part of a series
+  return seriesFromWeb(book, aiSub || aiSeries || (book.olSeries || [])[0] || null, apiKey)
+}
+
 async function enrichWithClaude(book: ReturnType<typeof parseDoc> & { categoryNames?: string[]; googleAuthors?: string[]; byStatement?: string }, apiKey: string): Promise<{ result: any; error?: string }> {
   try {
     const client = new Anthropic({ apiKey })
@@ -175,7 +236,7 @@ Return ONLY valid JSON (no markdown, no other text):
     const raw = ((msg.content.find((b: any) => b.type === 'text')?.text || '') as string).trim()
     const text = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '')
     const result = JSON.parse(text)
-    result.book_number = numberFromTitle((book as any).fullTitle || book.title, result.series_name)   // never the AI's guess
+    result.book_number = null   // filled in from real sources by findSeriesNumber, never the AI's guess
     return { result }
   } catch (e: any) {
     return { result: null, error: e?.message || String(e) }
@@ -204,6 +265,15 @@ export async function POST(req: NextRequest) {
       apiKey ? enrichWithClaude(book, apiKey) : Promise.resolve({ result: null, error: undefined } as { result: any; error?: string }),
     ])
     book.coverMayBeOtherEdition = false
+    if (enrichment) {
+      const found = await findSeriesNumber(book, enrichment.series_name || null, enrichment.sub_series_name || null, apiKey)
+      if (found) {
+        enrichment.book_number = found.number
+        enrichment.book_number_source = { label: found.source, url: found.url }
+        if (found.series && !enrichment.series_name) enrichment.series_name = found.series
+        if (found.sub_series && found.source !== 'the title') enrichment.sub_series_name = found.sub_series
+      }
+    }
     return NextResponse.json({ book: { ...book, coverBase64, coverNotEnglish }, enrichment, claudeError })
   }
 
@@ -238,6 +308,15 @@ export async function POST(req: NextRequest) {
       apiKey ? enrichWithClaude(book, apiKey) : Promise.resolve({ result: null, error: undefined } as { result: any; error?: string }),
     ])
     book.coverMayBeOtherEdition = false
+    if (enrichment) {
+      const found = await findSeriesNumber(book, enrichment.series_name || null, enrichment.sub_series_name || null, apiKey)
+      if (found) {
+        enrichment.book_number = found.number
+        enrichment.book_number_source = { label: found.source, url: found.url }
+        if (found.series && !enrichment.series_name) enrichment.series_name = found.series
+        if (found.sub_series && found.source !== 'the title') enrichment.sub_series_name = found.sub_series
+      }
+    }
     return NextResponse.json({ book: { ...book, coverBase64, coverNotEnglish }, enrichment, claudeError })
   }
 

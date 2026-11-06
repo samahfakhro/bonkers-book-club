@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import CoverPicker from '@/components/admin/CoverPicker'
 import { copyCode, normaliseCopyLabel } from '@/lib/copy-codes'
 import EnvelopeScanner from '@/components/driver/EnvelopeScanner'
+import { seriesTitle } from '@/lib/book-titles'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -214,6 +215,7 @@ export default function AdminBooksPage() {
   const [scanFor, setScanFor] = useState<'isbn' | 'addLabel' | 'copyLabel' | null>(null)
   const [sameBookPrompt, setSameBookPrompt] = useState<{ isbn: string; bookId: string; title: string; reason: string } | null>(null)   // a new barcode that looks like a book we already have
   const [checkingIsbn, setCheckingIsbn] = useState(false)
+  const [numberSource, setNumberSource] = useState<{ label: string; url: string | null } | null>(null)   // where the book number was found
   const [addingCopyOf, setAddingCopyOf] = useState<string | null>(null)   // book opened because its ISBN was scanned again
   const [allowDuplicate, setAllowDuplicate] = useState(false)            // "add as a new book anyway"
   const copyLabelRef = useRef<HTMLInputElement>(null)
@@ -434,27 +436,15 @@ export default function AdminBooksPage() {
     return [s?.name, p?.name].filter(Boolean).join(' ')
   }
 
-  // tick-box: put the series name in front of every title in this series (the database renames them)
-  async function setNameInTitle(seriesId: string, on: boolean) {
-    const res = await fetch('/api/admin/series', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: seriesId, name_in_title: on }) })
-    if (!res.ok) { const j = await res.json().catch(() => ({})); setError(j.error || 'Could not change the series'); return }
-    setSeriesList(prev => prev.map(s => s.id === seriesId ? { ...s, name_in_title: on } : s))
-    const { data } = await supabase.from('books').select('id, title')
-    const titles = new Map((data || []).map(b => [b.id, b.title as string]))
-    setBooks(prev => prev.map(b => titles.has(b.id) ? { ...b, title: titles.get(b.id)! } : b))
-    setSelectedBook(prev => prev && titles.has(prev.id) ? { ...prev, title: titles.get(prev.id)! } : prev)
-    setDetailsForm(f => f && selectedBook && titles.has(selectedBook.id) ? { ...f, title: titles.get(selectedBook.id)! } : f)
-  }
-
-  function NameInTitleBox({ seriesId }: { seriesId: string }) {
-    const s = seriesList.find(x => x.id === seriesId)
-    if (!s) return null
-    return (
-      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '12px', color: '#4a4a4a', cursor: 'pointer' }}>
-        <input type="checkbox" checked={!!s.name_in_title} onChange={e => setNameInTitle(s.id, e.target.checked)} />
-        Put “{s.name}” in front of every title in this series (e.g. “{s.name}: …”)
-      </label>
-    )
+  // new books in a series: "Dog Man 5: Lord of the Fleas" (sub-series name if there is one)
+  function addTitleWithSeries(): string {
+    const title = addForm.title.trim()
+    const main = addNewSeriesMode ? addNewSeriesName.trim() : (seriesList.find(x => x.id === addMainSeriesId)?.name || '')
+    const sub = addSubSeriesName.trim()
+    const display = sub || main
+    if (!display || !title) return title
+    const num = addForm.series_number.trim() ? Number(addForm.series_number.trim()) : null
+    return seriesTitle(title, display, num, [sub, main])
   }
 
   async function createSeriesViaApi(body: object): Promise<{ id: string; name: string; parent_series_id: string | null; series_number: number | null } | null> {
@@ -636,6 +626,7 @@ export default function AdminBooksPage() {
     setAddSubSeriesNumber(enrichment?.sub_series_number ? String(enrichment.sub_series_number) : '')
     setFetchedCoverBase64(book.coverBase64 || null)
     setCoverMayBeOther(!!book.coverNotEnglish)
+    setNumberSource(enrichment?.book_number_source || null)
 
     // Map Claude's reading level names to IDs
     const levelIds = new Set<string>(
@@ -727,7 +718,7 @@ export default function AdminBooksPage() {
         internalId,
         coverBase64: fetchedCoverBase64 || null,
         book: {
-          title: addForm.title.trim(), author: addForm.author.trim(),
+          title: addTitleWithSeries(), author: addForm.author.trim(),
           isbn: addForm.isbn.trim() || null,
           publisher: addForm.publisher.trim() || null, illustrator: addForm.illustrator.trim() || null, publication_date: addForm.publication_date.trim() || null, is_non_fiction: addForm.is_non_fiction,
           page_count: addForm.page_count.trim() ? Number(addForm.page_count.trim()) : null,
@@ -812,7 +803,7 @@ export default function AdminBooksPage() {
     if (addCoverRef.current) addCoverRef.current.value = ''
     setFetchQuery(''); setFetchedCoverBase64(null); setFetchResults([]); setAddLabel(''); setAllowDuplicate(false)
     setAddLevelIds(new Set()); setAddCategoryIds(new Set())
-    setDescNeedsCheck(false); setCoverMayBeOther(false); setSuggestions([]); setSameBookPrompt(null)
+    setDescNeedsCheck(false); setCoverMayBeOther(false); setSuggestions([]); setSameBookPrompt(null); setNumberSource(null)
   }
 
   // ── Collectible generation ─────────────────────────────────────────────────
@@ -1170,7 +1161,9 @@ export default function AdminBooksPage() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div><label style={lbl}>Title *</label><input style={inp} value={addForm.title} onChange={e => setAddForm(f => ({ ...f, title: e.target.value }))} /></div>
+                  <div><label style={lbl}>Title *</label><input style={inp} value={addForm.title} onChange={e => setAddForm(f => ({ ...f, title: e.target.value }))} />
+                    {addForm.title.trim() && addTitleWithSeries() !== addForm.title.trim() && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#16a34a', fontWeight: 600 }}>Will be saved as: {addTitleWithSeries()}</p>}
+                  </div>
                   <div><label style={lbl}>Author *</label><input style={inp} value={addForm.author} onChange={e => setAddForm(f => ({ ...f, author: e.target.value }))} /></div>
                 </div>
 
@@ -1237,7 +1230,6 @@ export default function AdminBooksPage() {
                       <button onClick={() => { setAddNewSeriesMode(false); setAddNewSeriesName('') }} style={{ background: 'none', border: 'none', color: '#9b9b9b', cursor: 'pointer', fontSize: '17px' }}>×</button>
                     </div>
                   )}
-                  {!addNewSeriesMode && addMainSeriesId && <NameInTitleBox seriesId={addMainSeriesId} />}
                 </div>
                 {(addMainSeriesId || addNewSeriesMode) && (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
@@ -1251,7 +1243,9 @@ export default function AdminBooksPage() {
                     </div>
                     <div>
                       <label style={lbl}>Book Number</label>
-                      <input style={inp} type="number" placeholder="1" value={addForm.series_number} onChange={e => setAddForm(f => ({ ...f, series_number: e.target.value }))} />
+                      <input style={inp} type="number" placeholder="1" value={addForm.series_number} onChange={e => { setAddForm(f => ({ ...f, series_number: e.target.value })); setNumberSource(null) }} />
+                      {numberSource && addForm.series_number && <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#6b6b6b' }}>from {numberSource.url ? <a href={numberSource.url} target="_blank" rel="noopener noreferrer" style={{ color: '#1a2f51' }}>{numberSource.label} ↗</a> : numberSource.label}</p>}
+                      {!addForm.series_number && (addMainSeriesId || addNewSeriesMode) && <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#b45309' }}>Not found in any source: please type it in</p>}
                     </div>
                   </div>
                 )}
@@ -1407,7 +1401,6 @@ export default function AdminBooksPage() {
                             <button onClick={() => { setNewSeriesMode(false); setNewSeriesName('') }} style={{ background: 'none', border: 'none', color: '#9b9b9b', cursor: 'pointer', fontSize: '17px' }}>×</button>
                           </div>
                         )}
-                        {!newSeriesMode && editMainSeriesId && <NameInTitleBox seriesId={editMainSeriesId} />}
                       </div>
                       <div>
                         <label style={lbl}>Book Number</label>
