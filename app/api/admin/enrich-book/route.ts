@@ -207,7 +207,7 @@ Reply with ONLY JSON, no other text:
 
 // The book's number in its series, from real sources in this order: the title, Open Library's record for this barcode,
 // Google's series details, then a sourced web lookup. Nothing found → null (the team fills it in).
-async function findSeriesNumber(book: any, aiSeries: string | null, aiSub: string | null, apiKey: string | null, earlySearch?: Promise<SeriesFound | null>): Promise<SeriesFound | null> {
+async function findSeriesNumber(book: any, aiSeries: string | null, aiSub: string | null, apiKey: string | null): Promise<SeriesFound | null> {
   const fromTitle = numberFromTitle(book.fullTitle || book.title, aiSub || aiSeries)
   if (fromTitle) return { series: aiSeries, sub_series: aiSub, number: fromTitle, source: 'the title', url: null }
   for (const line of (book.olSeries || []) as string[]) {
@@ -217,7 +217,7 @@ async function findSeriesNumber(book: any, aiSeries: string | null, aiSub: strin
   if (book.googleSeriesNumber && (aiSeries || aiSub)) return { series: aiSeries, sub_series: aiSub, number: book.googleSeriesNumber, source: 'Google Books', url: null }
   if (book.webLookupDone) return book.webSeries || null   // the description lookup already searched the web for it
   if (!apiKey || !(aiSeries || (book.olSeries || []).length)) return null   // not part of a series
-  return earlySearch || seriesFromWeb(book, aiSub || aiSeries || (book.olSeries || [])[0] || null, apiKey)
+  return seriesFromWeb(book, aiSub || aiSeries || (book.olSeries || [])[0] || null, apiKey)
 }
 
 async function enrichWithClaude(book: ReturnType<typeof parseDoc> & { categoryNames?: string[]; googleAuthors?: string[]; byStatement?: string }, apiKey: string): Promise<{ result: any; error?: string }> {
@@ -298,17 +298,13 @@ async function enrichBook(book: any, editionIsbn: string, workKey: string, apiKe
     book.webSeries = web?.series || null
     if (web?.facts) { book.description = web.facts; book.descriptionSource = { label: web.source, url: web.url } }
   }
-  // the free sources don't give a series number → start the web search for it now, alongside the AI, instead of after.
-  // It's only used if the AI says the book is in a series (otherwise it's simply not waited for).
-  const freeNumber = numberFromTitle(book.fullTitle || book.title, null) || (book.olSeries || []).some((l: string) => parseSeriesLine(l)) || book.googleSeriesNumber
-  const earlySearch = !book.webLookupDone && apiKey && !freeNumber ? seriesFromWeb(book, (book.olSeries || [])[0] || null, apiKey) : undefined
   const [{ coverBase64, coverNotEnglish }, { result: enrichment, error: claudeError }] = await Promise.all([
     coverP,
     apiKey ? enrichWithClaude(book, apiKey) : Promise.resolve({ result: null, error: undefined } as { result: any; error?: string }),
   ])
   book.coverMayBeOtherEdition = false
   if (enrichment) {
-    const found = await findSeriesNumber(book, enrichment.series_name || null, enrichment.sub_series_name || null, apiKey, earlySearch)
+    const found = await findSeriesNumber(book, enrichment.series_name || null, enrichment.sub_series_name || null, apiKey)
     if (found) {
       enrichment.book_number = found.number
       enrichment.book_number_source = { label: found.source, url: found.url }
