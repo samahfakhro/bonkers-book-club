@@ -375,13 +375,14 @@ export default function AdminBooksPage() {
     if (!isIsbn) { fetchBookInfo(q, false, undefined); return }
     const existing = bookWithIsbn(q)
     if (existing) { openForNewCopy(existing); return }
+    // look the book up straight away, and check the library at the same time (saves a couple of seconds)
+    fetchBookInfo(q, true, undefined)
     setCheckingIsbn(true)
     const r = await fetch('/api/admin/book-isbns?isbn=' + encodeURIComponent(q)).then(x => x.json()).catch(() => ({}))
     setCheckingIsbn(false)
     const exact = r.exact && books.find(b => b.id === r.exact)
-    if (exact) { openForNewCopy(exact); return }
-    if (r.sameBook) { setSameBookPrompt({ isbn: cleanIsbn(q), bookId: r.sameBook.book_id, title: r.sameBook.title, reason: r.sameBook.reason }); return }
-    fetchBookInfo(q, true, undefined)
+    if (exact) { lookupIdRef.current++; setFetchLoading(false); openForNewCopy(exact); return }   // already ours: drop the lookup
+    if (r.sameBook) setSameBookPrompt({ isbn: cleanIsbn(q), bookId: r.sameBook.book_id, title: r.sameBook.title, reason: r.sameBook.reason })
   }
 
   // "Add as another copy": remember this barcode for that book, then open it ready for the copy's sticker
@@ -390,6 +391,7 @@ export default function AdminBooksPage() {
     const book = books.find(b => b.id === sameBookPrompt.bookId)
     const res = await fetch('/api/admin/book-isbns', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId: sameBookPrompt.bookId, isbn: sameBookPrompt.isbn }) })
     if (!res.ok) { const j = await res.json().catch(() => ({})); setFetchError(j.error || 'Could not save the barcode'); return }
+    lookupIdRef.current++; setFetchLoading(false)   // the new-book lookup isn't needed any more
     if (book) openForNewCopy(book)
   }
 
@@ -1121,7 +1123,7 @@ export default function AdminBooksPage() {
                       <p style={{ margin: '0 0 8px' }}>This looks like <strong>{sameBookPrompt.title}</strong>, which is already in the library <span style={{ color: '#6b6b6b' }}>({sameBookPrompt.reason})</span>.</p>
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         <Btn onClick={confirmSameBook}>Add as another copy</Btn>
-                        <Btn variant="secondary" onClick={() => { const i = sameBookPrompt.isbn; setSameBookPrompt(null); fetchBookInfo(i, true, undefined) }}>No, it's a different book</Btn>
+                        <Btn variant="secondary" onClick={() => setSameBookPrompt(null)}>No, it's a different book</Btn>
                       </div>
                     </div>
                   )}
