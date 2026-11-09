@@ -6,6 +6,16 @@ const OL_SEARCH = 'https://openlibrary.org/search.json'
 const OL_COVERS = 'https://covers.openlibrary.org/b/id'
 const OL_WORKS  = 'https://openlibrary.org'
 
+// What each lookup costs: every AI call adds its usage to book.aiCost (US$, list prices per million tokens).
+const PRICES: Record<string, [number, number]> = { 'claude-opus-5-5': [4, 20], 'claude-sonnet-5-5': [2, 10], 'claude-haiku-5-5': [0.1, 0.5] }
+function addCost(book: any, model: string, usage: any) {
+  if (!book || !usage) return
+  const [inP, outP] = PRICES[model] || [4, 20]
+  const input = (usage.input_tokens || 0) + (usage.cache_creation_input_tokens || 0) * 1.25 + (usage.cache_read_input_tokens || 0) * 0.1
+  const searches = usage.server_tool_use?.web_search_requests || 0
+  book.aiCost = (book.aiCost || 0) + (input * inP + (usage.output_tokens || 0) * outP) / 1e6 + searches * 0.01
+}
+
 function parseDoc(doc: any) {
   return {
     volumeId: doc.key as string,
@@ -87,7 +97,7 @@ async function fetchImageBase64(url: string): Promise<string | null> {
 
 // Is the writing on this cover in English? Covers in another language must never be added.
 // Anything other than a clear "yes" (another language, or the check failing) rejects the cover.
-async function coverIsEnglish(dataUrl: string, apiKey: string | null): Promise<boolean> {
+async function coverIsEnglish(dataUrl: string, apiKey: string | null, book?: any): Promise<boolean> {
   if (!apiKey) return false
   const m = dataUrl.match(/^data:(image\/(?:jpeg|png|gif|webp));base64,(.+)$/)
   if (!m) return false
@@ -101,6 +111,7 @@ async function coverIsEnglish(dataUrl: string, apiKey: string | null): Promise<b
         { type: 'text', text: 'This is a children\'s book cover. Is the title and other writing on it in English? Reply with exactly one word: ENGLISH, OTHER (another language, even partly), or NOTEXT (no writing at all).' },
       ] }],
     })
+    addCost(book, 'claude-haiku-5-5', msg.usage)
     const answer = ((msg.content.find((b: any) => b.type === 'text')?.text || '') as string).toUpperCase()
     return answer.includes('ENGLISH') || answer.includes('NOTEXT')
   } catch { return false }
@@ -112,7 +123,47 @@ async function findCover(book: any, apiKey: string | null): Promise<{ coverBase6
   const cover = (book.googleCoverUrl ? await fetchImageBase64(book.googleCoverUrl) : null)
     ?? (book.isbn ? await fetchImageBase64(`https://covers.openlibrary.org/b/isbn/${String(book.isbn).replace(/[^0-9X]/gi, '')}-L.jpg?default=false`) : null)
   if (!cover) return { coverBase64: null, coverNotEnglish: false }
-  return await coverIsEnglish(cover, apiKey) ? { coverBase64: cover, coverNotEnglish: false } : { coverBase64: null, coverNotEnglish: true }
+  return await coverIsEnglish(cover, apiKey, book) ? { coverBase64: cover, coverNotEnglish: false } : { coverBase64: null, coverNotEnglish: true }
+}
+
+// ── Penguin Random House: free publisher blurb (and series number) by ISBN, no AI ──
+// Their sites can be read directly (Scholastic and HarperCollins block it). Only tried for Penguin imprints, or when
+// the publisher is unknown; anything unexpected → null and the normal lookup carries on.
+const PENGUIN_IMPRINTS = /penguin|puffin|ladybird|transworld|\btbs\b|random house|corgi|doubleday|bantam|vintage|viking|\bdial\b|putnam|grosset|price stern|knopf|delacorte|frederick warne|dorling|\bdk\b|red fox|jonathan cape|hamish hamilton|rhcb/i
+const BROWSER_UA = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36' }
+const decodeHtml = (t: string) => t
+  .replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n').replace(/<[^>]+>/g, ' ')
+  .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n))).replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+  .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
+  .replace(/[ \t]+/g, ' ').replace(/\s*\n\s*/g, '\n').replace(/\n{2,}/g, '\n').trim()
+const getPage = (url: string) => fetch(url, { headers: BROWSER_UA, signal: AbortSignal.timeout(7000) }).then(async r => r.ok ? { url: r.url, html: await r.text() } : null).catch(() => null)
+
+async function penguinBlurb(isbn: string): Promise<{ text: string; label: string; url: string; series: string | null; number: number | null } | null> {
+  const clean = (isbn || '').replace(/[^0-9X]/gi, '')
+  if (clean.length !== 13) return null
+  // penguin.co.uk: the search page links to the book page, which has the full synopsis and the series number
+  const search = await getPage(`https://www.penguin.co.uk/search-results?q=${clean}`)
+  const path = search?.html.match(new RegExp(`/books/\\d+/[^"'\\s]*/${clean}`))?.[0]
+  if (path) {
+    const page = await getPage('https://www.penguin.co.uk' + path)
+    const synopsis = page?.html.match(/<meta name="synopsis" content="([^"]*)"/)?.[1]
+    if (page && synopsis && synopsis.length > 60) {
+      const series = page.html.match(/<meta name="seriesName" content="([^"]*)"/)?.[1] || null
+      // the page also lists other books in the series, so only the number in THIS book's own record (next to its slug)
+      const slug = path.split('/')[3] || ''
+      const n = slug ? Number(page.html.match(new RegExp(`"seriesNumber":(\\d{1,3})\\},"slug":"${slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`))?.[1]) : NaN
+      return { text: decodeHtml(synopsis), label: 'penguin.co.uk', url: page.url, series: series ? decodeHtml(series) : null, number: series && Number.isInteger(n) && n > 0 ? n : null }
+    }
+  }
+  // penguinrandomhouse.com: searching an ISBN goes straight to the book page
+  const us = await getPage(`https://www.penguinrandomhouse.com/search/site?q=${clean}`)
+  if (us && us.url.includes(clean)) {
+    const raw = us.html.match(/"aboutTheBook":("(?:[^"\\]|\\.)*")/)?.[1]
+    let about = ''
+    try { about = raw ? JSON.parse(raw) : '' } catch { about = '' }
+    if (about.length > 60) return { text: decodeHtml(about), label: 'penguinrandomhouse.com', url: us.url, series: null, number: null }
+  }
+  return null
 }
 
 // The number of a book in its series, read from the title only (e.g. "(Dog Man #1)", "Dog Man 13: Big Jim Begins", "Book 3").
@@ -138,10 +189,11 @@ function parseSeriesLine(line: string): { name: string; number: number } | null 
   return { name: m[1].replace(/[\s,;:–—-]+$/, '').trim(), number: Number(m[2]) }
 }
 
-// Web lookups only find facts and their sources, so they use the faster Sonnet model; the descriptions themselves
-// are still written by Opus (enrichWithClaude).
+// Web lookups only find facts and their sources, with the cheaper, faster Sonnet model and at most 2 searches
+// (every page read is paid for). The descriptions are written by WRITE_MODEL (enrichWithClaude).
 const WEB_MODEL = 'claude-sonnet-5-5'
-async function webSearchJson(prompt: string, apiKey: string): Promise<any | null> {
+const WRITE_MODEL = 'claude-sonnet-5-5'
+async function webSearchJson(prompt: string, apiKey: string, book?: any): Promise<any | null> {
   try {
     const client = new Anthropic({ apiKey })
     const messages: any[] = [{ role: 'user', content: prompt }]
@@ -149,9 +201,10 @@ async function webSearchJson(prompt: string, apiKey: string): Promise<any | null
     for (let i = 0; i < 3; i++) {
       msg = await client.messages.create({
         model: WEB_MODEL, max_tokens: 4000, output_config: { effort: 'low' },
-        tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }],
+        tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 2 }],
         messages,
       } as any)
+      addCost(book, WEB_MODEL, msg.usage)
       if (msg.stop_reason !== 'pause_turn') break
       messages.push({ role: 'assistant', content: msg.content })   // let the search finish
     }
@@ -183,7 +236,7 @@ Search the web. ${NUMBER_RULES}
 Reply with ONLY JSON, no other text:
 {"series": "main series name", "sub_series": "sub-series name or null", "number": 5, "number_source_url": "the page that states it", "number_quote": "the exact words on that page that give the number"}
 or
-null`, apiKey)
+null`, apiKey, book)
   return sourcedNumber(r)
 }
 
@@ -198,7 +251,7 @@ Book: "${book.title}" by ${book.author}${book.isbn ? ` (ISBN ${book.isbn})` : ''
 2. If the book is part of a series: the series name and the book's number in it. ${NUMBER_RULES}
 
 Reply with ONLY JSON, no other text:
-{"summary": "... or null", "summary_source_url": "the page you used, or null", "series": "main series name or null", "sub_series": "sub-series name or null", "number": 5, "number_source_url": "the page that states the number, or null", "number_quote": "the exact words on that page that give the number, or null"}`, apiKey)
+{"summary": "... or null", "summary_source_url": "the page you used, or null", "series": "main series name or null", "sub_series": "sub-series name or null", "number": 5, "number_source_url": "the page that states the number, or null", "number_quote": "the exact words on that page that give the number, or null"}`, apiKey, book)
   if (!r) return null
   const series = sourcedNumber(r)
   if (!r.summary || String(r.summary).length < 40 || !isUrl(r.summary_source_url)) return series ? { facts: '', source: '', url: '', series } : null
@@ -215,6 +268,7 @@ async function findSeriesNumber(book: any, aiSeries: string | null, aiSub: strin
     if (p) return { series: aiSeries || p.name, sub_series: aiSub, number: p.number, source: 'Open Library', url: book.isbn ? `https://openlibrary.org/isbn/${book.isbn}` : null }
   }
   if (book.googleSeriesNumber && (aiSeries || aiSub)) return { series: aiSeries, sub_series: aiSub, number: book.googleSeriesNumber, source: 'Google Books', url: null }
+  if (book.penguin?.number) return { series: aiSeries || book.penguin.series, sub_series: aiSub, number: book.penguin.number, source: book.penguin.label, url: book.penguin.url }
   if (book.webLookupDone) return book.webSeries || null   // the description lookup already searched the web for it
   if (!apiKey || !(aiSeries || (book.olSeries || []).length)) return null   // not part of a series
   return seriesFromWeb(book, aiSub || aiSeries || (book.olSeries || [])[0] || null, apiKey)
@@ -223,14 +277,11 @@ async function findSeriesNumber(book: any, aiSeries: string | null, aiSub: strin
 async function enrichWithClaude(book: ReturnType<typeof parseDoc> & { categoryNames?: string[]; googleAuthors?: string[]; byStatement?: string }, apiKey: string): Promise<{ result: any; error?: string }> {
   try {
     const client = new Anthropic({ apiKey })
-    // Claude Opus 5.5 at low effort: richer, more accurate descriptions; thinking is always on, so leave room in max_tokens.
-    // If a safety check ever declines the request, "fallbacks: default" lets the API retry it on a suitable model.
-    const msg: any = await (client.beta.messages.create as any)({
-      model: 'claude-opus-5-5',
+    // Sonnet 5.5 at low effort: about half Opus's price and faster; thinking stays on, so leave room in max_tokens.
+    const msg: any = await client.messages.create({
+      model: WRITE_MODEL,
       max_tokens: 8000,
       output_config: { effort: 'low' },
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
       messages: [{
         role: 'user',
         content: `You are cataloguing children's books for a library called The Curious Library.
@@ -264,7 +315,8 @@ Return ONLY valid JSON (no markdown, no other text):
   "illustrator": "the illustrator's name if the credits above name one; if not, the illustrator of this book when it is a well-known, certain pairing (e.g. David Walliams → Tony Ross, Roald Dahl → Quentin Blake, Julia Donaldson picture books → Axel Scheffler or whoever illustrated this title). Null if you are not certain"
 }`,
       }],
-    })
+    } as any)
+    addCost(book, WRITE_MODEL, msg.usage)
     if (msg.stop_reason === 'refusal') return { result: null, error: 'The AI declined this book — fill the details in by hand' }
     const raw = ((msg.content.find((b: any) => b.type === 'text')?.text || '') as string).trim()
     const text = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '')
@@ -292,6 +344,16 @@ async function enrichBook(book: any, editionIsbn: string, workKey: string, apiKe
   // no publisher blurb from Google / Open Library → one web lookup for the description and series number
   // (the cover check runs at the same time, since it doesn't need either)
   const coverP = findCover(book, apiKey)
+  // a Penguin book: the publisher's own blurb, free, before any paid web search
+  if (!book.publisherBlurb && (!book.publisher || PENGUIN_IMPRINTS.test(book.publisher))) {
+    const p = await penguinBlurb(book.isbn || editionIsbn)
+    if (p) {
+      book.penguin = p
+      book.publisherBlurb = p.text
+      book.description = p.text
+      book.descriptionSource = { label: p.label, url: p.url }
+    }
+  }
   if (!book.publisherBlurb && apiKey) {
     const web = await blurbAndSeriesFromWeb(book, apiKey)
     book.webLookupDone = true
@@ -312,7 +374,7 @@ async function enrichBook(book: any, editionIsbn: string, workKey: string, apiKe
       if (found.sub_series && found.source !== 'the title') enrichment.sub_series_name = found.sub_series
     }
   }
-  delete book.webSeries
+  delete book.webSeries; delete book.penguin
   return { book: { ...book, coverBase64, coverNotEnglish }, enrichment, claudeError }
 }
 

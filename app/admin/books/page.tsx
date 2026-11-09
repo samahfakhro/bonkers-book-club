@@ -217,6 +217,7 @@ export default function AdminBooksPage() {
   const [checkingIsbn, setCheckingIsbn] = useState(false)
   const [numberSource, setNumberSource] = useState<{ label: string; url: string | null } | null>(null)   // where the book number was found
   const [descSource, setDescSource] = useState<{ label: string; url: string } | null>(null)   // web page the description is based on
+  const [lookupCost, setLookupCost] = useState<number | null>(null)   // what the AI part of the last lookup cost (US$)
   const [addingCopyOf, setAddingCopyOf] = useState<string | null>(null)   // book opened because its ISBN was scanned again
   const [allowDuplicate, setAllowDuplicate] = useState(false)            // "add as a new book anyway"
   const copyLabelRef = useRef<HTMLInputElement>(null)
@@ -375,14 +376,14 @@ export default function AdminBooksPage() {
     if (!isIsbn) { fetchBookInfo(q, false, undefined); return }
     const existing = bookWithIsbn(q)
     if (existing) { openForNewCopy(existing); return }
-    // look the book up straight away, and check the library at the same time (saves a couple of seconds)
-    fetchBookInfo(q, true, undefined)
+    // check the library FIRST: the paid AI lookup only runs for a book we don't have yet
     setCheckingIsbn(true)
     const r = await fetch('/api/admin/book-isbns?isbn=' + encodeURIComponent(q)).then(x => x.json()).catch(() => ({}))
     setCheckingIsbn(false)
     const exact = r.exact && books.find(b => b.id === r.exact)
-    if (exact) { lookupIdRef.current++; setFetchLoading(false); openForNewCopy(exact); return }   // already ours: drop the lookup
-    if (r.sameBook) setSameBookPrompt({ isbn: cleanIsbn(q), bookId: r.sameBook.book_id, title: r.sameBook.title, reason: r.sameBook.reason })
+    if (exact) { openForNewCopy(exact); return }
+    if (r.sameBook) { setSameBookPrompt({ isbn: cleanIsbn(q), bookId: r.sameBook.book_id, title: r.sameBook.title, reason: r.sameBook.reason }); return }   // looked up only if it's a different book
+    fetchBookInfo(q, true, undefined)
   }
 
   // "Add as another copy": remember this barcode for that book, then open it ready for the copy's sticker
@@ -391,7 +392,6 @@ export default function AdminBooksPage() {
     const book = books.find(b => b.id === sameBookPrompt.bookId)
     const res = await fetch('/api/admin/book-isbns', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId: sameBookPrompt.bookId, isbn: sameBookPrompt.isbn }) })
     if (!res.ok) { const j = await res.json().catch(() => ({})); setFetchError(j.error || 'Could not save the barcode'); return }
-    lookupIdRef.current++; setFetchLoading(false)   // the new-book lookup isn't needed any more
     if (book) openForNewCopy(book)
   }
 
@@ -601,6 +601,7 @@ export default function AdminBooksPage() {
     setError(null)
     setDescNeedsCheck(!!enrichment?.description_needs_check || !enrichment?.description || (!book?.publisherBlurb && !book?.descriptionSource))   // no blurb from any source = less reliable
     setDescSource(book?.descriptionSource || null)
+    setLookupCost(typeof book?.aiCost === 'number' ? book.aiCost : null)
     setFetchResults([])
 
     // Match series in DB
@@ -807,7 +808,7 @@ export default function AdminBooksPage() {
     if (addCoverRef.current) addCoverRef.current.value = ''
     setFetchQuery(''); setFetchedCoverBase64(null); setFetchResults([]); setAddLabel(''); setAllowDuplicate(false)
     setAddLevelIds(new Set()); setAddCategoryIds(new Set())
-    setDescNeedsCheck(false); setCoverMayBeOther(false); setSuggestions([]); setSameBookPrompt(null); setNumberSource(null); setDescSource(null)
+    setDescNeedsCheck(false); setCoverMayBeOther(false); setSuggestions([]); setSameBookPrompt(null); setNumberSource(null); setDescSource(null); setLookupCost(null)
   }
 
   // ── Collectible generation ─────────────────────────────────────────────────
@@ -1123,7 +1124,7 @@ export default function AdminBooksPage() {
                       <p style={{ margin: '0 0 8px' }}>This looks like <strong>{sameBookPrompt.title}</strong>, which is already in the library <span style={{ color: '#6b6b6b' }}>({sameBookPrompt.reason})</span>.</p>
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         <Btn onClick={confirmSameBook}>Add as another copy</Btn>
-                        <Btn variant="secondary" onClick={() => setSameBookPrompt(null)}>No, it's a different book</Btn>
+                        <Btn variant="secondary" onClick={() => { const isbn = sameBookPrompt.isbn; setSameBookPrompt(null); fetchBookInfo(isbn, true, undefined) }}>No, it's a different book</Btn>
                       </div>
                     </div>
                   )}
@@ -1260,6 +1261,7 @@ export default function AdminBooksPage() {
                   <label style={lbl}>Description</label>
                   <textarea style={{ ...inp, minHeight: '80px', resize: 'vertical' }} placeholder="A short description of the book…" value={addForm.description} onChange={e => { setDescNeedsCheck(false); setAddForm(f => ({ ...f, description: e.target.value })) }} />
                   {descSource && addForm.description && <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#6b6b6b' }}>Based on: <a href={descSource.url} target="_blank" rel="noopener noreferrer" style={{ color: '#1a2f51' }}>{descSource.label} ↗</a></p>}
+                  {lookupCost !== null && addForm.title && <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#6b6b6b' }}>AI cost of this lookup: about ${lookupCost < 0.01 ? '0.01' : lookupCost.toFixed(2)}</p>}
                   {descNeedsCheck && addForm.title && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#b45309' }}>⚠ No description of this book was found in any source, so the AI had little to go on. Please check it against the back cover.</p>}
                 </div>
 
