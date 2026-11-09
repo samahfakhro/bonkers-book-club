@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import CoverPicker from '@/components/admin/CoverPicker'
 import { copyCode, normaliseCopyLabel } from '@/lib/copy-codes'
 import EnvelopeScanner from '@/components/driver/EnvelopeScanner'
-import { seriesTitle } from '@/lib/book-titles'
+import { ownTitle, seriesKey } from '@/lib/book-titles'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -439,15 +439,13 @@ export default function AdminBooksPage() {
     return [s?.name, p?.name].filter(Boolean).join(' ')
   }
 
-  // new books in a series: "Dog Man 5: Lord of the Fleas" (sub-series name if there is one)
-  function addTitleWithSeries(): string {
-    const title = addForm.title.trim()
+  // the series line shown under a new book's title: "Dog Man · Book 5" (sub-series name if there is one)
+  function addSeriesLine(): string {
     const main = addNewSeriesMode ? addNewSeriesName.trim() : (seriesList.find(x => x.id === addMainSeriesId)?.name || '')
-    const sub = addSubSeriesName.trim()
-    const display = sub || main
-    if (!display || !title) return title
-    const num = addForm.series_number.trim() ? Number(addForm.series_number.trim()) : null
-    return seriesTitle(title, display, num, [sub, main])
+    const name = addSubSeriesName.trim() || main
+    if (!name) return ''
+    const num = addForm.series_number.trim()
+    return num ? `${name} · Book ${num}` : name
   }
 
   async function createSeriesViaApi(body: object): Promise<{ id: string; name: string; parent_series_id: string | null; series_number: number | null } | null> {
@@ -604,30 +602,36 @@ export default function AdminBooksPage() {
     setLookupCost(typeof book?.aiCost === 'number' ? book.aiCost : null)
     setFetchResults([])
 
-    // Match series in DB
+    // Match series in DB, ignoring small spelling differences ("Mr Men" = "Mr. Men", "Cat and Cat" = "Cat & Cat"),
+    // so the same series is never created twice
     let mainSeriesId = ''
-    let finalSeriesId = ''
+    let subName: string = enrichment?.sub_series_name || ''
     if (enrichment?.series_name) {
-      const match = seriesList.find(s => !s.parent_series_id &&
-        s.name.toLowerCase().trim() === enrichment.series_name.toLowerCase().trim())
+      const k = seriesKey(enrichment.series_name), subK = seriesKey(subName)
+      let match = seriesList.find(s => !s.parent_series_id && seriesKey(s.name) === k)
+      // the AI's sub-series is one of our main series (e.g. "Mr. Men and Little Miss" › "Little Miss" → Little Miss)
+      if (!match && subK) { match = seriesList.find(s => !s.parent_series_id && seriesKey(s.name) === subK); if (match) subName = '' }
+      // the AI's series name is one of our sub-series → its main series, with that sub-series
+      if (!match) {
+        const sub = seriesList.find(s => s.parent_series_id && seriesKey(s.name) === k)
+        if (sub) { match = seriesList.find(s => s.id === sub.parent_series_id); subName = sub.name }
+      }
       if (match) {
         mainSeriesId = match.id
-        if (enrichment.sub_series_name) {
-          const subMatch = seriesList.find(s => s.parent_series_id === match.id &&
-            s.name?.toLowerCase().trim() === enrichment.sub_series_name.toLowerCase().trim())
-          if (subMatch) finalSeriesId = subMatch.id
-        }
-        if (!finalSeriesId) finalSeriesId = match.id
+        const subMatch = subName ? seriesList.find(s => s.parent_series_id === match!.id && seriesKey(s.name) === seriesKey(subName)) : null
+        if (subMatch) subName = subMatch.name
+        else if (subName && seriesKey(subName) === seriesKey(match.name)) subName = ''
       } else {
         // Series not in DB — pre-fill new series name
         setAddNewSeriesMode(true)
         setAddNewSeriesName(enrichment.series_name)
       }
     }
+    const mainName = mainSeriesId ? seriesList.find(s => s.id === mainSeriesId)?.name || '' : (enrichment?.series_name || '')
 
     setAddMainSeriesId(mainSeriesId)
     // Pre-fill sub-series fields from enrichment
-    setAddSubSeriesName(enrichment?.sub_series_name || '')
+    setAddSubSeriesName(subName)
     setAddSubSeriesNumber(enrichment?.sub_series_number ? String(enrichment.sub_series_number) : '')
     setFetchedCoverBase64(book.coverBase64 || null)
     setCoverMayBeOther(!!book.coverNotEnglish)
@@ -650,7 +654,8 @@ export default function AdminBooksPage() {
     setAddCategoryIds(catIds)
 
     setAddForm({
-      title: book.title || '',
+      // the book's own name only: the series and number are shown on their own line ("Dog Man · Book 5")
+      title: ownTitle(book.title || '', [subName, mainName, enrichment?.series_name || '']),
       author: book.author || '',
       isbn: book.isbn || '',
       publisher: book.publisher || '', illustrator: book.illustrator || enrichment?.illustrator || '', publication_date: book.publicationDate || '', is_non_fiction: !!enrichment?.non_fiction,
@@ -691,7 +696,7 @@ export default function AdminBooksPage() {
         // Check if matching sub-series already exists
         const existing = seriesList.find(s =>
           s.parent_series_id === mainSeriesId &&
-          (subName ? s.name?.toLowerCase() === subName.toLowerCase() : s.series_number === subNum)
+          (subName ? seriesKey(s.name || '') === seriesKey(subName) : s.series_number === subNum)
         )
         if (existing) {
           seriesId = existing.id
@@ -723,7 +728,7 @@ export default function AdminBooksPage() {
         internalId,
         coverBase64: fetchedCoverBase64 || null,
         book: {
-          title: addTitleWithSeries(), author: addForm.author.trim(),
+          title: addForm.title.trim(), author: addForm.author.trim(),
           isbn: addForm.isbn.trim() || null,
           publisher: addForm.publisher.trim() || null, illustrator: addForm.illustrator.trim() || null, publication_date: addForm.publication_date.trim() || null, is_non_fiction: addForm.is_non_fiction,
           page_count: addForm.page_count.trim() ? Number(addForm.page_count.trim()) : null,
@@ -1167,7 +1172,7 @@ export default function AdminBooksPage() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div><label style={lbl}>Title *</label><input style={inp} value={addForm.title} onChange={e => setAddForm(f => ({ ...f, title: e.target.value }))} />
-                    {addForm.title.trim() && addTitleWithSeries() !== addForm.title.trim() && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#16a34a', fontWeight: 600 }}>Will be saved as: {addTitleWithSeries()}</p>}
+                    {addForm.title.trim() && addSeriesLine() && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#16a34a', fontWeight: 600 }}>Shown as: {addForm.title.trim()} · <span style={{ color: '#c48b00' }}>{addSeriesLine()}</span></p>}
                   </div>
                   <div><label style={lbl}>Author *</label><input style={inp} value={addForm.author} onChange={e => setAddForm(f => ({ ...f, author: e.target.value }))} /></div>
                 </div>

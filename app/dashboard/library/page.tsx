@@ -15,6 +15,7 @@ import NoReaderSheet from '@/components/NoReaderSheet'
 import ChildChoiceSheet from '@/components/ChildChoiceSheet'
 import BookRequestSheet from '@/components/BookRequestSheet'
 import { nextDeliverySpace, openFullDelivery } from '@/lib/next-delivery'
+import { seriesLine } from '@/lib/book-titles'
 
 type Book = { id: string; title: string; author: string; cover_image_url: string | null; series_number?: number | null; series_label?: string | null }
 type Category = { id: string; name: string; image_url: string | null }
@@ -246,15 +247,7 @@ function LibraryPageInner() {
 
       setBooks(books.map((b: any) => {
         const s = b.series_id ? seriesMap.get(b.series_id) : null
-        let label: string | null = null
-        if (s && b.series_number) {
-          if (s.parent_series_id && s.parent) {
-            label = `S${s.series_number ?? '?'} · Book ${b.series_number}`
-          } else {
-            label = `Book ${b.series_number}`
-          }
-        }
-        return { ...b, series_label: label }
+        return { ...b, series_label: seriesLine(s, b.series_number) }   // "Dog Man · Book 5"
       }))
       setBooksLoading(false)
     }
@@ -268,14 +261,7 @@ function LibraryPageInner() {
       // title, author, book type, tags, illustrator and publisher (search_books in the database)
       const { data } = await supabase.rpc('search_books', { q: searchQuery }).select('id, title, author, cover_image_url, series_number, series:series_id(id, name, series_number, parent_series_id, parent:parent_series_id(id, name))')
       setSearchResults(((data ?? []) as any[]).map((b: any) => {
-        const s = b.series
-        let label: string | null = null
-        if (s) {
-          label = s.parent_series_id && s.parent
-            ? `${s.parent.name.toUpperCase()} · S${s.series_number ?? '?'} · #${b.series_number ?? '?'}`
-            : `${s.name.toUpperCase()} · #${b.series_number ?? '?'}`
-        }
-        return { ...b, series_label: label }
+        return { ...b, series_label: seriesLine(b.series, b.series_number) }
       })); setSearchLoading(false)
     }, 300)
     return () => clearTimeout(t)

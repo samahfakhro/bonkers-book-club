@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { titleKey } from '@/lib/book-titles'
+import { titleKey, ownTitle } from '@/lib/book-titles'
 
 // The barcodes scanned for each book (table book_isbns). Admin-only: everything under /api/admin/ needs a team sign-in.
 //  GET ?list=1          → every saved barcode { book_id, isbn }
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
 
   const { data: saved } = await sb.from('book_isbns').select('book_id').eq('isbn', isbn).maybeSingle()
   if (saved) return NextResponse.json({ exact: saved.book_id, sameBook: null })
-  const { data: books } = await sb.from('books').select('id, title, author, isbn')
+  const { data: books } = await sb.from('books').select('id, title, author, isbn, series:series_id(name, parent:parent_series_id(name))')
   const main = (books || []).find(b => clean(b.isbn || '') === isbn)
   if (main) return NextResponse.json({ exact: main.id, sameBook: null })
 
@@ -60,10 +60,12 @@ export async function GET(req: NextRequest) {
   }
   if (info) {
     // exact same title once shop marketing and punctuation are ignored, and the same author's surname
+    // (our titles are the book's own name, so "Dog Man: Lord of the Fleas" is compared as "Lord of the Fleas")
     const t = titleKey(info.title), a = surname(info.author)
-    const b = (books || []).find(x => {
+    const b = (books || []).find((x: any) => {
       const bt = titleKey(x.title)
-      return bt.length > 2 && bt === t && (!a || surname(x.author) === a)
+      const names = [x.series?.name, x.series?.parent?.name].filter(Boolean)
+      return bt.length > 2 && (bt === t || bt === titleKey(ownTitle(info.title, names))) && (!a || surname(x.author) === a)
     })
     if (b) return NextResponse.json({ exact: null, sameBook: { book_id: b.id, title: b.title, reason: 'same title and author' } })
   }

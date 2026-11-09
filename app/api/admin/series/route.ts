@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { seriesKey } from '@/lib/book-titles'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,12 +25,13 @@ export async function POST(req: NextRequest) {
   const name = body.name?.trim() || null
   const parentId = body.parent_series_id || null
 
-  // Return existing match instead of creating a duplicate
+  // Return existing match instead of creating a duplicate ("Mr Men" = "Mr. Men", "Cat and Cat" = "Cat & Cat")
   if (name) {
-    let q = supabaseAdmin.from('series').select('id, name, parent_series_id, series_number').ilike('name', name)
+    let q = supabaseAdmin.from('series').select('id, name, parent_series_id, series_number')
     if (parentId) q = q.eq('parent_series_id', parentId)
     else q = q.is('parent_series_id', null)
-    const { data: existing } = await q.limit(1).single()
+    const { data: siblings } = await q
+    const existing = (siblings || []).find(s => seriesKey(s.name || '') === seriesKey(name))
     if (existing) return NextResponse.json({ data: existing })
   }
 

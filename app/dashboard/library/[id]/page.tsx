@@ -707,7 +707,7 @@ export default function BookDetailPage() {
               </div>
             ) : (
               <button onClick={() => router.push(`/dashboard/library/series/${s.id}`)} className="series-pill" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', marginBottom: '10px', display: 'block' }}>
-                <p style={pillStyle}>{s.name} Series{book.series_number ? ` · Book ${book.series_number}` : ''}</p>
+                <p style={pillStyle}>{s.name}{book.series_number ? ` · Book ${book.series_number}` : ''}</p>
               </button>
             )
           })()}
