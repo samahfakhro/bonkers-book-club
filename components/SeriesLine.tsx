@@ -34,6 +34,6 @@ export default function SeriesLine({ bookId, style }: { bookId: string | null | 
   }, [bookId])
   if (!line) return null
   return (
-    <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.65rem', fontWeight: 700, color: '#c48b00', letterSpacing: '0.05em', margin: '2px 0 0', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', maxWidth: '100%', ...style }}>{line}</p>
+    <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.65rem', fontWeight: 700, color: '#c48b00', letterSpacing: '0.05em', margin: '2px 0 0', lineHeight: 1.35, overflowWrap: 'anywhere', ...style }}>{line}</p>
   )
 }

@@ -789,7 +789,7 @@ function LibraryPageInner() {
                   </button>
                   <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', flex: 1 }}>
                     <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '1.05rem', fontWeight: 700, letterSpacing: '0.03em', lineHeight: 1.3, margin: 0, textAlign: 'center', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{book.title}</p>
-                    {book.series_label && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.75rem', fontWeight: 700, color: '#c48b00', letterSpacing: '0.06em', margin: '4px 0 0', textAlign: 'center', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{book.series_label}</p>}
+                    {book.series_label && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.75rem', fontWeight: 700, color: '#c48b00', letterSpacing: '0.06em', margin: '4px 0 0', textAlign: 'center', lineHeight: 1.35, overflowWrap: 'anywhere' }}>{book.series_label}</p>}
                     <div style={{ marginTop: 'auto' }}><BookActions book={book} isAvailable={isAvailable} /></div>
                   </div>
                 </div>
