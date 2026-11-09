@@ -190,9 +190,10 @@ function parseSeriesLine(line: string): { name: string; number: number } | null 
 }
 
 // Web lookups only find facts and their sources, with the cheaper, faster Sonnet model and at most 2 searches
-// (every page read is paid for). The descriptions are written by WRITE_MODEL (enrichWithClaude).
+// (every page read is paid for). The descriptions are written by Opus (WRITE_MODEL, enrichWithClaude): it costs a few
+// cents more per book than Sonnet but gets the details right more often.
 const WEB_MODEL = 'claude-sonnet-5-5'
-const WRITE_MODEL = 'claude-sonnet-5-5'
+const WRITE_MODEL = 'claude-opus-5-5'
 async function webSearchJson(prompt: string, apiKey: string, book?: any): Promise<any | null> {
   try {
     const client = new Anthropic({ apiKey })
@@ -216,51 +217,25 @@ async function webSearchJson(prompt: string, apiKey: string, book?: any): Promis
 const host = (url: string) => new URL(url).hostname.replace(/^www\./, '')
 const isUrl = (u: any) => typeof u === 'string' && /^https?:\/\//.test(u)
 
-// a sourced series number from the lookup's answer, or null (never worked out, counted or assumed)
-function sourcedNumber(r: any): SeriesFound | null {
-  const n = Number(r?.number)
-  if (!Number.isInteger(n) || n < 1 || n > 999 || !isUrl(r?.number_source_url) || !r?.number_quote) return null
-  return { series: r.series || null, sub_series: r.sub_series || null, number: n, source: host(r.number_source_url), url: r.number_source_url }
-}
 
-const NUMBER_RULES = `Series number: use only a reliable source that explicitly states it (the publisher, the author's official site, Wikipedia, or a library catalogue). If the series has sub-series (e.g. Goosebumps → Goosebumps HorrorLand), give the sub-series the number belongs to. Never work the number out yourself, count, or assume: if no source states it, use null.`
-
-// Only the series number is missing (the book has a blurb): look it up, with its source.
-async function seriesFromWeb(book: any, seriesHint: string | null, apiKey: string): Promise<SeriesFound | null> {
-  const r = await webSearchJson(`Find which series this children's book belongs to and its number in that series.
-
-Book: "${book.title}" by ${book.author}${book.isbn ? ` (ISBN ${book.isbn})` : ''}${seriesHint ? `\nPossibly part of: ${seriesHint}` : ''}
-
-Search the web. ${NUMBER_RULES}
-
-Reply with ONLY JSON, no other text:
-{"series": "main series name", "sub_series": "sub-series name or null", "number": 5, "number_source_url": "the page that states it", "number_quote": "the exact words on that page that give the number"}
-or
-null`, apiKey, book)
-  return sourcedNumber(r)
-}
-
-// No blurb from Google or Open Library: ONE web lookup finds what the book is about (in its own words, with the page
-// used) and, if it's part of a series, its number (with the page that states it).
-async function blurbAndSeriesFromWeb(book: any, apiKey: string): Promise<{ facts: string; source: string; url: string; series: SeriesFound | null } | null> {
-  const r = await webSearchJson(`Find out about this children's book.
+// No blurb from Google, Open Library or Penguin: ONE web lookup finds what the book is about, in its own words, with
+// the page used. (Series numbers are NOT searched for on the web: too costly and unreliable; the team types them in.)
+async function blurbFromWeb(book: any, apiKey: string): Promise<{ facts: string; source: string; url: string } | null> {
+  const r = await webSearchJson(`Find out what this children's book is about.
 
 Book: "${book.title}" by ${book.author}${book.isbn ? ` (ISBN ${book.isbn})` : ''}${book.publisher ? `, published by ${book.publisher}` : ''}
 
-1. Description: search for the publisher's description (blurb) of THIS book: the publisher's site, the author's official site, or a library catalogue. Make sure the page is about this exact book (same title and author), not another book in the series. Summarise it in your own words, 3–4 sentences: the main characters, what happens at the start, the kind of book it is. Do not copy sentences from the page, do not add anything it doesn't say, no spoilers.
-2. If the book is part of a series: the series name and the book's number in it. ${NUMBER_RULES}
+Search for the publisher's description (blurb) of THIS book: the publisher's site, the author's official site, or a library catalogue. Make sure the page is about this exact book (same title and author), not another book in the series. Summarise it in your own words, 3–4 sentences: the main characters, what happens at the start, the kind of book it is. Do not copy sentences from the page, do not add anything it doesn't say, no spoilers.
 
 Reply with ONLY JSON, no other text:
-{"summary": "... or null", "summary_source_url": "the page you used, or null", "series": "main series name or null", "sub_series": "sub-series name or null", "number": 5, "number_source_url": "the page that states the number, or null", "number_quote": "the exact words on that page that give the number, or null"}`, apiKey, book)
-  if (!r) return null
-  const series = sourcedNumber(r)
-  if (!r.summary || String(r.summary).length < 40 || !isUrl(r.summary_source_url)) return series ? { facts: '', source: '', url: '', series } : null
-  return { facts: String(r.summary), source: host(r.summary_source_url), url: r.summary_source_url, series }
+{"summary": "... or null", "summary_source_url": "the page you used, or null"}`, apiKey, book)
+  if (!r?.summary || String(r.summary).length < 40 || !isUrl(r.summary_source_url)) return null
+  return { facts: String(r.summary), source: host(r.summary_source_url), url: r.summary_source_url }
 }
 
 // The book's number in its series, from real sources in this order: the title, Open Library's record for this barcode,
-// Google's series details, then a sourced web lookup. Nothing found → null (the team fills it in).
-async function findSeriesNumber(book: any, aiSeries: string | null, aiSub: string | null, apiKey: string | null): Promise<SeriesFound | null> {
+// Google's series details, Penguin's page. Free sources only, no web search. Nothing found → null (the team fills it in).
+function findSeriesNumber(book: any, aiSeries: string | null, aiSub: string | null): SeriesFound | null {
   const fromTitle = numberFromTitle(book.fullTitle || book.title, aiSub || aiSeries)
   if (fromTitle) return { series: aiSeries, sub_series: aiSub, number: fromTitle, source: 'the title', url: null }
   for (const line of (book.olSeries || []) as string[]) {
@@ -269,19 +244,20 @@ async function findSeriesNumber(book: any, aiSeries: string | null, aiSub: strin
   }
   if (book.googleSeriesNumber && (aiSeries || aiSub)) return { series: aiSeries, sub_series: aiSub, number: book.googleSeriesNumber, source: 'Google Books', url: null }
   if (book.penguin?.number) return { series: aiSeries || book.penguin.series, sub_series: aiSub, number: book.penguin.number, source: book.penguin.label, url: book.penguin.url }
-  if (book.webLookupDone) return book.webSeries || null   // the description lookup already searched the web for it
-  if (!apiKey || !(aiSeries || (book.olSeries || []).length)) return null   // not part of a series
-  return seriesFromWeb(book, aiSub || aiSeries || (book.olSeries || [])[0] || null, apiKey)
+  return null
 }
 
 async function enrichWithClaude(book: ReturnType<typeof parseDoc> & { categoryNames?: string[]; googleAuthors?: string[]; byStatement?: string }, apiKey: string): Promise<{ result: any; error?: string }> {
   try {
     const client = new Anthropic({ apiKey })
-    // Sonnet 5.5 at low effort: about half Opus's price and faster; thinking stays on, so leave room in max_tokens.
-    const msg: any = await client.messages.create({
+    // Claude Opus 5.5 at low effort: richer, more accurate descriptions; thinking is always on, so leave room in max_tokens.
+    // If a safety check ever declines the request, "fallbacks: default" lets the API retry it on a suitable model.
+    const msg: any = await (client.beta.messages.create as any)({
       model: WRITE_MODEL,
       max_tokens: 8000,
       output_config: { effort: 'low' },
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
       messages: [{
         role: 'user',
         content: `You are cataloguing children's books for a library called The Curious Library.
@@ -355,9 +331,7 @@ async function enrichBook(book: any, editionIsbn: string, workKey: string, apiKe
     }
   }
   if (!book.publisherBlurb && apiKey) {
-    const web = await blurbAndSeriesFromWeb(book, apiKey)
-    book.webLookupDone = true
-    book.webSeries = web?.series || null
+    const web = await blurbFromWeb(book, apiKey)
     if (web?.facts) { book.description = web.facts; book.descriptionSource = { label: web.source, url: web.url } }
   }
   const [{ coverBase64, coverNotEnglish }, { result: enrichment, error: claudeError }] = await Promise.all([
@@ -366,7 +340,7 @@ async function enrichBook(book: any, editionIsbn: string, workKey: string, apiKe
   ])
   book.coverMayBeOtherEdition = false
   if (enrichment) {
-    const found = await findSeriesNumber(book, enrichment.series_name || null, enrichment.sub_series_name || null, apiKey)
+    const found = findSeriesNumber(book, enrichment.series_name || null, enrichment.sub_series_name || null)
     if (found) {
       enrichment.book_number = found.number
       enrichment.book_number_source = { label: found.source, url: found.url }
@@ -374,7 +348,7 @@ async function enrichBook(book: any, editionIsbn: string, workKey: string, apiKe
       if (found.sub_series && found.source !== 'the title') enrichment.sub_series_name = found.sub_series
     }
   }
-  delete book.webSeries; delete book.penguin
+  delete book.penguin
   return { book: { ...book, coverBase64, coverNotEnglish }, enrichment, claudeError }
 }
 
