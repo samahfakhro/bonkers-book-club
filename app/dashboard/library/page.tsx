@@ -16,6 +16,7 @@ import ChildChoiceSheet from '@/components/ChildChoiceSheet'
 import BookRequestSheet from '@/components/BookRequestSheet'
 import { nextDeliverySpace, openFullDelivery } from '@/lib/next-delivery'
 import { seriesLine } from '@/lib/book-titles'
+import SeriesLine from '@/components/SeriesLine'
 
 type Book = { id: string; title: string; author: string; cover_image_url: string | null; series_number?: number | null; series_label?: string | null }
 type Category = { id: string; name: string; image_url: string | null }
@@ -518,8 +519,8 @@ function LibraryPageInner() {
         #lib-search::placeholder { color: rgba(26,47,81,0.45); }
         @keyframes toast-in { from { opacity:0; transform:translateX(-50%) translateY(6px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
         @keyframes burst { 0%{opacity:1;transform:translate(-50%,-50%) rotate(0deg);} 80%{opacity:1;transform:translate(calc(-50% + var(--bx)),calc(-50% + var(--by))) rotate(var(--br));} 100%{opacity:0;transform:translate(calc(-50% + var(--bx)),calc(-50% + var(--by))) rotate(var(--br));} }
-        .book-grid { display: grid; column-gap: 18px; row-gap: 36px; grid-template-columns: repeat(2, 1fr); }
-        @media (min-width: 540px) { .book-grid { grid-template-columns: repeat(3, 1fr); } }
+        .book-grid { display: grid; column-gap: 18px; row-gap: 36px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        @media (min-width: 540px) { .book-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
         .list-cover { width: calc((min(768px,100vw) - 32px - 24px) / 3); aspect-ratio: 2/3; border-radius: 10px; overflow: hidden; background: rgba(26,47,81,0.08); flex-shrink: 0; }
         @media (min-width: 540px) { .list-cover { width: calc((min(768px,100vw) - 32px - 36px) / 4); } }
         .book-action-btn { border-color: rgba(26,47,81,0.2) !important; }
@@ -850,6 +851,7 @@ function LibraryPageInner() {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.78rem', color: '#1a2f51', margin: 0, lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{book.title}</p>
+                      <SeriesLine bookId={bookId} />
                       {book.author && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.65rem', color: '#1a2f51', margin: '2px 0 0' }}>{book.author}</p>}
                     </div>
                   </div>

@@ -14,6 +14,7 @@ import BlobRating from '@/components/BlobRating'
 import { getCategoryBlob } from '@/lib/category-blobs'
 import CategorySymbol from '@/components/CategorySymbol'
 import { nextDeliverySpace, openFullDelivery } from '@/lib/next-delivery'
+import SeriesLine from '@/components/SeriesLine'
 
 type Child = {
   id: string
@@ -1003,6 +1004,7 @@ export default function BookDetailPage() {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.78rem', color: '#1a2f51', margin: 0, lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{bk.title}</p>
+                      <SeriesLine bookId={bkId} />
                       {bk.author && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.65rem', color: '#1a2f51', margin: '2px 0 0' }}>{bk.author}</p>}
                     </div>
                   </div>

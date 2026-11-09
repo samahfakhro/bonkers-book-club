@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import CuriousLogo from '@/components/CuriousLogo'
 import { useCollectibleFlow, PlacedCollectibles, PlacingCollectible, CollectibleOverlay, CollectibleControls, COLLECTIBLE_CSS } from '@/components/universe/Collectibles'
+import SeriesLine from '@/components/SeriesLine'
 
 // where the room opens: centred when the shelf is empty, otherwise so the newest book on the shelf is in view
 function roomScrollTarget(el: HTMLDivElement, booksOnShelf: number) {
@@ -220,6 +221,7 @@ export default function UniversePage() {
                       <button onClick={() => router.push(`/dashboard/library/${rb.book.id}?from=child&childId=${childId}`)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', width: '100%', textAlign: 'left' }}>
                         {rb.book.cover_url && <img src={rb.book.cover_url} alt="" style={{ width: '100%', borderRadius: '6px', display: 'block', marginBottom: '6px' }} />}
                         <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '0.8rem', color: '#eddbc3', margin: '0 0 2px', lineHeight: 1.3 }}>{rb.book.title}</p>
+                        <SeriesLine bookId={rb.book.id} style={{ fontSize: '0.5rem', color: '#f9d174', margin: '0 0 3px' }} />
                         {rb.book.author && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.48rem', color: 'rgba(237,219,195,0.45)', margin: '0 0 4px' }}>{rb.book.author}</p>}
                       </button>
                       {rb.returnedAt && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.45rem', color: 'rgba(237,219,195,0.35)', margin: '0 0 6px' }}>Read {new Date(rb.returnedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>}

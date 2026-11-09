@@ -1,10 +1,11 @@
 'use client'
 
 import BlobRating from '@/components/BlobRating'
+import SeriesLine from '@/components/SeriesLine'
 
 // The pop-up where a child reviews a book they've read: stars, optional category ratings, and a few words.
 type Props = {
-  book: { title: string; author?: string | null; cover_url?: string | null }
+  book: { id?: string; title: string; author?: string | null; cover_url?: string | null }
   stars: number; setStars: (n: number) => void
   cats: { id: string; label: string; name: string }[]
   catRatings: Record<string, number>; setCatRatings: (fn: (prev: Record<string, number>) => Record<string, number>) => void
@@ -27,6 +28,7 @@ export default function ReviewSheet({ book, stars, setStars, cats, catRatings, s
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '1.3rem', color: '#1a2f51', margin: '0 0 3px', lineHeight: 1.25 }}>{book.title}</p>
+            <SeriesLine bookId={book.id} style={{ fontSize: '0.72rem', margin: '0 0 4px' }} />
             {book.author && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.85rem', color: '#1a2f51', margin: '0 0 8px' }}>{book.author}</p>}
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#5a8a5a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

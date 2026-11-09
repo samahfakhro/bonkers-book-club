@@ -130,11 +130,11 @@ body {
   }
 }
 
-.book-grid { display: grid; column-gap: 18px; row-gap: 36px; grid-template-columns: repeat(2, 1fr); }
-@media (min-width: 540px) { .book-grid { grid-template-columns: repeat(3, 1fr); } }
+.book-grid { display: grid; column-gap: 18px; row-gap: 36px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 540px) { .book-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
-.series-grid { display: grid; column-gap: 12px; row-gap: 20px; grid-template-columns: repeat(2, 1fr); }
-@media (min-width: 768px) and (max-width: 1024px) { .series-grid { column-gap: 18px; row-gap: 28px; grid-template-columns: repeat(3, 1fr); } }
+.series-grid { display: grid; column-gap: 12px; row-gap: 20px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 768px) and (max-width: 1024px) { .series-grid { column-gap: 18px; row-gap: 28px; grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 .view-toggle-icon { width: 14px; height: 14px; }
 @media (min-width: 768px) and (max-width: 1024px) { .view-toggle-icon { width: 22px !important; height: 22px !important; } }

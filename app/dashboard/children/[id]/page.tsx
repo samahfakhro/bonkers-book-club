@@ -16,6 +16,7 @@ import KeepReturnToggle from '@/components/KeepReturnToggle'
 import ReviewSheet from '@/components/ReviewSheet'
 import WishCameTrue from '@/components/WishCameTrue'
 import { nextDeliverySpace, openFullDelivery, returnsNeededMessage } from '@/lib/next-delivery'
+import SeriesLine from '@/components/SeriesLine'
 
 function TapButton({ onTap, style, children }: { onTap: () => void; style?: React.CSSProperties; children: React.ReactNode }) {
   const handlers = useTapOnly(onTap)
@@ -766,6 +767,7 @@ export default function ChildProfilePage() {
                         <TapButton onTap={() => router.push(`/dashboard/library/${rb.book.id}?from=child&childId=${childId}`)} style={{ width: '100%', textAlign: 'left' }}>
                           {rb.book.cover_url && <img src={rb.book.cover_url} alt="" style={{ width: '100%', borderRadius: '6px', display: 'block', marginBottom: '6px' }} />}
                           <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '0.8rem', color: '#eddbc3', margin: '0 0 2px', lineHeight: 1.3 }}>{rb.book.title}</p>
+                          <SeriesLine bookId={rb.book.id} style={{ fontSize: '0.5rem', color: '#f9d174', margin: '0 0 3px' }} />
                           {rb.book.author && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.48rem', color: 'rgba(237,219,195,0.45)', margin: '0 0 4px', letterSpacing: '0.03em' }}>{rb.book.author}</p>}
                         </TapButton>
                         {rb.returnedAt && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.45rem', color: 'rgba(237,219,195,0.35)', margin: '0 0 6px', letterSpacing: '0.03em' }}>Read {new Date(rb.returnedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>}
@@ -1147,6 +1149,7 @@ export default function ChildProfilePage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <TapButton onTap={() => router.push(`/dashboard/library/${selectedSpine.book.id}?from=child&childId=${childId}`)} style={{ textAlign: 'left', width: '100%' }}>
                     <p style={{ fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '1.05rem', color: '#1a2f51', margin: '0 0 2px', lineHeight: 1.3 }}>{selectedSpine.book.title}</p>
+                    <SeriesLine bookId={selectedSpine.book.id} style={{ fontSize: '0.62rem', margin: '0 0 4px' }} />
                     {selectedSpine.book.author && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.62rem', color: 'rgba(26,47,81,0.45)', margin: '0 0 6px' }}>{selectedSpine.book.author}</p>}
                   </TapButton>
                   {selectedSpine.returnedAt && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.6rem', color: 'rgba(26,47,81,0.4)', margin: '0 0 6px' }}>Read {new Date(selectedSpine.returnedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>}
