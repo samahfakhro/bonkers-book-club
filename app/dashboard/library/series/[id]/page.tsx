@@ -351,7 +351,7 @@ function SeriesPage() {
           {filteredBooks.map(book => (
             <button key={book.id} {...makeTapHandlers(() => navigateToBook(book.id))}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column' }}>
-              <div style={{ width: '100%', aspectRatio: '2/3', borderRadius: '10px', overflow: 'hidden', backgroundColor: 'rgba(26,47,81,0.08)', marginBottom: '8px', position: 'relative' }}>
+              <div className={book.cover_image_url ? "shelf shelf-on" : "shelf"} style={{ width: '100%', aspectRatio: '2/3', borderRadius: '10px', overflow: 'hidden', backgroundColor: 'rgba(26,47,81,0.08)', marginBottom: '8px', position: 'relative' }}>
                 {book.cover_image_url ? <img src={book.cover_image_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}
                 {!availableBookIds.has(book.id) && (
                   <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(254,250,242,0.55)' }} />
@@ -371,7 +371,7 @@ function SeriesPage() {
           {filteredBooks.map(book => (
             <button key={book.id} {...makeTapHandlers(() => navigateToBook(book.id))}
               style={{ backgroundColor: '#fff', border: '1px solid rgba(26,47,81,0.1)', borderRadius: '14px', cursor: 'pointer', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '14px', textAlign: 'left' as const }}>
-              <div style={{ width: '52px', height: '76px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, backgroundColor: 'rgba(26,47,81,0.08)', position: 'relative' }}>
+              <div className={book.cover_image_url ? "shelf shelf-on" : "shelf"} style={{ width: '52px', height: '76px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, backgroundColor: 'rgba(26,47,81,0.08)', position: 'relative' }}>
                 {book.cover_image_url ? <img src={book.cover_image_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}
                 {!availableBookIds.has(book.id) && (
                   <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(254,250,242,0.55)' }} />

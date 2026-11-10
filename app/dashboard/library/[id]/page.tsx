@@ -539,7 +539,7 @@ export default function BookDetailPage() {
     const isRead = showRead && readSeriesBookIds.has(b.id)
     return (
       <button onClick={() => router.push(url)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, width: '7.5rem' }}>
-        <div style={{ width: '100%', aspectRatio: '2/3', borderRadius: '12px', overflow: 'hidden', backgroundColor: 'rgba(26,47,81,0.08)', marginBottom: '10px', position: 'relative' }}>
+        <div className={b.cover_image_url ? "shelf shelf-on" : "shelf"} style={{ width: '100%', aspectRatio: '2/3', borderRadius: '12px', overflow: 'hidden', backgroundColor: 'rgba(26,47,81,0.08)', marginBottom: '10px', position: 'relative' }}>
           {b.cover_image_url ? <img src={b.cover_image_url} alt={b.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}
           {isRead && (
             <div style={{ position: 'absolute', bottom: '4px', left: '4px', display: 'flex', alignItems: 'center', gap: '3px', backgroundColor: 'rgba(8,4,2,0.82)', borderRadius: '999px', padding: '2px 6px 2px 4px', pointerEvents: 'none' }}>
@@ -672,7 +672,7 @@ export default function BookDetailPage() {
 
         {/* Cover */}
         <div className="md:w-[42%] book-cover-col" style={{ width: '42%', flexShrink: 0, position: 'relative' }}>
-          <div style={{ borderRadius: '12px', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.2)', backgroundColor: 'rgba(26,47,81,0.06)' }}>
+          <div className={book.cover_image_url ? "shelf shelf-big shelf-on" : "shelf shelf-big"} style={{ borderRadius: '12px', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.2)', backgroundColor: 'rgba(26,47,81,0.06)' }}>
             {book.cover_image_url
               ? <img src={book.cover_image_url} alt={book.title} style={{ width: '100%', aspectRatio: '2/3', objectFit: 'cover', display: 'block' }} />
               : <div style={{ width: '100%', aspectRatio: '2/3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ color: '#1a2f51', opacity: 0.3, fontSize: '2.5rem' }}>📖</span></div>

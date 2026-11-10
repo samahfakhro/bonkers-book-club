@@ -557,7 +557,7 @@ function LibraryPageInner() {
                 {searchResults.map(book => (
                   <button key={book.id} {...makeTapHandlers(() => { setSearchQuery(''); navigateToBook(book.id) })}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}>
-                    <div style={{ width: '100%', aspectRatio: '2/3', borderRadius: '10px', overflow: 'hidden', backgroundColor: 'rgba(26,47,81,0.08)', marginBottom: '6px', position: 'relative' }}>
+                    <div className={book.cover_image_url ? "shelf shelf-on" : "shelf"} style={{ width: '100%', aspectRatio: '2/3', borderRadius: '10px', overflow: 'hidden', backgroundColor: 'rgba(26,47,81,0.08)', marginBottom: '6px', position: 'relative' }}>
                       {book.cover_image_url ? <img src={book.cover_image_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
                       <ReadPill bookId={book.id} />
                     </div>
@@ -782,7 +782,7 @@ function LibraryPageInner() {
               return (
                 <div key={book.id} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                   <button {...makeTapHandlers(() => navigateToBook(book.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'block', width: '100%' }}>
-                    <div style={{ width: '100%', aspectRatio: '2/3', borderRadius: '12px', overflow: 'hidden', backgroundColor: 'rgba(26,47,81,0.08)', position: 'relative' }}>
+                    <div className={book.cover_image_url ? "shelf shelf-on" : "shelf"} style={{ width: '100%', aspectRatio: '2/3', borderRadius: '12px', overflow: 'hidden', backgroundColor: 'rgba(26,47,81,0.08)', position: 'relative' }}>
                       {book.cover_image_url ? <img src={book.cover_image_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}
                       <ReadPill bookId={book.id} />
                     </div>
@@ -803,7 +803,7 @@ function LibraryPageInner() {
               return (
                 <div key={book.id} style={{ borderRadius: '14px', backgroundColor: '#fff', border: '1px solid rgba(26,47,81,0.1)', display: 'flex', alignItems: 'flex-start', gap: '14px', padding: '12px 14px' }}>
                   <button {...makeTapHandlers(() => navigateToBook(book.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0 }}>
-                    <div className="list-cover" style={{ position: 'relative' }}>
+                    <div className={book.cover_image_url ? "list-cover shelf shelf-on" : "list-cover shelf"} style={{ position: 'relative' }}>
                       {book.cover_image_url ? <img src={book.cover_image_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}
                       <ReadPill bookId={book.id} />
                     </div>
