@@ -23,7 +23,7 @@ async function cropToDataUrl(src: string, area: Area): Promise<string> {
 const btn: React.CSSProperties = { fontSize: '12px', fontWeight: 600, color: '#1a2f51', border: '1px solid #d4d4d4', borderRadius: '8px', padding: '7px 10px', cursor: 'pointer', backgroundColor: '#fff' }
 const pickBtn: React.CSSProperties = { ...btn, backgroundColor: '#1a2f51', color: '#fff', border: 'none', padding: '9px 14px', display: 'inline-block' }
 
-export default function CoverPicker({ onPicked, busy = false }: { onPicked: (dataUrl: string) => void; busy?: boolean }) {
+export default function CoverPicker({ onPicked, busy = false, title }: { onPicked: (dataUrl: string) => void; busy?: boolean; title?: string }) {
   const [src, setSrc] = useState<string | null>(null)
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
@@ -58,6 +58,7 @@ export default function CoverPicker({ onPicked, busy = false }: { onPicked: (dat
               <Cropper image={src} crop={crop} zoom={zoom} aspect={aspect} onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={onComplete} />
             </div>
             <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {title && <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#1a2f51' }}>Cover for: {title}</p>}
               <p style={{ margin: 0, fontSize: '12px', color: '#6b6b6b' }}>Drag to position the cover inside the box, pinch or use the slider to zoom.</p>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                 {SHAPES.map(s => (
