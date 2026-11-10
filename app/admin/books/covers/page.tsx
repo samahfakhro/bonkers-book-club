@@ -1,5 +1,6 @@
 'use client'
-// Missing covers: every book without a cover, one row each. Fastest way in: open Amazon for the book (links search
+// Missing covers: every book without a cover, one row each. The highlighted book shows suggested covers (Google Books,
+// Open Library, Penguin — never Amazon): tap the right one to save it. Otherwise: open Amazon for the book (links search
 // by its barcode), right-click the cover → Copy image, click the book's row here and press Ctrl+V. Dragging in a saved
 // image file, or choosing one, works too. Nothing is fetched from Amazon by this page: the team copies each image.
 
@@ -42,6 +43,53 @@ export default function MissingCoversPage() {
   const [dragOver, setDragOver] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const fileFor = useRef<string | null>(null)
+  const [suggest, setSuggest] = useState<{ id: string; list: { url: string; source: string }[] } | null>(null)
+  const [skipped, setSkipped] = useState<Set<string>>(new Set())
+
+  // suggested covers for the highlighted book
+  useEffect(() => {
+    if (!selected) return
+    let alive = true
+    setSuggest(null)
+    fetch('/api/admin/cover-candidates?id=' + selected).then(r => r.json())
+      .then(j => { if (alive) setSuggest({ id: selected, list: j.candidates || [] }) })
+      .catch(() => { if (alive) setSuggest({ id: selected, list: [] }) })
+    return () => { alive = false }
+  }, [selected])
+
+  // the book has its cover: take it off the list and highlight the next one (skipping ones marked "none of these")
+  const done = useCallback((bookId: string, title: string) => {
+    setMsg({ ok: true, text: `✓ Cover saved for ${title}` })
+    setDoneCount(n => n + 1)
+    setBooks(prev => {
+      const i = prev.findIndex(b => b.id === bookId)
+      const next = prev.filter(b => b.id !== bookId)
+      const order = next.slice(i).concat(next.slice(0, i))
+      setSelected(order.find(b => !skipped.has(b.id))?.id || null)
+      return next
+    })
+  }, [skipped])
+
+  async function pickSuggestion(bookId: string, url: string) {
+    const book = books.find(b => b.id === bookId)
+    if (!book || busy) return
+    setBusy(bookId); setMsg(null)
+    try {
+      const res = await fetch('/api/admin/cover-candidates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: bookId, url }) })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j.publicUrl) throw new Error(j.error || 'save failed')
+      done(bookId, book.title)
+    } catch (e: any) {
+      setMsg({ ok: false, text: `⚠ Couldn’t save that cover: ${e?.message || 'try another'}` })
+    } finally { setBusy(null) }
+  }
+
+  function noneRight(bookId: string) {
+    const nextSkipped = new Set(skipped); nextSkipped.add(bookId); setSkipped(nextSkipped)
+    const i = books.findIndex(b => b.id === bookId)
+    const order = books.slice(i + 1).concat(books.slice(0, i))
+    setSelected(order.find(b => !nextSkipped.has(b.id))?.id || null)
+  }
 
   useEffect(() => {
     supabase.from('books').select('id, title, author, isbn, cover_image_url').is('cover_image_url', null).order('title').then(({ data }) => {
@@ -59,18 +107,11 @@ export default function MissingCoversPage() {
       const res = await fetch('/api/admin/books', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: bookId, bucket: 'book-covers', base64, field: 'cover_image_url' }) })
       const j = await res.json().catch(() => ({}))
       if (!res.ok || !j.publicUrl) throw new Error(j.error || 'upload failed')
-      setMsg({ ok: true, text: `✓ Cover saved for ${book.title}` })
-      setDoneCount(n => n + 1)
-      setBooks(prev => {
-        const i = prev.findIndex(b => b.id === bookId)
-        const next = prev.filter(b => b.id !== bookId)
-        setSelected(next[Math.min(i, next.length - 1)]?.id || null)   // move on to the next book
-        return next
-      })
+      done(bookId, book.title)
     } catch (e: any) {
       setMsg({ ok: false, text: e?.message === 'not an image' ? 'That wasn’t an image. On Amazon, right-click the cover and choose “Copy image”, then paste again.' : `⚠ Couldn’t save the cover: ${e?.message || 'try again'}` })
     } finally { setBusy(null) }
-  }, [books])
+  }, [books, done])
 
   // Ctrl+V anywhere on the page puts the copied image on the selected book
   useEffect(() => {
@@ -102,7 +143,8 @@ export default function MissingCoversPage() {
         {books.length} book{books.length === 1 ? '' : 's'} without a cover{doneCount ? ` · ${doneCount} added just now` : ''}
       </p>
       <p style={{ fontSize: '13px', color: '#4a4a4a', margin: '0 0 16px', lineHeight: 1.5 }}>
-        Click <strong>Amazon</strong> on a book → right-click the cover → <strong>Copy image</strong> → come back and press <strong>Ctrl + V</strong>. It goes on the highlighted book, then the next book is highlighted. You can also drag an image file onto a row.
+        The highlighted book shows <strong>suggested covers</strong>: tap the one that matches your copy (English, same edition) and it saves. If none are right, tap <strong>None of these</strong>.<br />
+        Or click <strong>Amazon</strong> on a book → right-click the cover → <strong>Copy image</strong> → come back and press <strong>Ctrl + V</strong>. It goes on the highlighted book, then the next book is highlighted. You can also drag an image file onto a row.
       </p>
 
       {msg && <div style={{ position: 'sticky', top: 0, zIndex: 5, marginBottom: '12px', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, backgroundColor: msg.ok ? '#f0fdf4' : '#fef2f2', color: msg.ok ? '#166534' : '#b91c1c', border: `1px solid ${msg.ok ? '#bbf7d0' : '#fecaca'}` }}>{msg.text}</div>}
@@ -124,7 +166,14 @@ export default function MissingCoversPage() {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>{b.title}</p>
-                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6b6b6b' }}>{b.author}{isbn ? ` · ${isbn}` : ' · no barcode'}</p>
+                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6b6b6b' }}>{b.author}{isbn ? ` · ${isbn}` : ' · no barcode'}{skipped.has(b.id) ? ' · no suggestion was right' : ''}</p>
+                {isSel && (
+                  <div onClick={e => e.stopPropagation()} style={{ marginTop: '10px', cursor: 'default' }}>
+                    {suggest?.id !== b.id
+                      ? <p style={{ margin: 0, fontSize: '12px', color: '#6b6b6b' }}>Looking for covers…</p>
+                      : <SuggestionStrip key={b.id} list={suggest.list} disabled={!!busy} onPick={url => pickSuggestion(b.id, url)} onNone={() => noneRight(b.id)} />}
+                  </div>
+                )}
               </div>
               <a href={`https://www.amazon.co.uk/s?k=${q}`} target="_blank" rel="noopener noreferrer" onClick={e => { e.stopPropagation(); setSelected(b.id) }} style={linkBtn}>🔎 Amazon UK</a>
               <a href={`https://www.amazon.ae/s?k=${q}`} target="_blank" rel="noopener noreferrer" onClick={e => { e.stopPropagation(); setSelected(b.id) }} style={linkBtn}>🔎 Amazon UAE</a>
@@ -136,6 +185,43 @@ export default function MissingCoversPage() {
 
       <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
         onChange={e => { const f = e.target.files?.[0]; const id = fileFor.current; e.target.value = ''; if (f && id) upload(id, f) }} />
+    </div>
+  )
+}
+
+// The suggested covers, big enough to check the edition and language. Broken or placeholder images hide themselves.
+function SuggestionStrip({ list, disabled, onPick, onNone }: { list: { url: string; source: string }[]; disabled: boolean; onPick: (url: string) => void; onNone: () => void }) {
+  const [bad, setBad] = useState<Set<string>>(new Set())
+  const hide = (url: string) => setBad(prev => new Set(prev).add(url))
+  // each image's real size: covers under 500px wide look blurry on a book's own page on phones and iPads
+  const [size, setSize] = useState<Record<string, { w: number; h: number }>>({})
+  const shown = list.filter(c => !bad.has(c.url))
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        {shown.map(c => (
+          <button key={c.url} type="button" disabled={disabled} onClick={() => onPick(c.url)} title="Use this cover"
+            style={{ border: '2px solid #e5e5e5', borderRadius: '10px', padding: '6px', backgroundColor: '#fff', cursor: disabled ? 'wait' : 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', width: '132px' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={c.url} alt="" referrerPolicy="no-referrer" onError={() => hide(c.url)}
+              onLoad={e => {
+                const i = e.currentTarget
+                if (i.naturalWidth < 60 || i.naturalHeight < 80) hide(c.url)
+                else setSize(prev => ({ ...prev, [c.url]: { w: i.naturalWidth, h: i.naturalHeight } }))
+              }}
+              style={{ maxWidth: '120px', maxHeight: '180px', objectFit: 'contain', borderRadius: '4px' }} />
+            <span style={{ fontSize: '10px', color: '#6b6b6b', textAlign: 'center', lineHeight: 1.3 }}>{c.source}</span>
+            {size[c.url] && (
+              <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '6px',
+                backgroundColor: size[c.url].w >= 500 ? '#fdf3d7' : '#f1f1f1', color: size[c.url].w >= 500 ? '#8a6100' : '#6b6b6b' }}>
+                {size[c.url].w >= 500 ? '✓ sharp' : 'small'} · {size[c.url].w}×{size[c.url].h}
+              </span>
+            )}
+          </button>
+        ))}
+        {shown.length === 0 && <p style={{ margin: 0, fontSize: '12px', color: '#6b6b6b' }}>No suggestions found. Use Amazon or take a photo.</p>}
+      </div>
+      <button type="button" onClick={onNone} style={{ ...linkBtn, cursor: 'pointer', marginTop: '10px' }}>None of these → next book</button>
     </div>
   )
 }
