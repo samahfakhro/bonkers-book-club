@@ -8,7 +8,36 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
-type Book = { id: string; title: string; author: string; isbn: string | null; cover_image_url: string | null }
+type Book = { id: string; title: string; author: string; isbn: string | null; cover_image_url: string | null; publisher: string | null }
+
+// Each publisher's own website. Penguin's search goes straight to the book; for the others a Google search limited to
+// their site puts the book page first. Unknown publisher → a plain Google search for the barcode.
+const PUBLISHER_SITES: [RegExp, string][] = [
+  [/puffin|penguin|ladybird|transworld|price stern|random house|corgi/i, 'penguin.co.uk'],
+  [/farshore|egmont/i, 'farshore.co.uk'],
+  [/harper/i, 'harpercollins.co.uk'],
+  [/scholastic|graphix|alison green|branches/i, 'scholastic.co.uk'],
+  [/macmillan/i, 'panmacmillan.com'],
+  [/hodder|orion|orchard|hachette|wren/i, 'hachettechildrens.co.uk'],
+  [/walker/i, 'walker.co.uk'],
+  [/simon/i, 'simonandschuster.co.uk'],
+  [/bloomsbury/i, 'bloomsbury.com'],
+  [/fickling/i, 'davidficklingbooks.com'],
+  [/usborne/i, 'usborne.com'],
+  [/little tiger/i, 'littletiger.co.uk'],
+  [/andrews mcmeel/i, 'andrewsmcmeel.com'],
+  [/nosy crow/i, 'nosycrow.com'],
+  [/barrington/i, 'barringtonstoke.co.uk'],
+  [/candlewick/i, 'candlewick.com'],
+  [/\bdk\b|dorling/i, 'dk.com'],
+]
+function publisherLink(b: Book, isbn: string): { href: string; label: string } {
+  const site = b.publisher ? PUBLISHER_SITES.find(([re]) => re.test(b.publisher!))?.[1] : null
+  const q = isbn || `${b.title} ${b.author || ''}`
+  if (site === 'penguin.co.uk' && isbn) return { href: `https://www.penguin.co.uk/search-results?q=${isbn}`, label: `${b.publisher} site` }
+  if (site) return { href: `https://www.google.com/search?q=${encodeURIComponent(`${q} site:${site}`)}`, label: `${b.publisher} site` }
+  return { href: `https://www.google.com/search?q=${encodeURIComponent(isbn ? isbn : `${q} book`)}`, label: 'Find publisher' }
+}
 
 const navy = '#1a2f51'
 const linkBtn: React.CSSProperties = { fontSize: '12px', fontWeight: 600, color: navy, textDecoration: 'none', padding: '6px 10px', border: '1px solid #d4d4d4', borderRadius: '8px', backgroundColor: '#fff', whiteSpace: 'nowrap' }
@@ -92,7 +121,7 @@ export default function MissingCoversPage() {
   }
 
   useEffect(() => {
-    supabase.from('books').select('id, title, author, isbn, cover_image_url').is('cover_image_url', null).order('title').then(({ data }) => {
+    supabase.from('books').select('id, title, author, isbn, cover_image_url, publisher').is('cover_image_url', null).order('title').then(({ data }) => {
       const list = (data || []) as Book[]
       setBooks(list); setSelected(list[0]?.id || null); setLoading(false)
     })
@@ -136,6 +165,7 @@ export default function MissingCoversPage() {
   if (loading) return <div style={{ padding: '40px', fontFamily: 'var(--font-montserrat)', color: '#6b6b6b' }}>Loading…</div>
 
   return (
+    <div style={{ flex: 1, overflowY: 'auto' }}>{/* the admin frame doesn't scroll, so this page scrolls itself */}
     <div style={{ padding: '28px 32px', fontFamily: 'var(--font-montserrat)', color: '#1a1a1a', maxWidth: '860px' }}>
       <Link href="/admin/books" style={{ fontSize: '12px', color: '#6b6b6b', textDecoration: 'none' }}>← Books</Link>
       <h1 style={{ fontSize: '22px', fontWeight: 700, margin: '6px 0 4px', color: navy }}>Missing covers</h1>
@@ -175,6 +205,8 @@ export default function MissingCoversPage() {
                   </div>
                 )}
               </div>
+              {(() => { const p = publisherLink(b, isbn); return <a href={p.href} target="_blank" rel="noopener noreferrer" onClick={e => { e.stopPropagation(); setSelected(b.id) }} style={linkBtn}>🏢 {p.label}</a> })()}
+              <a href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(`${b.title} ${b.author || ''} book cover`)}`} target="_blank" rel="noopener noreferrer" onClick={e => { e.stopPropagation(); setSelected(b.id) }} style={linkBtn}>🔎 Google Images</a>
               <a href={`https://www.amazon.co.uk/s?k=${q}`} target="_blank" rel="noopener noreferrer" onClick={e => { e.stopPropagation(); setSelected(b.id) }} style={linkBtn}>🔎 Amazon UK</a>
               <a href={`https://www.amazon.ae/s?k=${q}`} target="_blank" rel="noopener noreferrer" onClick={e => { e.stopPropagation(); setSelected(b.id) }} style={linkBtn}>🔎 Amazon UAE</a>
               <button onClick={e => { e.stopPropagation(); setSelected(b.id); fileFor.current = b.id; fileRef.current?.click() }} style={{ ...linkBtn, cursor: 'pointer' }}>⬆ File</button>
@@ -185,6 +217,7 @@ export default function MissingCoversPage() {
 
       <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
         onChange={e => { const f = e.target.files?.[0]; const id = fileFor.current; e.target.value = ''; if (f && id) upload(id, f) }} />
+    </div>
     </div>
   )
 }
