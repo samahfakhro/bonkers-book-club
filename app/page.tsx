@@ -181,28 +181,34 @@ export default function LandingPage() {
 
         {/* Steps, stars, pricing — in normal flow on cream background */}
         <div style={{ backgroundColor: '#fefef5', textAlign: 'center', padding: isTablet ? '32px 44px 56px' : '20px 16px 40px' }}>
-          <div style={{ display: 'flex', gap: '16px', marginTop: '0', justifyContent: 'center' }}>
-            <div style={{ textAlign: 'center', flex: 1, border: '1.5px solid rgba(26,39,68,0.2)', borderRadius: '12px', padding: isTablet ? '16px 12px' : '16px 6px' }}>
-              <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.6rem' : '1.42rem', fontWeight: 700, margin: '0 0 8px', lineHeight: 1.1, whiteSpace: 'nowrap' }}>A Little Curious</p>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '0.72rem' : '0.85rem', fontWeight: 400, margin: '6px 0 6px', lineHeight: 1.2, opacity: 0.8 }}>up to 16 books a month*</p>
-              <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2.1rem' : '1.85rem', fontWeight: 700, display: 'block', lineHeight: 1 }}><span style={{ fontSize: '0.6em', marginRight: '3px' }}>AED</span>149</span>
-              <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, display: 'block', marginTop: '4px' }}>/month</span>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 600, margin: '4px 0 0' }}>4 books at a time</p>
-            </div>
-            <div style={{ textAlign: 'center', flex: 1, border: '1.5px solid rgba(26,39,68,0.2)', borderRadius: '12px', padding: isTablet ? '16px 12px' : '16px 6px' }}>
-              <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.6rem' : '1.42rem', fontWeight: 700, margin: '0 0 8px', lineHeight: 1.1, whiteSpace: 'nowrap' }}>Quite Curious</p>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '0.72rem' : '0.85rem', fontWeight: 400, margin: '6px 0 6px', lineHeight: 1.2, opacity: 0.8 }}>up to 24 books a month*</p>
-              <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2.1rem' : '1.85rem', fontWeight: 700, display: 'block', lineHeight: 1 }}><span style={{ fontSize: '0.6em', marginRight: '3px' }}>AED</span>199</span>
-              <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, display: 'block', marginTop: '4px' }}>/month</span>
-              <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 600, margin: '4px 0 0' }}>6 books at a time</p>
+          {/* One membership (4 books at a time), with the Extra Books add-on (+2 at a time). Prices are in admin → Settings → plans. */}
+          <div style={{ maxWidth: '460px', margin: '0 auto', textAlign: 'center', border: '1.5px solid rgba(26,39,68,0.2)', borderRadius: '16px', padding: isTablet ? '24px 24px 20px' : '22px 18px 18px' }}>
+            <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.7rem' : '1.55rem', fontWeight: 700, margin: '0 0 12px', lineHeight: 1.15 }}>One membership.<br />Endless curiosity.</p>
+            <span style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2.4rem' : '2.2rem', fontWeight: 700, display: 'block', lineHeight: 1 }}><span style={{ fontSize: '0.6em', marginRight: '3px' }}>AED</span>149</span>
+            <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', fontWeight: 400, display: 'block', marginTop: '4px' }}>/month</span>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '18px 0 0', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '9px' }}>
+              {[
+                'Borrow up to 4 books at a time from our children’s library',
+                'Free weekly delivery and collection on your Curious Day, whenever you need it',
+                'Read at your own pace: no due dates or late fees while your membership is active',
+                'Discover extraordinary books, from much-loved favourites to hidden gems and titles that are hard to find in Dubai',
+                'Let the children choose, with their own profiles, wishlists and discoveries',
+                'One membership for the whole family: no separate subscriptions for siblings',
+              ].map(t => (
+                <li key={t} style={{ display: 'flex', gap: '9px', alignItems: 'flex-start', fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', lineHeight: 1.45 }}>
+                  <img src="/sparklestar_yellow.png" alt="" style={{ width: '14px', height: '14px', marginTop: '3px', flexShrink: 0 }} />{t}
+                </li>
+              ))}
+            </ul>
+            <div style={{ marginTop: '18px', padding: '12px 14px', borderRadius: '12px', backgroundColor: 'rgba(196,139,0,0.1)', fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.85rem', lineHeight: 1.45 }}>
+              <strong>➕ Extra Books</strong>: 2 more books at a time for bigger readers and bigger families, <strong>+AED 50/month</strong>
             </div>
           </div>
-          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.72rem', fontStyle: 'italic', opacity: 0.6, margin: '10px 0 0', textAlign: 'center' }}>*Based on getting new books every week</p>
           <div className="lp-hiw-stars" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '6px 18px', marginTop: isTablet ? '32px' : '24px' }}>
             {[
               { star: '/sparklestar_yellow.png', label: 'Weekly delivery / collection' },
               { star: '/sparklestar_yellow.png', label: 'No due dates' },
-              { star: '/sparklestar_yellow.png', label: 'Cancel anytime' },
+              { star: '/sparklestar_yellow.png', label: 'Pause or cancel anytime' },
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <img src={item.star} alt="" style={{ height: isTablet ? '32px' : '20px', width: 'auto' }} />

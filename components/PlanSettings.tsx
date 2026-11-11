@@ -79,10 +79,10 @@ export default function PlanSettings() {
 
   // what a confirm box says before anything happens
   const confirmText = (c: NonNullable<Confirm>) => {
-    if (c.kind === 'upgrade' && c.plan) return <>Move up to <strong>{c.plan.name}</strong> ({c.plan.books} books at a time, AED {c.plan.price}/month) straight away. You’ll be charged the difference for the rest of this billing cycle, then AED {c.plan.price} a month from {nice(m.nextBillingDate)}.</>
+    if (c.kind === 'upgrade' && c.plan) return <>Add <strong>Extra Books</strong> straight away: {c.plan.books} books at a time, AED {c.plan.price}/month in total. You’ll be charged the difference for the rest of this billing cycle, then AED {c.plan.price} a month from {nice(m.nextBillingDate)}.</>
     if (c.kind === 'downgrade' && c.plan) {
       const extra = Math.max(0, (m.plan?.books ?? 0) - c.plan.books)
-      return <>Your plan will change to <strong>{c.plan.name}</strong> ({c.plan.books} books at a time, AED {c.plan.price}/month) on <strong>{nice(m.nextBillingDate)}</strong>. Before then, please return any extra books so you have {c.plan.books} or fewer at home — we’ll send you a reminder before your last Curious Day ahead of the change, so you don’t miss it.{extra > 0 && <> If there are still more than {c.plan.books} books at home on {nice(m.nextBillingDate)}, your {m.plan?.name} plan will carry on for another month, and we’ll try the change again on your next billing date.</>}</>
+      return <><strong>Extra Books</strong> will come off on <strong>{nice(m.nextBillingDate)}</strong>: {c.plan.books} books at a time, AED {c.plan.price}/month. Before then, please return any extra books so you have {c.plan.books} or fewer at home — we’ll send you a reminder before your last Curious Day ahead of the change, so you don’t miss it.{extra > 0 && <> If there are still more than {c.plan.books} books at home on {nice(m.nextBillingDate)}, Extra Books will carry on for another month, and we’ll try the change again on your next billing date.</>}</>
     }
     if (c.kind === 'pause') return <>You have <strong>{m.paidDaysLeft} paid {m.paidDaysLeft === 1 ? 'day' : 'days'}</strong> left. We’ll save {m.paidDaysLeft === 1 ? 'it' : 'them'} for when you come back. Pausing stops your payments and deliveries, and any books chosen for your next delivery go back to your saved books.</>
     if (c.kind === 'resume') return <>Your <strong>{m.savedDays} saved {m.savedDays === 1 ? 'day starts' : 'days start'}</strong> today, and your next payment will be on <strong>{nice(plusDays(m.savedDays))}</strong>. You can choose books straight away.</>
@@ -92,7 +92,7 @@ export default function PlanSettings() {
     return null
   }
   const confirmAction = (c: NonNullable<Confirm>) => c.kind === 'upgrade' || c.kind === 'downgrade' ? act('change_plan', c.plan!.id) : act(c.kind)
-  const confirmLabel = { upgrade: 'Upgrade now', downgrade: 'Book the change', pause: 'Pause membership', resume: 'Resume membership', cancel: 'Cancel membership', rejoin: 'Rejoin', delete_account: 'Yes, delete my account' }
+  const confirmLabel = { upgrade: 'Add Extra Books', downgrade: 'Remove Extra Books', pause: 'Pause membership', resume: 'Resume membership', cancel: 'Cancel membership', rejoin: 'Rejoin', delete_account: 'Yes, delete my account' }
 
   // under a greyed-out Pause / Cancel button: what needs to happen first, and the free collection button
   const ReturnFirst = ({ what }: { what: 'pause' | 'cancel' }) => (
@@ -150,14 +150,15 @@ export default function PlanSettings() {
             <>
               {/* change plan */}
               <div style={card}>
-                <p style={h}>Change plan</p>
+                <p style={h}>Extra Books</p>
+                <p style={{ ...p, margin: '0 0 12px' }}>2 more books at a time for bigger readers and bigger families.</p>
                 {m.scheduled && (
                   <div style={{ marginBottom: '12px', padding: '12px 14px', borderRadius: '12px', backgroundColor: '#fff', border: '1px solid #e8e0d4' }}>
                     <p style={{ ...p, margin: '0 0 10px' }}>
-                      Your plan will change to <strong>{m.scheduled.name}</strong> on <strong>{nice(m.nextBillingDate)}</strong>.
+                      Extra Books comes off on <strong>{nice(m.nextBillingDate)}</strong>.
                       {m.scheduled.extraBooks > 0 && <> Before then, please return your {m.scheduled.extraBooks} extra {m.scheduled.extraBooks === 1 ? 'book' : 'books'} — we’ll remind you before your last Curious Day.</>}
                     </p>
-                    <button disabled={busy} onClick={() => act('change_plan', m.plan!.id)} style={secondary}>Keep {m.plan.name} instead</button>
+                    <button disabled={busy} onClick={() => act('change_plan', m.plan!.id)} style={secondary}>Keep Extra Books</button>
                   </div>
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -167,10 +168,10 @@ export default function PlanSettings() {
                       <button key={o.id} onClick={() => setConfirm({ kind: up ? 'upgrade' : 'downgrade', plan: o })}
                         style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', textAlign: 'left', padding: '14px 16px', borderRadius: '14px', border: '2px solid #e8e0d4', backgroundColor: '#fff', cursor: 'pointer' }}>
                         <span>
-                          <span style={{ display: 'block', fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '1.2rem', color: navy }}>{o.name}</span>
-                          <span style={{ fontFamily: font, fontSize: '0.85rem', color: navy }}>{o.books} books at a time · AED {o.price}/month</span>
+                          <span style={{ display: 'block', fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, fontSize: '1.2rem', color: navy }}>{up ? 'Add Extra Books' : 'Remove Extra Books'}</span>
+                          <span style={{ fontFamily: font, fontSize: '0.85rem', color: navy }}>{o.books} books at a time · {up ? `+AED ${o.price - m.plan!.price}/month (AED ${o.price} in total)` : `AED ${o.price}/month`}</span>
                         </span>
-                        <span style={{ fontFamily: font, fontWeight: 700, fontSize: '0.72rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: navy, whiteSpace: 'nowrap' }}>{up ? 'Upgrade' : 'Downgrade'} →</span>
+                        <span style={{ fontFamily: font, fontWeight: 700, fontSize: '0.72rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: navy, whiteSpace: 'nowrap' }}>{up ? 'Add' : 'Remove'} →</span>
                       </button>
                     )
                   })}

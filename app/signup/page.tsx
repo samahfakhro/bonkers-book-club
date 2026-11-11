@@ -15,8 +15,8 @@ import { DELIVERY_OPTIONS, togglePreference, preferenceColumns } from '@/lib/del
 
 // Fallbacks until the admin Settings load (plans and options are edited in admin → Settings)
 const PLANS = [
-  { id: 'mid', label: 'A Little Curious', price: 149, badge: null, books: 16, swapBooks: 4 },
-  { id: 'full', label: 'Quite Curious', price: 199, badge: null, books: 24, swapBooks: 6 },
+  { id: 'mid', label: 'Membership', price: 149, badge: null, books: 16, swapBooks: 4 },
+  { id: 'full', label: 'Membership + Extra Books', price: 199, badge: null, books: 24, swapBooks: 6 },
 ]
 
 const COUNTRY_CODES = [
@@ -627,42 +627,54 @@ function SignupForm() {
             {/* ── STEP 1: YOUR PLAN ── */}
             {currentStep === 1 && (
               <div>
-                <SectionHeading title="Choose Your Family Plan" subtitle="" />
+                <SectionHeading title="Your Membership" subtitle="" />
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: isTablet ? '16px' : '8px' }}>
-                  {plans.map((plan) => {
-                    const selected = form.planId === plan.id
-                    return (
-                      <div key={plan.id} onClick={() => set('planId', plan.id)}
-                        style={{ width: '100%', backgroundColor: selected ? '#fffef9' : 'transparent', border: `${selected ? '4px' : '2px'} solid ${selected ? '#fee297' : '#e8e0d4'}`, borderRadius: '16px', padding: isTablet ? '20px 16px 24px' : '14px 4px 18px', cursor: 'pointer', textAlign: 'center', position: 'relative', transition: 'all 0.15s', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflow: 'hidden', zoom: 0.9 }}>
-                        {plan.badge && (
-                          <span style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#f5c047', color: '#1a2744', fontSize: isTablet ? '0.62rem' : '0.55rem', fontWeight: 700, padding: '2px 10px', borderRadius: '999px', fontFamily: 'var(--font-montserrat), sans-serif', whiteSpace: 'nowrap', letterSpacing: '0.04em' }}>MOST POPULAR</span>
-                        )}
-<p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2rem' : '2.1rem', fontWeight: 700, margin: '0 0 8px', lineHeight: 1 }}>{isTablet ? plan.label : (() => { const i = plan.label.lastIndexOf(' '); return i > 0 ? <>{plan.label.slice(0, i)}<br />{plan.label.slice(i + 1)}</> : plan.label })()}</p>
-                        <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '0.9rem' : '0.95rem', margin: '0 0 12px', lineHeight: 1.3 }}>up to {plan.books} books a month*</p>
-                                                <div style={{ borderTop: '1px solid #e8e0d4', paddingTop: '12px' }}>
-                          <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2.4rem' : '1.9rem', fontWeight: 800, margin: 0, lineHeight: 1 }}>
-                            <span style={{ fontSize: isTablet ? '1.6rem' : '1.3rem', fontWeight: 600 }}>AED </span>{plan.price}
-                          </p>
-                          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '0.85rem' : '0.95rem', margin: '2px 0 0' }}>/ month</p>
-                          <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '1rem' : '1.05rem', fontWeight: 600, margin: '12px 0 0', lineHeight: 1 }}>{plan.swapBooks} books at a time</p>
-                        </div>
+                {/* One membership (the smallest plan) + the Extra Books add-on (the next plan up). Prices come from admin → Settings. */}
+                {(() => {
+                  const sorted = [...plans].sort((a, b) => a.swapBooks - b.swapBooks)
+                  const base = sorted[0], extra = sorted[1]
+                  const withExtra = !!extra && form.planId === extra.id
+                  if (!base) return null
+                  return (
+                    <div style={{ maxWidth: '520px', margin: '0 auto', backgroundColor: '#fffef9', border: '4px solid #fee297', borderRadius: '16px', padding: isTablet ? '24px 26px' : '20px 16px', textAlign: 'center' }}>
+                      <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '1.9rem' : '1.7rem', fontWeight: 700, margin: '0 0 10px', lineHeight: 1.1 }}>One membership.<br />Endless curiosity.</p>
+                      <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2744', fontSize: isTablet ? '2.4rem' : '2.1rem', fontWeight: 800, margin: 0, lineHeight: 1 }}>
+                        <span style={{ fontSize: isTablet ? '1.6rem' : '1.3rem', fontWeight: 600 }}>AED </span>{base.price}
+                      </p>
+                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.95rem', margin: '2px 0 0' }}>/ month</p>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '9px', margin: '18px 0 0', textAlign: 'left' }}>
+                        {[
+                          `Borrow up to ${base.swapBooks} books at a time from our children’s library`,
+                          'Free weekly delivery and collection on your Curious Day, whenever you need it',
+                          'Read at your own pace: no due dates or late fees while your membership is active',
+                          'Extraordinary books, from much-loved favourites to hidden gems that are hard to find in Dubai',
+                          'The children choose, with their own profiles, wishlists and discoveries',
+                          'One membership for the whole family: no separate subscriptions for siblings',
+                          'Pause or cancel anytime',
+                        ].map(item => (
+                          <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                            <img src="/sparklestar_yellow.png" alt="" style={{ flexShrink: 0, width: '16px', height: '16px', marginTop: '3px' }} />
+                            <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.9rem' : '0.95rem', color: '#1a2f51', fontWeight: 500, lineHeight: 1.4 }}>{item}</span>
+                          </div>
+                        ))}
                       </div>
-                    )
-                  })}
-                </div>
-                <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', opacity: 0.7, fontSize: isTablet ? '0.8rem' : '0.9rem', textAlign: 'center', margin: '10px 0 0' }}>*Based on getting new books every week</p>
-                <div style={{ marginTop: isTablet ? '32px' : '26px', textAlign: 'center' }}>
-                  <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: isTablet ? '0.8rem' : '0.92rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 12px' }}>Every plan includes</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px', width: 'fit-content', margin: '0 auto', textAlign: 'left' }}>
-                    {['Free weekly delivery / collection', 'No due dates', 'No late fees', 'Unlimited child profiles', 'Cancel anytime'].map(item => (
-                      <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                        <img src="/sparklestar_yellow.png" alt="" style={{ flexShrink: 0, width: isTablet ? '26px' : '16px', height: isTablet ? '26px' : '16px', marginTop: isTablet ? '2px' : '3px' }} />
-                        <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: isTablet ? '0.9rem' : '1.05rem', color: '#1a2f51', fontWeight: 500, lineHeight: 1.35 }}>{item}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                      {extra && (
+                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginTop: '20px', padding: '14px', borderRadius: '12px', cursor: 'pointer', textAlign: 'left',
+                          border: `2px solid ${withExtra ? '#c48b00' : '#e8e0d4'}`, backgroundColor: withExtra ? 'rgba(196,139,0,0.08)' : '#fff' }}>
+                          <input type="checkbox" checked={withExtra} onChange={e => set('planId', e.target.checked ? extra.id : base.id)}
+                            style={{ width: '22px', height: '22px', marginTop: '2px', accentColor: '#1a2744', flexShrink: 0 }} />
+                          <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.95rem', lineHeight: 1.4 }}>
+                            <strong>Add Extra Books</strong>: {extra.swapBooks - base.swapBooks} more books at a time ({extra.swapBooks} in total), for bigger readers and bigger families.
+                            <strong style={{ display: 'block', marginTop: '4px' }}>+AED {extra.price - base.price} / month</strong>
+                          </span>
+                        </label>
+                      )}
+                      <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2744', fontSize: '0.95rem', fontWeight: 700, margin: '16px 0 0' }}>
+                        Your total: AED {withExtra ? extra.price : base.price} / month
+                      </p>
+                    </div>
+                  )
+                })()}
 
                 <div style={{ marginTop: '48px', textAlign: 'center' }}>
                   <ContinueButton onClick={validateAndNext} label="Next" navy />
