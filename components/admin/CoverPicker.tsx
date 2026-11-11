@@ -20,11 +20,23 @@ async function cropToDataUrl(src: string, area: Area): Promise<string> {
   return canvas.toDataURL('image/jpeg', 0.88)
 }
 
+// the whole picture as a JPEG, at most 1200px tall (white behind any see-through parts)
+async function wholeToDataUrl(src: string): Promise<string> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = reject; i.src = src })
+  const scale = Math.min(1, 1200 / img.naturalHeight)
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(img.naturalWidth * scale); canvas.height = Math.round(img.naturalHeight * scale)
+  const ctx = canvas.getContext('2d')!
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+  return canvas.toDataURL('image/jpeg', 0.9)
+}
+
 const btn: React.CSSProperties = { fontSize: '12px', fontWeight: 600, color: '#1a2f51', border: '1px solid #d4d4d4', borderRadius: '8px', padding: '7px 10px', cursor: 'pointer', backgroundColor: '#fff' }
 const pickBtn: React.CSSProperties = { ...btn, backgroundColor: '#1a2f51', color: '#fff', border: 'none', padding: '9px 14px', display: 'inline-block' }
 
 // googleSearch: shows a "Google Images" button for that search, and a copied picture can be pasted (Ctrl+V)
-// straight into the crop step. Pasting text into a box on the page is left alone.
+// and is saved straight away. Pasting text into a box on the page is left alone.
 export default function CoverPicker({ onPicked, busy = false, title, googleSearch }: { onPicked: (dataUrl: string) => void; busy?: boolean; title?: string; googleSearch?: string }) {
   const [src, setSrc] = useState<string | null>(null)
   const [crop, setCrop] = useState({ x: 0, y: 0 })
@@ -33,10 +45,16 @@ export default function CoverPicker({ onPicked, busy = false, title, googleSearc
   const [area, setArea] = useState<Area | null>(null)
   const onComplete = useCallback((_: Area, px: Area) => setArea(px), [])
 
-  const choose = (file?: File) => {
+  // a photo of your own copy goes through the crop step (table edges, fingers);
+  // an uploaded or pasted picture is already just the cover, so it's saved as it is
+  const choose = (file?: File, cropFirst = false) => {
     if (!file) return
     const reader = new FileReader()
-    reader.onload = () => { setSrc(String(reader.result)); setZoom(1); setCrop({ x: 0, y: 0 }) }
+    reader.onload = async () => {
+      const dataUrl = String(reader.result)
+      if (cropFirst) { setSrc(dataUrl); setZoom(1); setCrop({ x: 0, y: 0 }); return }
+      try { onPicked(await wholeToDataUrl(dataUrl)) } catch { /* not an image: nothing happens */ }
+    }
     reader.readAsDataURL(file)
   }
 
@@ -57,7 +75,7 @@ export default function CoverPicker({ onPicked, busy = false, title, googleSearc
       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
         <label style={{ ...pickBtn, opacity: busy ? 0.5 : 1 }}>
           📷 Take photo
-          <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} disabled={busy} onChange={e => { choose(e.target.files?.[0]); e.target.value = '' }} />
+          <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} disabled={busy} onChange={e => { choose(e.target.files?.[0], true); e.target.value = '' }} />
         </label>
         <label style={{ ...pickBtn, opacity: busy ? 0.5 : 1 }}>
           ⬆ Upload image
@@ -70,7 +88,7 @@ export default function CoverPicker({ onPicked, busy = false, title, googleSearc
       </div>
       {googleSearch && (
         <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#6b6b6b', lineHeight: 1.4 }}>
-          On Google, click the picture to open it bigger, right-click → <strong>Copy image</strong>, come back and press <strong>Ctrl + V</strong>.
+          On Google, click the picture to open it bigger, right-click → <strong>Copy image</strong>, come back and press <strong>Ctrl + V</strong>. It saves straight away.
         </p>
       )}
 
