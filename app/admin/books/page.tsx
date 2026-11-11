@@ -6,6 +6,7 @@ import CoverPicker from '@/components/admin/CoverPicker'
 import { copyCode, normaliseCopyLabel } from '@/lib/copy-codes'
 import EnvelopeScanner from '@/components/driver/EnvelopeScanner'
 import { officialTitle, seriesKey } from '@/lib/book-titles'
+import { BOOK_FORMATS } from '@/lib/book-formats'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1216,7 +1217,7 @@ export default function AdminBooksPage() {
                     <label style={lbl}>Book Type</label>
                     <select style={inp} value={addForm.book_type} onChange={e => setAddForm(f => ({ ...f, book_type: e.target.value }))}>
                       <option value="">Not set</option>
-                      {['Picture Book','Board Book','Flap Book','Early Reader','Chapter Book','Illustrated Book','Graphic Novel','Novel'].map(t => <option key={t}>{t}</option>)}
+                      {BOOK_FORMATS.map(t => <option key={t}>{t}</option>)}
                     </select>
                   </div>
                   <div><label style={lbl}>Age from</label><input style={inp} type="number" placeholder="7" value={addForm.age_min} onChange={e => setAddForm(f => ({ ...f, age_min: e.target.value }))} /></div>
@@ -1386,7 +1387,7 @@ export default function AdminBooksPage() {
                         <label style={lbl}>Book Type</label>
                         <select style={inp} value={detailsForm.book_type} onChange={e => setDetailsForm(f => f && ({ ...f, book_type: e.target.value }))}>
                           <option value="">Not set</option>
-                          {['Picture Book','Board Book','Flap Book','Early Reader','Chapter Book','Illustrated Book','Graphic Novel','Novel'].map(t => <option key={t}>{t}</option>)}
+                          {BOOK_FORMATS.map(t => <option key={t}>{t}</option>)}
                         </select>
                       </div>
                       <div><label style={lbl}>Age from</label><input style={inp} type="number" placeholder="7" value={detailsForm.age_min} onChange={e => setDetailsForm(f => f && ({ ...f, age_min: e.target.value }))} /></div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { cleanTitle } from '@/lib/book-titles'
+import { BOOK_FORMATS, BOOK_FORMAT_RULES } from '@/lib/book-formats'
 
 const OL_SEARCH = 'https://openlibrary.org/search.json'
 const OL_COVERS = 'https://covers.openlibrary.org/b/id'
@@ -275,12 +276,15 @@ ${book.categoryNames?.length ? `How to use some of them (a book can have several
 - Facts: any non-fiction book, whatever the topic.
 Examples: a shark facts book = Animals + Facts. A planets book = Science + Facts. A story about a bear = Animals (plus any others that fit).` : ''}
 
+Format rules for book_type (pick by what the book IS, not by how many pictures it has):
+${BOOK_FORMAT_RULES}
+
 Return ONLY valid JSON (no markdown, no other text):
 {
   "description": "what the book is about and what makes it fun, in a voice that matches the age range you choose below. Ages up to 5: written for the PARENT choosing and reading aloud, 2 short warm sentences on what happens and why little ones love it (rhymes, flaps, bedtime, a cosy ending). Ages 5–7: written for the CHILD, 2 short sentences with simple everyday words, exciting, speaking to them. Ages 8 and up: written for the CHILD, 2–3 sentences with richer words and a hook or question that makes them want to read it, a little cheeky humour, characters named where certain. Base it on the description and subjects above; you may add a fun, specific detail (e.g. a character's name or a funny situation) ONLY if you are certain it is true of this exact book. Never invent characters, names, events or endings, and no spoilers. If there is too little information, write one short, safe sentence instead and set description_needs_check to true",
   "description_needs_check": false,
   "tags": ["up to 8 short discovery tags like dragons, friendship, funny, adventure"],
-  "book_type": "one of: Picture Book, Board Book, Flap Book, Early Reader, Chapter Book, Illustrated Book, Graphic Novel, Novel — the FORMAT only, or null",
+  "book_type": "the FORMAT, exactly one of: ${BOOK_FORMATS.join(', ')} (see the format rules above), or null",
   "reading_levels": ["subset of: 3-5, 5-7, 8-10 — pick all that apply"],
   "categories": ["subset of the available library categories listed above — only include exact matches; always include Facts for a non-fiction book"],
   "non_fiction": false,
@@ -298,6 +302,9 @@ Return ONLY valid JSON (no markdown, no other text):
     const text = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '')
     const result = JSON.parse(text)
     result.book_number = null   // filled in from real sources by findSeriesNumber, never the AI's guess
+    // only one of the 7 formats (an old name like "Illustrated Book" is mapped, anything else left for the team)
+    const oldFormat: Record<string, string> = { 'Illustrated Book': 'Non-fiction', 'Flap Book': 'Board Book' }
+    result.book_type = oldFormat[result.book_type] ?? ((BOOK_FORMATS as readonly string[]).includes(result.book_type) ? result.book_type : null)
     return { result }
   } catch (e: any) {
     return { result: null, error: e?.message || String(e) }
