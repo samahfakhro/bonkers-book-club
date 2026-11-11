@@ -5,7 +5,6 @@ import { BOOK_FORMATS, BOOK_FORMAT_RULES } from '@/lib/book-formats'
 
 const OL_SEARCH = 'https://openlibrary.org/search.json'
 const OL_COVERS = 'https://covers.openlibrary.org/b/id'
-const OL_WORKS  = 'https://openlibrary.org'
 
 // What each lookup costs: every AI call adds its usage to book.aiCost (US$, list prices per million tokens).
 const PRICES: Record<string, [number, number]> = { 'claude-opus-5-5': [4, 20], 'claude-sonnet-5-5': [2, 10], 'claude-haiku-5-5': [0.1, 0.5] }
@@ -31,15 +30,6 @@ function parseDoc(doc: any) {
   }
 }
 
-async function fetchDescription(workKey: string): Promise<string> {
-  try {
-    const res = await fetch(`${OL_WORKS}${workKey}.json`, { signal: AbortSignal.timeout(5000) })
-    const data = await res.json()
-    const desc = data.description
-    if (!desc) return ''
-    return typeof desc === 'string' ? desc : (desc.value || '')
-  } catch { return '' }
-}
 
 // Publisher, publication date and illustrator for this exact edition (admin-only details).
 // Google Books first (uses the server key GOOGLE_GEOCODING_KEY, which also has the Books API), then Open Library.
@@ -264,7 +254,7 @@ async function enrichWithClaude(book: ReturnType<typeof parseDoc> & { categoryNa
         content: `You are cataloguing children's books for a library called The Curious Library.
 
 Book: "${book.title}" by ${book.author}
-${book.description ? `Description (from the publisher or a library catalogue): ${book.description.slice(0, 1200)}` : 'Description: none found.'}
+${book.description ? `Publisher's blurb: ${book.description.slice(0, 1200)}` : "Publisher's blurb: none found."}
 ${book.subjects.length ? `Subjects: ${book.subjects.slice(0, 10).join(', ')}` : ''}
 ${book.pageCount ? `Pages: ${book.pageCount}` : ''}
 ${book.googleAuthors?.length ? `People credited on this edition: ${book.googleAuthors.join(', ')}` : ''}
@@ -281,12 +271,12 @@ ${BOOK_FORMAT_RULES}
 
 Return ONLY valid JSON (no markdown, no other text):
 {
-  "description": "what the book is about and what makes it fun, in a voice that matches the age range you choose below. Ages up to 5: written for the PARENT choosing and reading aloud, 2 short warm sentences on what happens and why little ones love it (rhymes, flaps, bedtime, a cosy ending). Ages 5–7: written for the CHILD, 2 short sentences with simple everyday words, exciting, speaking to them. Ages 8 and up: written for the CHILD, 2–3 sentences with richer words and a hook or question that makes them want to read it, a little cheeky humour, characters named where certain. Base it on the description and subjects above; you may add a fun, specific detail (e.g. a character's name or a funny situation) ONLY if you are certain it is true of this exact book. Never invent characters, names, events or endings, and no spoilers. If there is too little information, write one short, safe sentence instead and set description_needs_check to true",
+  "description": "what the book is about and what makes it fun. FACTS: use ONLY facts from the publisher's blurb above. Make it fun through your wording, but never add names, events or details that are not in the blurb, even ones you think you know. If there is no blurb, write one short, safe sentence about the kind of book it is and set description_needs_check to true. NO SPOILERS: never say how it ends, a twist, who is rescued or who wins, even if the blurb does ('a happy ending' is fine). VOICE follows the YOUNGEST age in the age range you choose: youngest age 4 or under, written for the PARENT choosing and reading aloud, 2 short warm sentences on what happens and why little ones love it; youngest age 5–7, written for the CHILD, 2 short sentences with simple everyday words, exciting, speaking to them; youngest age 8 and up, written for the CHILD, 2–3 sentences with richer words and a hook or question, a little cheeky humour. British spelling.",
   "description_needs_check": false,
-  "tags": ["up to 8 short, lowercase discovery tags for what is IN the story that a child might search for (e.g. dragons, space, bedtime, siblings, pirates, football). NEVER repeat information the library already has: no category names (Adventure, Magic, Friendship, Funny, Science, Facts, Mystery, Animals, Spooky), no words from the title, series or author, no ages, no formats (picture book, graphic novel…), no shop words (bestseller, classic edition)"],
+  "tags": ["up to 8 short, lowercase discovery tags for what is IN the story — ONLY things the publisher's blurb mentions, or that you are certain are in this exact book — that a child might search for (e.g. dragons, space, bedtime, siblings, pirates, football). NEVER repeat information the library already has: no category names (Adventure, Magic, Friendship, Funny, Science, Facts, Mystery, Animals, Spooky), no words from the title, series or author, no ages, no formats (picture book, graphic novel…), no shop words (bestseller, classic edition)"],
   "book_type": "the FORMAT, exactly one of: ${BOOK_FORMATS.join(', ')} (see the format rules above), or null",
   "reading_levels": ["subset of: 3-5, 5-7, 8-10 — pick all that apply"],
-  "categories": ["subset of the available library categories listed above — only include exact matches; always include Facts for a non-fiction book"],
+  "categories": ["subset of the available library categories listed above, chosen from what the publisher's blurb says (or what you are certain of about this exact book), never a guess from the title or cover — only include exact matches; always include Facts for a non-fiction book"],
   "non_fiction": false,
   "series_name": "main series name or null",
   "sub_series_name": "sub-series name or null",
@@ -326,11 +316,45 @@ Return ONLY valid JSON (no markdown, no other text):
   }
 }
 
+// The description check (Sonnet, about 1 cent): compares the written description with the publisher's blurb.
+// Returns plain-English problems for the team, or [] when it's fine. Never changes the description itself.
+const CHECK_MODEL = 'claude-sonnet-5-5'
+async function checkDescription(book: any, enrichment: any, apiKey: string): Promise<string[]> {
+  try {
+    const client = new Anthropic({ apiKey })
+    const blurb = book.publisherBlurb || (book.descriptionSource ? book.description : '')
+    const youngest = Number(enrichment.age_min) || null
+    const msg: any = await client.messages.create({
+      model: CHECK_MODEL, max_tokens: 3000,
+      messages: [{ role: 'user', content: `You are checking a children's library's book description before it is saved.
+
+Book: "${book.title}" by ${book.author}. Ages ${enrichment.age_min ?? '?'}–${enrichment.age_max ?? '?'}.
+Our description: "${enrichment.description}"
+${blurb ? `Publisher's blurb: "${String(blurb).slice(0, 1500)}"` : 'NO publisher blurb was found.'}
+
+Voice rule (follows the youngest age): 4 or under, written for the parent; 5–7, written for the child in short sentences and simple words; 8 and up, written for the child with richer words and a hook.
+
+Flag only REAL problems:
+1. ${blurb ? 'Specific names, events or details that contradict the blurb, or are not in it and you are not certain are true of this exact book.' : 'Anything you KNOW is wrong about this exact book (with no blurb, do not flag details just because you cannot confirm them).'}
+2. Spoilers: a specific ending, twist or reveal ("a happy ending" is fine).
+3. Clearly the wrong voice for a youngest age of ${youngest ?? '?'} (one extra sentence or one richer word is fine).
+
+Reply with ONLY JSON: {"problems": ["short plain-English problem", ...]} (an empty list when it is fine)` }],
+    })
+    addCost(book, CHECK_MODEL, msg.usage)
+    const raw = (msg.content.find((c: any) => c.type === 'text')?.text || '') as string
+    const json = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1))
+    return Array.isArray(json.problems) ? json.problems.map(String).slice(0, 5) : []
+  } catch { return [] }   // the check is a helper: if it fails, the lookup still works
+}
+
 // Everything after the book is identified: edition details, a web lookup if there's no blurb, then the AI's details
 // and the cover check side by side, then the series number.
 async function enrichBook(book: any, editionIsbn: string, workKey: string, apiKey: string | null, editionEarly?: ReturnType<typeof editionDetails>) {
-  const [desc, edition] = await Promise.all([workKey ? fetchDescription(workKey) : Promise.resolve(''), editionEarly || editionDetails(editionIsbn)])
-  book.description = desc
+  // the description comes only from the publisher's blurb (Google Books, then Penguin, then a web lookup) — never
+  // Open Library, whose descriptions can belong to another edition or book
+  const edition = await (editionEarly || editionDetails(editionIsbn))
+  book.description = ''
   Object.assign(book, edition)
   if (!book.title && !book.googleTitle) return null
   if (!book.subjects.length && book.googleCategories?.length) book.subjects = book.googleCategories
@@ -369,6 +393,8 @@ async function enrichBook(book: any, editionIsbn: string, workKey: string, apiKe
       if (found.series && !enrichment.series_name) enrichment.series_name = found.series
       if (found.sub_series && found.source !== 'the title') enrichment.sub_series_name = found.sub_series
     }
+    // a second pair of eyes on the description: invented details, spoilers, wrong reading level (shown in admin)
+    if (apiKey && enrichment.description) enrichment.description_issues = await checkDescription(book, enrichment, apiKey)
   }
   delete book.penguin
   return { book: { ...book, coverBase64, coverNotEnglish }, enrichment, claudeError }

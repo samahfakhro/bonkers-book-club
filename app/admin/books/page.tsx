@@ -262,6 +262,7 @@ export default function AdminBooksPage() {
   const [fetchedCoverBase64, setFetchedCoverBase64] = useState<string | null>(null)
   const [coverMayBeOther, setCoverMayBeOther] = useState(false)   // the cover found wasn't in English, so it was left out
   const [justAdded, setJustAdded] = useState<{ id: string; title: string; code: string | null } | null>(null)   // confirmation after Add Book
+  const [descIssues, setDescIssues] = useState<string[]>([])   // problems the description check found (spoilers, invented details…)
   const [descNeedsCheck, setDescNeedsCheck] = useState(false)   // the AI had too little to go on for the description
 
   // ── Load ───────────────────────────────────────────────────────────────────
@@ -600,6 +601,7 @@ export default function AdminBooksPage() {
     setError(null)
     setDescNeedsCheck(!!enrichment?.description_needs_check || !enrichment?.description || (!book?.publisherBlurb && !book?.descriptionSource))   // no blurb from any source = less reliable
     setDescSource(book?.descriptionSource || null)
+    setDescIssues(Array.isArray(enrichment?.description_issues) ? enrichment.description_issues : [])
     setLookupCost(typeof book?.aiCost === 'number' ? book.aiCost : null)
     setFetchResults([])
 
@@ -815,7 +817,7 @@ export default function AdminBooksPage() {
     if (addCoverRef.current) addCoverRef.current.value = ''
     setFetchQuery(''); setFetchedCoverBase64(null); setFetchResults([]); setAddLabel(''); setAllowDuplicate(false)
     setAddLevelIds(new Set()); setAddCategoryIds(new Set())
-    setDescNeedsCheck(false); setCoverMayBeOther(false); setSuggestions([]); setSameBookPrompt(null); setNumberSource(null); setDescSource(null); setLookupCost(null)
+    setDescNeedsCheck(false); setDescIssues([]); setCoverMayBeOther(false); setSuggestions([]); setSameBookPrompt(null); setNumberSource(null); setDescSource(null); setLookupCost(null)
   }
 
   // ── Collectible generation ─────────────────────────────────────────────────
@@ -1269,6 +1271,13 @@ export default function AdminBooksPage() {
                   <textarea style={{ ...inp, minHeight: '80px', resize: 'vertical' }} placeholder="A short description of the book…" value={addForm.description} onChange={e => { setDescNeedsCheck(false); setAddForm(f => ({ ...f, description: e.target.value })) }} />
                   {descSource && addForm.description && <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#6b6b6b' }}>Based on: <a href={descSource.url} target="_blank" rel="noopener noreferrer" style={{ color: '#1a2f51' }}>{descSource.label} ↗</a></p>}
                   {lookupCost !== null && addForm.title && <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#6b6b6b' }}>AI cost of this lookup: about ${lookupCost < 0.01 ? '0.01' : lookupCost.toFixed(2)}</p>}
+                  {descIssues.length > 0 && addForm.title && (
+                    <div style={{ margin: '6px 0 0', padding: '8px 10px', borderRadius: '8px', backgroundColor: '#fff7ed', border: '1px solid #fed7aa', fontSize: '12px', color: '#9a3412' }}>
+                      <strong>The description check found:</strong>
+                      <ul style={{ margin: '4px 0 0', paddingLeft: '18px' }}>{descIssues.map((x, k) => <li key={k}>{x}</li>)}</ul>
+                      <span style={{ display: 'block', marginTop: '4px', color: '#6b6b6b' }}>Please fix the description above before saving.</span>
+                    </div>
+                  )}
                   {descNeedsCheck && addForm.title && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#b45309' }}>⚠ No description of this book was found in any source, so the AI had little to go on. Please check it against the back cover.</p>}
                 </div>
 
