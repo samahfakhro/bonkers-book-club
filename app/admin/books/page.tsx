@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import CoverPicker from '@/components/admin/CoverPicker'
 import { copyCode, normaliseCopyLabel } from '@/lib/copy-codes'
 import EnvelopeScanner from '@/components/driver/EnvelopeScanner'
-import { ownTitle, seriesKey } from '@/lib/book-titles'
+import { officialTitle, seriesKey } from '@/lib/book-titles'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -654,8 +654,9 @@ export default function AdminBooksPage() {
     setAddCategoryIds(catIds)
 
     setAddForm({
-      // the book's own name only: the series and number are shown on their own line ("Dog Man · Book 5")
-      title: ownTitle(book.title || '', [subName, mainName, enrichment?.series_name || '']),
+      // the book's official title, series name included when it's part of it ("Dog Man: Lord of the Fleas");
+      // only a series number in the title is dropped, as it's shown on the series line ("Dog Man · Book 5")
+      title: officialTitle(book.title || '', [subName, mainName, enrichment?.series_name || '']),
       author: book.author || '',
       isbn: book.isbn || '',
       publisher: book.publisher || '', illustrator: book.illustrator || enrichment?.illustrator || '', publication_date: book.publicationDate || '', is_non_fiction: !!enrichment?.non_fiction,

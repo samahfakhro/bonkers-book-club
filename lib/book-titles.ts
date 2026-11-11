@@ -60,3 +60,16 @@ export function seriesTitle(rawTitle: string, displayName: string, number: numbe
   const head = number ? `${displayName} ${number}` : displayName
   return name && name.toLowerCase() !== displayName.toLowerCase() ? `${head}: ${name}` : head
 }
+
+// The book's official title, kept as published (series name included: "Dog Man: Lord of the Fleas").
+// Only a series NUMBER in the title is dropped, as the series line shows it: "Dog Man 5: Lord of the Fleas",
+// "Dog Man #5 Lord of the Fleas" → "Dog Man: Lord of the Fleas". A title that is just "Series 5" stays as it is.
+export function officialTitle(rawTitle: string, names: string[]): string {
+  const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const t = cleanTitle(rawTitle || '').replace(/\s+/g, ' ').trim()
+  for (const n of names.filter(Boolean)) {
+    const m = t.match(new RegExp('^(' + esc(n.trim()) + '!?)(?:,?\\s*(?:vol\\.?|volume|book|#)\\s*|\\s+#?)\\d{1,3}(?:\\s*(?::|\\s[-–—]\\s)\\s*|\\s+(?=[A-Z]))', 'i'))
+    if (m && t.length > m[0].length) return `${m[1]}: ${t.slice(m[0].length).trim()}`
+  }
+  return t
+}
