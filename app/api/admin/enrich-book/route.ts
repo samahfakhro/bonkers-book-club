@@ -283,7 +283,7 @@ Return ONLY valid JSON (no markdown, no other text):
 {
   "description": "what the book is about and what makes it fun, in a voice that matches the age range you choose below. Ages up to 5: written for the PARENT choosing and reading aloud, 2 short warm sentences on what happens and why little ones love it (rhymes, flaps, bedtime, a cosy ending). Ages 5–7: written for the CHILD, 2 short sentences with simple everyday words, exciting, speaking to them. Ages 8 and up: written for the CHILD, 2–3 sentences with richer words and a hook or question that makes them want to read it, a little cheeky humour, characters named where certain. Base it on the description and subjects above; you may add a fun, specific detail (e.g. a character's name or a funny situation) ONLY if you are certain it is true of this exact book. Never invent characters, names, events or endings, and no spoilers. If there is too little information, write one short, safe sentence instead and set description_needs_check to true",
   "description_needs_check": false,
-  "tags": ["up to 8 short discovery tags like dragons, friendship, funny, adventure"],
+  "tags": ["up to 8 short, lowercase discovery tags for what is IN the story that a child might search for (e.g. dragons, space, bedtime, siblings, pirates, football). NEVER repeat information the library already has: no category names (Adventure, Magic, Friendship, Funny, Science, Facts, Mystery, Animals, Spooky), no words from the title, series or author, no ages, no formats (picture book, graphic novel…), no shop words (bestseller, classic edition)"],
   "book_type": "the FORMAT, exactly one of: ${BOOK_FORMATS.join(', ')} (see the format rules above), or null",
   "reading_levels": ["subset of: 3-5, 5-7, 8-10 — pick all that apply"],
   "categories": ["subset of the available library categories listed above — only include exact matches; always include Facts for a non-fiction book"],
@@ -302,6 +302,21 @@ Return ONLY valid JSON (no markdown, no other text):
     const text = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '')
     const result = JSON.parse(text)
     result.book_number = null   // filled in from real sources by findSeriesNumber, never the AI's guess
+    // tags only add what the library doesn't already know: drop category names, words from the title / series /
+    // author, ages and formats, even if the AI added them anyway
+    {
+      const norm = (s: string) => (s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
+      const sing = (w: string) => w.replace(/ies$/, 'y').replace(/(s|es)$/, '')
+      const known = [book.title, book.author, result.series_name, result.sub_series_name].filter(Boolean).map(norm)
+      const knownWords = new Set(known.flatMap(k => k.split(' ')).filter(Boolean).map(sing))
+      const cats = new Set(['adventure', 'magic', 'friendship', 'funny', 'science', 'fact', 'mystery', 'animal', 'spooky', ...(book.categoryNames || []).map((c: string) => sing(norm(c)))])
+      const formats = /^(picture books?|board books?|graphic novels?|chapter books?|early readers?|novels?|non ?fiction|illustrated|comics? style|bestseller|classic edition)$/
+      const ages = /^(ages? ?\d|\d+ ?\d* ?year olds?|toddlers?|preschool|kids?|children)$/
+      result.tags = [...new Set(((result.tags || []) as string[]).map(norm).filter(Boolean))].filter(t => {
+        const words = t.split(' ').map(sing)
+        return !cats.has(sing(t)) && !formats.test(t) && !ages.test(t) && !known.some(k => k.includes(t)) && !words.every(w => knownWords.has(w))
+      })
+    }
     // only one of the 7 formats (an old name like "Illustrated Book" is mapped, anything else left for the team)
     const oldFormat: Record<string, string> = { 'Illustrated Book': 'Non-fiction', 'Flap Book': 'Board Book' }
     result.book_type = oldFormat[result.book_type] ?? ((BOOK_FORMATS as readonly string[]).includes(result.book_type) ? result.book_type : null)
