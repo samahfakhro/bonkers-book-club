@@ -68,7 +68,11 @@ function LibraryPageInner() {
   const [showAvailableOnly, setShowAvailableOnly] = useState(false)
   const [availabilityOpen, setAvailabilityOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+  // what's typed (searchInput) only becomes a search (searchQuery) when Search or Enter is pressed
+  const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const runSearch = (e?: { preventDefault: () => void }) => { e?.preventDefault(); setSearchQuery(searchInput.trim()); (document.activeElement as HTMLElement | null)?.blur?.() }
+  const clearSearch = () => { setSearchInput(''); setSearchQuery('') }
   const [requestOpen, setRequestOpen] = useState(false)  // "Ask us to add a book"
   const [searchResults, setSearchResults] = useState<Book[] | null>(null)
   const [searchLoading, setSearchLoading] = useState(false)
@@ -257,15 +261,18 @@ function LibraryPageInner() {
 
   useEffect(() => {
     if (!searchQuery.trim()) { setSearchResults(null); return }
-    const t = setTimeout(async () => {
+    let alive = true
+    ;(async () => {
       setSearchLoading(true)
-      // title, author, book type, tags, illustrator and publisher (search_books in the database)
+      // title, author, format, tags, categories (and their other words, e.g. scary → Spooky), illustrator, publisher,
+      // series (search_books in the database) — every match, not just the first few
       const { data } = await supabase.rpc('search_books', { q: searchQuery }).select('id, title, author, cover_image_url, series_number, series:series_id(id, name, series_number, parent_series_id, parent:parent_series_id(id, name))')
+      if (!alive) return
       setSearchResults(((data ?? []) as any[]).map((b: any) => {
         return { ...b, series_label: seriesLine(b.series, b.series_number) }
       })); setSearchLoading(false)
-    }, 300)
-    return () => clearTimeout(t)
+    })()
+    return () => { alive = false }
   }, [searchQuery])
 
   useEffect(() => {
@@ -549,13 +556,21 @@ function LibraryPageInner() {
       {searchQuery && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: '68px', zIndex: 49, overflowY: 'auto', backgroundColor: 'rgba(254,250,242,0.97)', padding: '24px 16px 16px' }}>
           <div>
+            {/* search again from here, or close and go back to the library */}
+            <form onSubmit={runSearch} style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '14px' }}>
+              <input type="search" value={searchInput} onChange={e => setSearchInput(e.target.value)} enterKeyHint="search" aria-label="Search the library"
+                className="focus:outline-none"
+                style={{ flex: 1, minWidth: 0, padding: '11px 18px', borderRadius: '999px', border: '1.5px solid rgba(26,47,81,0.25)', backgroundColor: '#fff', color: '#1a2f51', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '1rem', boxSizing: 'border-box' }} />
+              <button type="submit" style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', backgroundColor: '#1a2f51', border: 'none', borderRadius: '999px', padding: '12px 16px', cursor: 'pointer' }}>Search</button>
+              <button type="button" onClick={clearSearch} aria-label="Close search" style={{ background: 'none', border: 'none', color: '#1a2f51', fontSize: '1.2rem', cursor: 'pointer', padding: '4px 6px' }}>✕</button>
+            </form>
             <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1.4rem', fontWeight: 600, marginBottom: '16px' }}>
-              {searchLoading ? 'Searching...' : searchResults?.length === 0 ? 'No books found' : 'Results'}
+              {searchLoading ? 'Searching...' : searchResults?.length === 0 ? `No books found for “${searchQuery}”` : `${searchResults?.length ?? ''} ${searchResults?.length === 1 ? 'book' : 'books'} for “${searchQuery}”`}
             </p>
             {!searchLoading && searchResults && searchResults.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '16px' }}>
                 {searchResults.map(book => (
-                  <button key={book.id} {...makeTapHandlers(() => { setSearchQuery(''); navigateToBook(book.id) })}
+                  <button key={book.id} {...makeTapHandlers(() => { clearSearch(); navigateToBook(book.id) })}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}>
                     <div className={book.cover_image_url ? "shelf shelf-on" : "shelf"} style={{ width: '100%', aspectRatio: '2/3', borderRadius: '10px', overflow: 'hidden', backgroundColor: 'rgba(26,47,81,0.08)', marginBottom: '6px', position: 'relative' }}>
                       {book.cover_image_url ? <img src={book.cover_image_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
@@ -704,15 +719,15 @@ function LibraryPageInner() {
         )}
 
         {/* Search bar — inline, under categories */}
-        <div style={{ marginBottom: '30px', position: 'relative' }}>
-          <input id="lib-search" type="text" placeholder={PLACEHOLDERS[phIdx]} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+        {/* type, then press Enter or the magnifying glass to search */}
+        <form onSubmit={runSearch} style={{ marginBottom: '30px', position: 'relative' }}>
+          <input id="lib-search" type="search" enterKeyHint="search" placeholder={PLACEHOLDERS[phIdx]} value={searchInput} onChange={e => setSearchInput(e.target.value)}
             className="focus:outline-none"
-            style={{ width: '100%', padding: '13px 42px 13px 20px', borderRadius: '999px', border: '1.5px solid rgba(26,47,81,0.25)', backgroundColor: '#fff', color: '#1a2f51', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '1rem', boxSizing: 'border-box' }} />
-          {searchQuery
-            ? <button onClick={() => setSearchQuery('')} style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#1a2f51', cursor: 'pointer', fontSize: '0.85rem', padding: 0 }}>✕</button>
-            : <svg style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1a2f51" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          }
-        </div>
+            style={{ width: '100%', padding: '13px 48px 13px 20px', borderRadius: '999px', border: '1.5px solid rgba(26,47,81,0.25)', backgroundColor: '#fff', color: '#1a2f51', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '1rem', boxSizing: 'border-box' }} />
+          <button type="submit" aria-label="Search" style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: '8px', display: 'flex' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a2f51" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+        </form>
 
         {/* Results bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
