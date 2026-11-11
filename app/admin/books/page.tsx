@@ -1339,7 +1339,7 @@ export default function AdminBooksPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
                     <div>
                       <label style={lbl}>{selectedBook.cover_image_url ? 'Cover — change it:' : 'Cover — add one:'}</label>
-                      <CoverPicker key={selectedBook.id} title={selectedBook.title} busy={uploadingCoverFor === selectedBook.id} onPicked={url => uploadCoverDataUrl(url, selectedBook.id)} />
+                      <CoverPicker key={selectedBook.id} title={selectedBook.title} googleSearch={`${selectedBook.title} ${selectedBook.author || ''} book cover`} busy={uploadingCoverFor === selectedBook.id} onPicked={url => uploadCoverDataUrl(url, selectedBook.id)} />
                     </div>
                   </div>
                 </div>

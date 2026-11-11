@@ -1,7 +1,7 @@
 'use client'
 // Book cover from a photo of your own copy or an uploaded image, with a crop step so table edges and fingers don't show.
 // Calls onPicked with a JPEG data URL (at most 1200px tall).
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Cropper, { type Area } from 'react-easy-crop'
 
 const SHAPES = [
@@ -23,7 +23,9 @@ async function cropToDataUrl(src: string, area: Area): Promise<string> {
 const btn: React.CSSProperties = { fontSize: '12px', fontWeight: 600, color: '#1a2f51', border: '1px solid #d4d4d4', borderRadius: '8px', padding: '7px 10px', cursor: 'pointer', backgroundColor: '#fff' }
 const pickBtn: React.CSSProperties = { ...btn, backgroundColor: '#1a2f51', color: '#fff', border: 'none', padding: '9px 14px', display: 'inline-block' }
 
-export default function CoverPicker({ onPicked, busy = false, title }: { onPicked: (dataUrl: string) => void; busy?: boolean; title?: string }) {
+// googleSearch: shows a "Google Images" button for that search, and a copied picture can be pasted (Ctrl+V)
+// straight into the crop step. Pasting text into a box on the page is left alone.
+export default function CoverPicker({ onPicked, busy = false, title, googleSearch }: { onPicked: (dataUrl: string) => void; busy?: boolean; title?: string; googleSearch?: string }) {
   const [src, setSrc] = useState<string | null>(null)
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
@@ -38,6 +40,18 @@ export default function CoverPicker({ onPicked, busy = false, title }: { onPicke
     reader.readAsDataURL(file)
   }
 
+  useEffect(() => {
+    if (!googleSearch) return
+    const onPaste = (e: ClipboardEvent) => {
+      if (busy || src) return
+      const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/'))
+      const file = item?.getAsFile()
+      if (file) { e.preventDefault(); choose(file) }
+    }
+    window.addEventListener('paste', onPaste)
+    return () => window.removeEventListener('paste', onPaste)
+  }, [googleSearch, busy, src]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <>
       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -49,7 +63,16 @@ export default function CoverPicker({ onPicked, busy = false, title }: { onPicke
           ⬆ Upload image
           <input type="file" accept="image/*" style={{ display: 'none' }} disabled={busy} onChange={e => { choose(e.target.files?.[0]); e.target.value = '' }} />
         </label>
+        {googleSearch && (
+          <a href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(googleSearch)}`} target="_blank" rel="noopener noreferrer"
+            style={{ ...pickBtn, textDecoration: 'none', opacity: busy ? 0.5 : 1 }}>🔎 Google Images</a>
+        )}
       </div>
+      {googleSearch && (
+        <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#6b6b6b', lineHeight: 1.4 }}>
+          On Google, click the picture to open it bigger, right-click → <strong>Copy image</strong>, come back and press <strong>Ctrl + V</strong>.
+        </p>
+      )}
 
       {src && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1100, backgroundColor: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
