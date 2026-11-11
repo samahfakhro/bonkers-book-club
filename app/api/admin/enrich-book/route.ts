@@ -271,7 +271,7 @@ ${BOOK_FORMAT_RULES}
 
 Return ONLY valid JSON (no markdown, no other text):
 {
-  "description": "what the book is about and what makes it fun. FACTS: use ONLY facts from the publisher's blurb above. Make it fun through your wording, but never add names, events or details that are not in the blurb, even ones you think you know. If there is no blurb, write one short, safe sentence about the kind of book it is and set description_needs_check to true. NO SPOILERS: never say how it ends, a twist, who is rescued or who wins, even if the blurb does ('a happy ending' is fine). VOICE follows the YOUNGEST age in the age range you choose: youngest age 4 or under, written for the PARENT choosing and reading aloud, 2 short warm sentences on what happens and why little ones love it; youngest age 5–7, written for the CHILD, 2 short sentences with simple everyday words, exciting, speaking to them; youngest age 8 and up, written for the CHILD, 2–3 sentences with richer words and a hook or question, a little cheeky humour. British spelling.",
+  "description": "what the book is about and what makes it fun. FACTS: use ONLY facts from the publisher's blurb above. Make it fun through your wording, but never add names, events or details that are not in the blurb, even ones you think you know. If there is no blurb, write one short, safe sentence about the kind of book it is and set description_needs_check to true. NO SPOILERS: never say how it ends, a twist, who is rescued or who wins, even if the blurb does ('a happy ending' is fine). VOICE follows the FORMAT you choose (who reads the description): Board Book or Picture Book, written for the PARENT choosing and reading aloud, 2 short warm sentences on what happens and why little ones love it; Early Reader or Chapter Book, written for a CHILD just reading alone, 2 short sentences with simple everyday words, exciting, speaking to them; Graphic Novel, Novel or Non-fiction, written for a CONFIDENT young reader, 2–3 sentences with richer words and a hook or question, a little cheeky humour (but if the youngest age is 5 or 6, keep it short and simple). British spelling.",
   "description_needs_check": false,
   "tags": ["up to 8 short, lowercase discovery tags for what is IN the story — ONLY things the publisher's blurb mentions, or that you are certain are in this exact book — that a child might search for (e.g. dragons, space, bedtime, siblings, pirates, football). NEVER repeat information the library already has: no category names (Adventure, Magic, Friendship, Funny, Science, Facts, Mystery, Animals, Spooky), no words from the title, series or author, no ages, no formats (picture book, graphic novel…), no shop words (bestseller, classic edition)"],
   "book_type": "the FORMAT, exactly one of: ${BOOK_FORMATS.join(', ')} (see the format rules above), or null",
@@ -332,12 +332,12 @@ Book: "${book.title}" by ${book.author}. Ages ${enrichment.age_min ?? '?'}–${e
 Our description: "${enrichment.description}"
 ${blurb ? `Publisher's blurb: "${String(blurb).slice(0, 1500)}"` : 'NO publisher blurb was found.'}
 
-Voice rule (follows the youngest age): 4 or under, written for the parent; 5–7, written for the child in short sentences and simple words; 8 and up, written for the child with richer words and a hook.
+Format: ${enrichment.book_type || 'unknown'}. Voice rule (follows the format): Board Book / Picture Book, written for the parent choosing and reading aloud; Early Reader / Chapter Book, written for a child just reading alone, short sentences and simple words; Graphic Novel / Novel / Non-fiction, written for a confident young reader with richer words and a hook (but short and simple if the youngest age is 5 or 6).
 
 Flag only REAL problems:
 1. ${blurb ? 'Specific names, events or details that contradict the blurb, or are not in it and you are not certain are true of this exact book.' : 'Anything you KNOW is wrong about this exact book (with no blurb, do not flag details just because you cannot confirm them).'}
 2. Spoilers: a specific ending, twist or reveal ("a happy ending" is fine).
-3. Clearly the wrong voice for a youngest age of ${youngest ?? '?'} (one extra sentence or one richer word is fine).
+3. Clearly the wrong voice for this format (youngest age ${youngest ?? '?'}); one extra sentence or one richer word is fine.
 
 Reply with ONLY JSON: {"problems": ["short plain-English problem", ...]} (an empty list when it is fine)` }],
     })
