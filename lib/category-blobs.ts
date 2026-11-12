@@ -14,6 +14,8 @@ const ART: Art[] = [
   { words: ['mystery'],                 blob: '/blob_mystery.png',   symbol: '/symbol_mystery.png',  size: '52%', tint: true },
   { words: ['animal'],                  blob: '/blob_hero.png',      symbol: '/symbol_animals.png',  size: '54%', tint: true, nudgeX: '7%' },
   { words: ['spooky', 'scary'],         blob: '/blob_spooky.png',    symbol: '/symbol_spooky1.png',  size: '60%', tint: true },
+  // Bedtime's moon is already drawn on its blob (Samah's category_bedtime.png), so it has no separate symbol
+  { words: ['bedtime'],                 blob: '/blob_bedtime.png',   symbol: null,                   size: '0%',  tint: false },
 ]
 
 const artFor = (name: string) => { const n = name.toLowerCase(); return ART.find(a => a.words.some(w => n.includes(w))) ?? null }

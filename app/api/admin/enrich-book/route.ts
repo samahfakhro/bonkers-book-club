@@ -260,11 +260,20 @@ ${book.pageCount ? `Pages: ${book.pageCount}` : ''}
 ${book.googleAuthors?.length ? `People credited on this edition: ${book.googleAuthors.join(', ')}` : ''}
 ${book.byStatement ? `Title page credit: ${book.byStatement}` : ''}
 ${book.categoryNames?.length ? `\nAvailable library categories (pick all that apply): ${book.categoryNames.join(', ')}` : ''}
-${book.categoryNames?.length ? `How to use some of them (a book can have several):
-- Animals: animals are at the heart of the book, as a story about animals or as animal facts. Not just because the characters happen to be animals (e.g. Dog Man is Funny/Adventure, not Animals).
-- Science: how the world works, e.g. space, the human body, inventions, experiments, weather, the Earth, dinosaurs. NOT books about animals (those go in Animals), unless the book is really about a scientific idea (e.g. food chains, how animals breathe).
-- Facts: any non-fiction book, whatever the topic.
-Examples: a shark facts book = Animals + Facts. A planets book = Science + Facts. A story about a bear = Animals (plus any others that fit).` : ''}
+${book.categoryNames?.length ? `How to use them (agreed with the library, Nov 2026). STORIES (fiction) only use the story categories; NON-FICTION only uses the topic categories:
+Story categories (fiction):
+- Adventure: a journey, quest or exciting escapade is central.
+- Magic: magic, witches, wizards, fairies or magical worlds are central.
+- Friendship: friendship is a main theme.
+- Funny: LAUGH-OUT-LOUD funny, the main point of the book is to make children laugh (e.g. Dog Man, Mr. Men, Diary of a Wimpy Kid, David Walliams). A gentle, sweet or cosy story with a little humour is NOT Funny.
+- Mystery: a puzzle, case or secret to solve is central.
+- Spooky: ghosts, monsters, scary or creepy stories.
+- Bedtime: calm, cosy books for winding down and going to sleep (e.g. Goodnight Moon, Ten Minutes to Bed, The Owl Who Was Afraid of the Dark).
+Topic categories (non-fiction), usually exactly one:
+- Animals: learning about REAL animals and nature (animal facts). A story with animal characters is NEVER Animals (Peppa, The Gruffalo, Hairy Maclary are not Animals).
+- Science: space, the human body, how things work, inventions, weather, the Earth, dinosaurs.
+- Facts: every other kind of non-fiction: history, general knowledge, trivia, puzzles, biographies.
+A non-fiction book may also be Funny if it is truly laugh-out-loud (e.g. Horrible Histories).` : ''}
 
 Format rules for book_type (pick by what the book IS, not by how many pictures it has):
 ${BOOK_FORMAT_RULES}
@@ -276,7 +285,7 @@ Return ONLY valid JSON (no markdown, no other text):
   "tags": ["up to 8 short, lowercase discovery tags for what is IN the story — ONLY things the publisher's blurb mentions, or that you are certain are in this exact book — that a child might search for (e.g. dragons, space, bedtime, siblings, pirates, football). NEVER repeat information the library already has: no category names (Adventure, Magic, Friendship, Funny, Science, Facts, Mystery, Animals, Spooky), no words from the title, series or author, no ages, no formats (picture book, graphic novel…), no shop words (bestseller, classic edition)"],
   "book_type": "the FORMAT, exactly one of: ${BOOK_FORMATS.join(', ')} (see the format rules above), or null",
   "reading_levels": ["subset of: 3-5, 5-7, 8-10 — pick all that apply"],
-  "categories": ["subset of the available library categories listed above, chosen from what the publisher's blurb says (or what you are certain of about this exact book), never a guess from the title or cover — only include exact matches; always include Facts for a non-fiction book"],
+  "categories": ["subset of the available library categories listed above, chosen from what the publisher's blurb says (or what you are certain of about this exact book), never a guess from the title or cover — only include exact matches; a non-fiction book gets its topic: Animals, Science or Facts"],
   "non_fiction": false,
   "series_name": "main series name or null",
   "sub_series_name": "sub-series name or null",
@@ -299,7 +308,7 @@ Return ONLY valid JSON (no markdown, no other text):
       const sing = (w: string) => w.replace(/ies$/, 'y').replace(/(s|es)$/, '')
       const known = [book.title, book.author, result.series_name, result.sub_series_name].filter(Boolean).map(norm)
       const knownWords = new Set(known.flatMap(k => k.split(' ')).filter(Boolean).map(sing))
-      const cats = new Set(['adventure', 'magic', 'friendship', 'funny', 'science', 'fact', 'mystery', 'animal', 'spooky', ...(book.categoryNames || []).map((c: string) => sing(norm(c)))])
+      const cats = new Set(['adventure', 'magic', 'friendship', 'funny', 'science', 'fact', 'mystery', 'animal', 'spooky', 'bedtime', ...(book.categoryNames || []).map((c: string) => sing(norm(c)))])
       const formats = /^(picture books?|board books?|graphic novels?|chapter books?|early readers?|novels?|non ?fiction|illustrated|comics? style|bestseller|classic edition)$/
       const ages = /^(ages? ?\d|\d+ ?\d* ?year olds?|toddlers?|preschool|kids?|children)$/
       result.tags = [...new Set(((result.tags || []) as string[]).map(norm).filter(Boolean))].filter(t => {

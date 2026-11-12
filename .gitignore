@@ -42,3 +42,4 @@ next-env.d.ts
 
 # Google service account key (route planning), never commit
 google-service-account.json
+backups/
