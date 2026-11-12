@@ -556,6 +556,14 @@ export default function AdminBooksPage() {
     setUploadingCoverFor(null)
   }
 
+  // the publisher's description for the open book (fetched on request, never saved unless "Use this instead" + Save)
+  const [blurb, setBlurb] = useState<{ bookId: string; loading: boolean; text?: string | null; source?: string; reason?: string } | null>(null)
+  async function loadBlurb(bookId: string) {
+    setBlurb({ bookId, loading: true })
+    const j = await fetch('/api/admin/publisher-blurb?id=' + bookId).then(r => r.json()).catch(() => ({ blurb: null, reason: 'Couldn’t reach the publisher’s description just now. Try again.' }))
+    setBlurb(b => b?.bookId === bookId ? { bookId, loading: false, text: j.blurb, source: j.source, reason: j.reason || j.error } : b)
+  }
+
   // the cover just saved, so a wrong paste can be undone with one tap (prev = the cover it replaced, or none)
   const [lastCover, setLastCover] = useState<{ bookId: string; prev: string | null; url: string } | null>(null)
   async function undoCover() {
@@ -1488,6 +1496,21 @@ export default function AdminBooksPage() {
                     <div>
                       <label style={lbl}>Description</label>
                       <textarea style={{ ...inp, minHeight: '80px', resize: 'vertical' }} value={detailsForm.description} onChange={e => setDetailsForm(f => f && ({ ...f, description: e.target.value }))} />
+                      {/* the publisher's own description, to compare with ours and switch to it */}
+                      {blurb?.bookId !== selectedBook.id ? (
+                        <button type="button" onClick={() => loadBlurb(selectedBook.id)} style={{ marginTop: '6px', fontSize: '12px', fontWeight: 600, color: '#1a2f51', border: '1px solid #d4d4d4', borderRadius: '8px', padding: '6px 12px', backgroundColor: '#fff', cursor: 'pointer' }}>Show publisher’s description</button>
+                      ) : (
+                        <div style={{ marginTop: '8px', padding: '10px 12px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '13px', color: '#334155' }}>
+                          {blurb.loading ? 'Looking it up…' : blurb.text ? (
+                            <>
+                              <p style={{ margin: '0 0 6px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em', color: '#64748b' }}>PUBLISHER’S DESCRIPTION ({blurb.source})</p>
+                              <p style={{ margin: '0 0 8px', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{blurb.text}</p>
+                              <button type="button" onClick={() => setDetailsForm(f => f && ({ ...f, description: blurb.text! }))} style={{ fontSize: '12px', fontWeight: 700, color: '#fff', backgroundColor: '#1a2f51', border: 'none', borderRadius: '8px', padding: '7px 12px', cursor: 'pointer' }}>Use this instead</button>
+                              <span style={{ marginLeft: '8px', fontSize: '11px', color: '#64748b' }}>It goes into the box above. Tidy it if you like, then Save.</span>
+                            </>
+                          ) : blurb.reason}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
