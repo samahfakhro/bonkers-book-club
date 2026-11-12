@@ -303,6 +303,10 @@ export default function AdminBooksPage() {
     }
     setCopies(cmap)
     setLoading(false)
+    // opened from another admin page (e.g. Series) with ?book=<id>: open that book straight away
+    const wanted = new URLSearchParams(window.location.search).get('book')
+    const found = wanted ? (bookData || []).find((b: any) => b.id === wanted) : null
+    if (found) openBook(found as Book)
   }
 
   useEffect(() => { loadAll() }, [])
@@ -1008,6 +1012,7 @@ export default function AdminBooksPage() {
           <span style={{ flex: 1, fontWeight: 700, fontSize: '15px', color: '#1a1a1a' }}>Books</span>
           <a href="/admin/books/labels" style={{ fontSize: '13px', fontWeight: 600, color: '#1a2f51', textDecoration: 'none', padding: '8px 12px', border: '1px solid #e5e5e5', borderRadius: '8px', marginRight: '8px' }}>🏷 Print labels</a>
           <a href="/admin/books/rescan" style={{ fontSize: '13px', fontWeight: 600, color: '#1a2f51', textDecoration: 'none', padding: '8px 12px', border: '1px solid #e5e5e5', borderRadius: '8px', marginRight: '8px' }}>🔁 Re-scan barcodes</a>
+          <a href="/admin/books/series" style={{ fontSize: '13px', fontWeight: 600, color: '#1a2f51', textDecoration: 'none', padding: '8px 12px', border: '1px solid #e5e5e5', borderRadius: '8px', marginRight: '8px' }}>📚 Series</a>
           <a href="/admin/books/covers" style={{ fontSize: '13px', fontWeight: 600, color: '#1a2f51', textDecoration: 'none', padding: '8px 12px', border: '1px solid #e5e5e5', borderRadius: '8px', marginRight: '8px' }}>🖼 Missing covers</a>
           <Btn onClick={() => { setSelectedBook(null); setPanelMode('add') }}>+ Add Book</Btn>
         </div>
