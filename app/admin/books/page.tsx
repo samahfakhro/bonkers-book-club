@@ -556,14 +556,27 @@ export default function AdminBooksPage() {
     setUploadingCoverFor(null)
   }
 
+  // the cover just saved, so a wrong paste can be undone with one tap (prev = the cover it replaced, or none)
+  const [lastCover, setLastCover] = useState<{ bookId: string; prev: string | null; url: string } | null>(null)
+  async function undoCover() {
+    if (!lastCover) return
+    const { bookId, prev } = lastCover
+    await patchBook(bookId, { cover_image_url: prev })
+    setBooks(p => p.map(b => b.id === bookId ? { ...b, cover_image_url: prev } : b))
+    setSelectedBook(p => p?.id === bookId ? { ...p, cover_image_url: prev } : p)
+    setLastCover(null)
+  }
+
   async function uploadCoverDataUrl(base64: string, bookId: string) {
-    setUploadingCoverFor(bookId); setError(null)
+    const prevCover = books.find(b => b.id === bookId)?.cover_image_url ?? null
+    setUploadingCoverFor(bookId); setError(null); setLastCover(null)
     const res = await fetch('/api/admin/books', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: bookId, bucket: 'book-covers', base64, field: 'cover_image_url' }) })
     const json = await res.json()
     if (json.error) { setError(`Cover upload failed: ${json.error}`); setUploadingCoverFor(null); return }
     setBooks(prev => prev.map(b => b.id === bookId ? { ...b, cover_image_url: json.publicUrl } : b))
     setSelectedBook(prev => prev?.id === bookId ? { ...prev, cover_image_url: json.publicUrl } : prev)
     setUploadingCoverFor(null)
+    setLastCover({ bookId, prev: prevCover, url: json.publicUrl })
   }
 
   // ── Fetch & enrich book ────────────────────────────────────────────────────
@@ -1350,6 +1363,14 @@ export default function AdminBooksPage() {
                     <div>
                       <label style={lbl}>{selectedBook.cover_image_url ? 'Cover — change it:' : 'Cover — add one:'}</label>
                       <CoverPicker key={selectedBook.id} title={selectedBook.title} googleSearch={`${selectedBook.title} ${selectedBook.author || ''} book cover`} busy={uploadingCoverFor === selectedBook.id} onPicked={url => uploadCoverDataUrl(url, selectedBook.id)} />
+                      {lastCover?.bookId === selectedBook.id && (
+                        <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: '12px', color: '#166534' }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={lastCover.url} alt="" style={{ width: '40px', height: '60px', objectFit: 'contain', borderRadius: '3px', backgroundColor: '#fff' }} />
+                          <span style={{ flex: 1 }}>✓ New cover saved for <strong>{selectedBook.title}</strong>. Wrong picture?</span>
+                          <button onClick={undoCover} style={{ fontSize: '12px', fontWeight: 700, color: '#1a2f51', border: '1px solid #d4d4d4', borderRadius: '8px', padding: '6px 12px', backgroundColor: '#fff', cursor: 'pointer' }}>Undo</button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

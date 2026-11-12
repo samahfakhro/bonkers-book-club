@@ -87,10 +87,23 @@ export default function MissingCoversPage() {
   }, [selected])
 
   // the book has its cover: take it off the list and highlight the next one (skipping ones marked "none of these")
-  const done = useCallback((bookId: string, title: string) => {
+  // the last cover saved, so a wrong paste can be undone (the book goes back on the list, highlighted)
+  const [lastSaved, setLastSaved] = useState<{ book: Book; url: string } | null>(null)
+  async function undoLast() {
+    if (!lastSaved) return
+    const { book } = lastSaved
+    await fetch('/api/admin/books', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: book.id, cover_image_url: null }) })
+    setBooks(prev => [...prev, book].sort((a, b) => a.title.localeCompare(b.title)))
+    setSelected(book.id); setDoneCount(n => Math.max(0, n - 1)); setLastSaved(null)
+    setMsg({ ok: true, text: `Undone: ${book.title} has no cover again.` })
+  }
+
+  const done = useCallback((bookId: string, title: string, url?: string) => {
     setMsg({ ok: true, text: `✓ Cover saved for ${title}` })
     setDoneCount(n => n + 1)
     setBooks(prev => {
+      const saved = prev.find(b => b.id === bookId)
+      if (saved && url) setLastSaved({ book: saved, url })
       const i = prev.findIndex(b => b.id === bookId)
       const next = prev.filter(b => b.id !== bookId)
       const order = next.slice(i).concat(next.slice(0, i))
@@ -107,7 +120,7 @@ export default function MissingCoversPage() {
       const res = await fetch('/api/admin/cover-candidates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: bookId, url }) })
       const j = await res.json().catch(() => ({}))
       if (!res.ok || !j.publicUrl) throw new Error(j.error || 'save failed')
-      done(bookId, book.title)
+      done(bookId, book.title, j.publicUrl)
     } catch (e: any) {
       setMsg({ ok: false, text: `⚠ Couldn’t save that cover: ${e?.message || 'try another'}` })
     } finally { setBusy(null) }
@@ -136,7 +149,7 @@ export default function MissingCoversPage() {
       const res = await fetch('/api/admin/books', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: bookId, bucket: 'book-covers', base64, field: 'cover_image_url' }) })
       const j = await res.json().catch(() => ({}))
       if (!res.ok || !j.publicUrl) throw new Error(j.error || 'upload failed')
-      done(bookId, book.title)
+      done(bookId, book.title, j.publicUrl)
     } catch (e: any) {
       setMsg({ ok: false, text: e?.message === 'not an image' ? 'That wasn’t an image. On Amazon, right-click the cover and choose “Copy image”, then paste again.' : `⚠ Couldn’t save the cover: ${e?.message || 'try again'}` })
     } finally { setBusy(null) }
@@ -177,7 +190,12 @@ export default function MissingCoversPage() {
         Or click <strong>Amazon</strong> on a book → right-click the cover → <strong>Copy image</strong> → come back and press <strong>Ctrl + V</strong>. It goes on the highlighted book, then the next book is highlighted. You can also drag an image file onto a row.
       </p>
 
-      {msg && <div style={{ position: 'sticky', top: 0, zIndex: 5, marginBottom: '12px', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, backgroundColor: msg.ok ? '#f0fdf4' : '#fef2f2', color: msg.ok ? '#166534' : '#b91c1c', border: `1px solid ${msg.ok ? '#bbf7d0' : '#fecaca'}` }}>{msg.text}</div>}
+      {msg && <div style={{ position: 'sticky', top: 0, zIndex: 5, marginBottom: '12px', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, backgroundColor: msg.ok ? '#f0fdf4' : '#fef2f2', color: msg.ok ? '#166534' : '#b91c1c', border: `1px solid ${msg.ok ? '#bbf7d0' : '#fecaca'}`, display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* the cover just saved, so a wrong paste is easy to spot and undo */}
+        {msg.ok && lastSaved && msg.text.includes(lastSaved.book.title) && <img src={lastSaved.url} alt="" style={{ width: '36px', height: '54px', objectFit: 'contain', borderRadius: '3px', backgroundColor: '#fff' }} />}
+        <span style={{ flex: 1 }}>{msg.text}</span>
+        {msg.ok && lastSaved && msg.text.includes(lastSaved.book.title) && <button onClick={undoLast} style={{ fontSize: '12px', fontWeight: 700, color: navy, border: '1px solid #d4d4d4', borderRadius: '8px', padding: '6px 12px', backgroundColor: '#fff', cursor: 'pointer' }}>Wrong picture? Undo</button>}
+      </div>}
 
       {books.length === 0 && <p style={{ fontSize: '14px', color: '#16a34a', fontWeight: 600 }}>Every book has a cover! 🎉</p>}
 
