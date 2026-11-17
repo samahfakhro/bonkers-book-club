@@ -67,7 +67,8 @@ function CategoryBlob({ cat, size = 40, labelSize = '0.5rem', showLabel = true }
   const blob = getCategoryBlob(cat.name)
   if (!blob) return null
   return (
-    <div style={{ padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: showLabel ? '8px' : 0, width: `${size + 14}px` }}>
+    // every slot is the same width, wide enough for the longest name (ADVENTURE, FRIENDSHIP), so blobs are evenly spaced and labels never overlap
+    <div style={{ padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: showLabel ? '8px' : 0, width: `${Math.max(size + 14, 76)}px`, flexShrink: 0 }}>
       <div style={{ display: 'flex', position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
         <img src={blob} alt={cat.name} style={{ width: `${size}px`, height: `${size}px`, objectFit: 'contain', display: 'block', flexShrink: 0 }} />
         <CategorySymbol name={cat.name} />
