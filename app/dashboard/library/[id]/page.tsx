@@ -577,6 +577,66 @@ export default function BookDetailPage() {
     })
     .filter(c => c.avg > 0)
 
+  // Add to next delivery / Notify me: shown under the details on phones, inside the details column on iPad and computer
+  const ctaBlock = (
+  <div className="book-detail-wide book-cta" style={{ padding: '16px 16px 24px', position: 'relative' }}>
+
+    {isAvailable || swapChildId ? (
+      <>
+        <div style={{ position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+
+            {/* Swap button */}
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img src="/spines/whiskers_left_yellow.png" alt="" style={{ height: '44px', width: 'auto', flexShrink: 0, marginRight: '8px', pointerEvents: 'none' }} />
+              <button
+                onClick={swapChildId ? handleRemoveFromSwap : handleAddToSwap}
+                style={{
+                  background: swapChildId ? 'none' : '#1a2f51',
+                  border: swapChildId ? '1.5px solid rgba(26,47,81,0.2)' : 'none',
+                  borderRadius: '999px', cursor: 'pointer',
+                  padding: '16px 28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={swapChildId ? '#4cde80' : '#fefaf2'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <rect x="1" y="3" width="15" height="13" rx="1"/>
+                  <path d="M16 8h4l3 5v3h-7V8z"/>
+                  <circle cx="5.5" cy="18.5" r="2.5"/>
+                  <circle cx="18.5" cy="18.5" r="2.5"/>
+                </svg>
+                <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.82rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: swapChildId ? '#4cde80' : '#fefaf2', whiteSpace: 'nowrap' }}>
+                  {swapChildId ? "✓ Added" : '+ Add to Next Delivery'}
+                </span>
+              </button>
+              <img src="/spines/whiskers_right_yellow.png" alt="" style={{ height: '44px', width: 'auto', flexShrink: 0, marginLeft: '8px', pointerEvents: 'none' }} />
+            </div>
+
+          </div>
+
+        </div>
+
+      </>
+    ) : (
+      <>
+        {/* Notify me */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+          {isNotifying && <img src="/spines/whiskers_left_yellow.png" alt="" style={{ height: '44px', width: 'auto', flexShrink: 0, marginRight: '8px' }} />}
+          <button onClick={toggleNotify} disabled={notifyLoading}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '16px 28px', borderRadius: '999px', cursor: 'pointer', border: '1.5px solid rgba(26,47,81,0.2)', background: 'none' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill={isNotifying ? '#5a8a5a' : '#1a2f51'} stroke={isNotifying ? '#5a8a5a' : '#1a2f51'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.82rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: isNotifying ? '#5a8a5a' : '#1a2f51', whiteSpace: 'nowrap' }}>
+              {isNotifying ? "We'll notify you" : "Notify me when it's back"}
+            </span>
+          </button>
+          {isNotifying && <img src="/spines/whiskers_right_yellow.png" alt="" style={{ height: '44px', width: 'auto', flexShrink: 0, marginLeft: '8px' }} />}
+        </div>
+
+      </>
+    )}
+  </div>
+  )
+
   return (
     <main className="min-h-screen" style={{ paddingBottom: '100px', backgroundColor: '#fefaf2' }}>
       {toast && (
@@ -590,13 +650,29 @@ export default function BookDetailPage() {
         .shelf-big.shelf-on > img { width: 100% !important; max-height: none !important; }
         @media (min-width: 768px) and (max-width: 1024px) {
           .book-detail-layout { gap: 32px !important; }
+          /* iPad: the page's text scale is large, so keep the description and the Add / Notify buttons at a comfortable size */
+          .book-description { font-size: 0.74rem !important; line-height: 1.7 !important; }
+          .book-cover-col { width: 35% !important; }
+          .book-info-col h1 { font-size: 1.45rem !important; }
+          .book-info-col > p { font-size: 0.7rem !important; }
+          .book-info-col .series-pill p, .book-info-col button p { font-size: 0.58rem !important; }
+          .meta-in-column p { font-size: 0.58rem !important; }
+          .book-back-label { font-size: 0.62rem !important; }
+          .cta-in-column .book-cta { padding: 14px 0 0 !important; }
+          /* category names beside the cover: sized so even 5 long names (ADVENTURE, FRIENDSHIP) never overlap */
+          .book-cats-col span { font-size: 0.46rem !important; letter-spacing: 0.04em !important; }
+          .book-cats-col.cats-5 span { font-size: 0.42rem !important; letter-spacing: 0.02em !important; }
+          .cta-in-column .book-cta > div > div > div { justify-content: flex-start !important; }
+          .book-cta button { padding: 18px 30px !important; }
+          .book-cta button span { font-size: 0.52rem !important; }
+          .book-cta button svg { width: 18px !important; height: 18px !important; }
           .wishlist-heart { width: 28px !important; height: 28px !important; }
           .review-stats-row { width: fit-content !important; gap: 24px !important; }
           .review-stats-row > div { flex: none !important; }
           .review-section-wrapper { gap: 28px !important; }
           .meta-in-column { display: flex !important; }
           .meta-below { display: none !important; }
-          .book-cover-col { width: 28% !important; }
+          
           .review-sparkle-star { width: 80px !important; height: 80px !important; }
           .review-cat-label { font-size: 1.2rem !important; }
           .book-detail-wide { padding-left: 44px !important; padding-right: 44px !important; }
@@ -659,7 +735,7 @@ export default function BookDetailPage() {
       <div className="book-detail-wide" style={{ padding: '32px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <button onClick={() => router.push(childIdParam ? `/dashboard/library?from=child&childId=${childIdParam}` : '/dashboard/library')} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(26,47,81,0.55)', padding: 0 }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-          <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', letterSpacing: '0.03em' }}>Back to Library</span>
+          <span className="book-back-label" style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.8rem', letterSpacing: '0.03em' }}>Back to Library</span>
         </button>
         <button onClick={handleHeartClick} disabled={wishlistLoading} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'none', border: 'none', cursor: 'pointer', color: '#1a2f51', padding: 0 }}>
           <svg className="wishlist-heart" width="18" height="18" viewBox="0 0 24 24" fill={wishlistedChildIds.has(isChildMode ? childIdParam! : (selectedChildId || '')) ? '#e05c5c' : 'none'} stroke={wishlistedChildIds.has(isChildMode ? childIdParam! : (selectedChildId || '')) ? '#e05c5c' : 'currentColor'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -737,11 +813,12 @@ export default function BookDetailPage() {
           {/* Category blobs */}
           {book.categories.length > 0 && (
             <>
-              <div className="hidden md:grid" style={{ gridTemplateColumns: `repeat(${Math.max(book.categories.filter(cat => getCategoryBlob(cat.name)).length, 3)}, minmax(0, 1fr))`, justifyItems: 'center', gap: '4px', marginTop: '14px', marginBottom: '10px', maxWidth: '460px' }}>
+              <div className={`hidden md:grid book-cats-col cats-${book.categories.filter(cat => getCategoryBlob(cat.name)).length}`} style={{ gridTemplateColumns: `repeat(${Math.max(book.categories.filter(cat => getCategoryBlob(cat.name)).length, 3)}, minmax(0, 1fr))`, justifyItems: 'center', gap: '4px', marginTop: '14px', marginBottom: '10px', maxWidth: '460px' }}>
                 {book.categories.filter(cat => getCategoryBlob(cat.name)).map((cat, _, all) => (
                   <CategoryBlob key={cat.id} cat={cat} size={all.length >= 5 ? 62 : 78} fill />
                 ))}
               </div>
+              <div className="hidden md:block cta-in-column">{ctaBlock}</div>
             </>
           )}
 
@@ -790,70 +867,16 @@ export default function BookDetailPage() {
         )
       })()}
 
+      {/* ── CTA: Add to swap / Notify me ── */}
+      {/* phones: the buttons sit under the details; iPad and computer: they sit in the details column (below) */}
+      <div className="md:hidden">{ctaBlock}</div>
+
       {/* ── Description ── */}
       {book.description && (
-        <p className="book-detail-wide" style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '1rem', lineHeight: 1.8, margin: '0 0 24px', padding: '0 16px' }}>
+        <p className="book-detail-wide book-description" style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '1rem', lineHeight: 1.8, margin: '0 0 24px', padding: '0 16px' }}>
           {book.description}
         </p>
       )}
-
-      {/* ── CTA: Add to swap / Notify me ── */}
-      <div className="book-detail-wide" style={{ padding: '16px 16px 24px', position: 'relative' }}>
-
-        {isAvailable || swapChildId ? (
-          <>
-            <div style={{ position: 'relative' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-
-                {/* Swap button */}
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <img src="/spines/whiskers_left_yellow.png" alt="" style={{ height: '44px', width: 'auto', flexShrink: 0, marginRight: '8px', pointerEvents: 'none' }} />
-                  <button
-                    onClick={swapChildId ? handleRemoveFromSwap : handleAddToSwap}
-                    style={{
-                      background: swapChildId ? 'none' : '#1a2f51',
-                      border: swapChildId ? '1.5px solid rgba(26,47,81,0.2)' : 'none',
-                      borderRadius: '999px', cursor: 'pointer',
-                      padding: '16px 28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                    }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={swapChildId ? '#4cde80' : '#fefaf2'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                      <rect x="1" y="3" width="15" height="13" rx="1"/>
-                      <path d="M16 8h4l3 5v3h-7V8z"/>
-                      <circle cx="5.5" cy="18.5" r="2.5"/>
-                      <circle cx="18.5" cy="18.5" r="2.5"/>
-                    </svg>
-                    <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.82rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: swapChildId ? '#4cde80' : '#fefaf2', whiteSpace: 'nowrap' }}>
-                      {swapChildId ? "✓ Added" : '+ Add to Next Delivery'}
-                    </span>
-                  </button>
-                  <img src="/spines/whiskers_right_yellow.png" alt="" style={{ height: '44px', width: 'auto', flexShrink: 0, marginLeft: '8px', pointerEvents: 'none' }} />
-                </div>
-
-              </div>
-
-            </div>
-
-          </>
-        ) : (
-          <>
-            {/* Notify me */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-              {isNotifying && <img src="/spines/whiskers_left_yellow.png" alt="" style={{ height: '44px', width: 'auto', flexShrink: 0, marginRight: '8px' }} />}
-              <button onClick={toggleNotify} disabled={notifyLoading}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '16px 28px', borderRadius: '999px', cursor: 'pointer', border: '1.5px solid rgba(26,47,81,0.2)', background: 'none' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill={isNotifying ? '#5a8a5a' : '#1a2f51'} stroke={isNotifying ? '#5a8a5a' : '#1a2f51'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-                <span style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 600, fontSize: '0.82rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: isNotifying ? '#5a8a5a' : '#1a2f51', whiteSpace: 'nowrap' }}>
-                  {isNotifying ? "We'll notify you" : "Notify me when it's back"}
-                </span>
-              </button>
-              {isNotifying && <img src="/spines/whiskers_right_yellow.png" alt="" style={{ height: '44px', width: 'auto', flexShrink: 0, marginLeft: '8px' }} />}
-            </div>
-
-          </>
-        )}
-      </div>
 
       {/* ── What Curious kids think ── */}
       <section style={{ padding: '24px 0 28px' }}>

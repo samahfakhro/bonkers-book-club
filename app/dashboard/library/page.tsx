@@ -18,7 +18,7 @@ import { nextDeliverySpace, openFullDelivery } from '@/lib/next-delivery'
 import { seriesLine } from '@/lib/book-titles'
 import SeriesLine from '@/components/SeriesLine'
 
-type Book = { id: string; title: string; author: string; cover_image_url: string | null; series_number?: number | null; series_label?: string | null }
+type Book = { id: string; title: string; author: string; cover_image_url: string | null; series_number?: number | null; series_label?: string | null; series_id?: string | null }
 type Category = { id: string; name: string; image_url: string | null }
 type ReadingLevel = { id: string; name: string }
 type Child = { id: string; name: string; date_of_birth?: string | null; book_slot_allocation?: number | null; avatar_id?: string | null; avatar_image_url?: string | null }
@@ -269,7 +269,7 @@ function LibraryPageInner() {
       const { data } = await supabase.rpc('search_books', { q: searchQuery }).select('id, title, author, cover_image_url, series_number, series:series_id(id, name, series_number, parent_series_id, parent:parent_series_id(id, name))')
       if (!alive) return
       setSearchResults(((data ?? []) as any[]).map((b: any) => {
-        return { ...b, series_label: seriesLine(b.series, b.series_number) }
+        return { ...b, series_id: b.series?.id ?? null, series_label: seriesLine(b.series, b.series_number) }
       })); setSearchLoading(false)
     })()
     return () => { alive = false }
@@ -400,6 +400,22 @@ function LibraryPageInner() {
         showFull(); return
       }
       if (itemErr && itemErr.code !== '23505') console.error('swap_request_items insert failed:', itemErr)
+    }
+  }
+
+  // tapping the gold series line opens the series page (all its books in order); the rest of the tile still opens the book
+  function seriesTap(book: Book) {
+    if (!book.series_id) return {}
+    const go = () => {
+      sessionStorage.setItem('libraryScrollY', String(window.scrollY))
+      clearSearch()
+      router.push(`/dashboard/library/series/${book.series_id}${childIdParam ? `?childId=${childIdParam}` : ''}`)
+    }
+    return {
+      role: 'link' as const, title: 'See all the books in this series',
+      onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),
+      onPointerUp: (e: React.PointerEvent) => { e.stopPropagation(); go() },
+      onClick: (e: React.MouseEvent) => { e.stopPropagation(); e.preventDefault() },
     }
   }
 
@@ -578,7 +594,7 @@ function LibraryPageInner() {
                     </div>
                     <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '0.95rem', fontWeight: 700, lineHeight: 1.2, margin: 0 }}>{book.title}</p>
                     <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.65rem', opacity: 0.6, marginTop: '2px' }}>{book.author}</p>
-                    {book.series_label && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.65rem', fontWeight: 700, color: '#c48b00', letterSpacing: '0.05em', marginTop: '2px' }}>{book.series_label}</p>}
+                    {book.series_label && <p {...seriesTap(book)} style={{ cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.65rem', fontWeight: 700, color: '#c48b00', letterSpacing: '0.05em', marginTop: '2px' }}>{book.series_label}</p>}
                   </button>
                 ))}
               </div>
@@ -804,7 +820,7 @@ function LibraryPageInner() {
                   </button>
                   <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', flex: 1 }}>
                     <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '1.05rem', fontWeight: 700, letterSpacing: '0.03em', lineHeight: 1.3, margin: 0, textAlign: 'center', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{book.title}</p>
-                    {book.series_label && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.75rem', fontWeight: 700, color: '#c48b00', letterSpacing: '0.06em', margin: '4px 0 0', textAlign: 'center', lineHeight: 1.35, overflowWrap: 'anywhere' }}>{book.series_label}</p>}
+                    {book.series_label && <p {...seriesTap(book)} style={{ cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.75rem', fontWeight: 700, color: '#c48b00', letterSpacing: '0.06em', margin: '4px 0 0', textAlign: 'center', lineHeight: 1.35, overflowWrap: 'anywhere' }}>{book.series_label}</p>}
                     <div style={{ marginTop: 'auto' }}><BookActions book={book} isAvailable={isAvailable} /></div>
                   </div>
                 </div>
@@ -827,7 +843,7 @@ function LibraryPageInner() {
                     <button {...makeTapHandlers(() => navigateToBook(book.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left', display: 'block', width: '100%' }}>
                       <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.88rem', fontWeight: 700, lineHeight: 1.25, margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{book.title}</p>
                       <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: '0.68rem', opacity: 0.55, margin: '4px 0 0' }}>{book.author}</p>
-                      {book.series_label && <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.65rem', fontWeight: 700, color: '#c48b00', letterSpacing: '0.05em', margin: '3px 0 0' }}>{book.series_label}</p>}
+                      {book.series_label && <p {...seriesTap(book)} style={{ cursor: 'pointer', fontFamily: 'var(--font-montserrat), sans-serif', fontSize: '0.65rem', fontWeight: 700, color: '#c48b00', letterSpacing: '0.05em', margin: '3px 0 0' }}>{book.series_label}</p>}
                     </button>
                     <BookActions book={book} isAvailable={isAvailable} />
                   </div>
