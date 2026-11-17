@@ -63,12 +63,12 @@ type ShelfBook = {
 
 
 
-function CategoryBlob({ cat, size = 40, labelSize = '0.5rem', showLabel = true }: { cat: { id: string; name: string }; size?: number; labelSize?: string; showLabel?: boolean }) {
+function CategoryBlob({ cat, size = 40, labelSize = '0.5rem', showLabel = true, fill = false }: { cat: { id: string; name: string }; size?: number; labelSize?: string; showLabel?: boolean; fill?: boolean }) {
   const blob = getCategoryBlob(cat.name)
   if (!blob) return null
   return (
     // every slot is the same width, wide enough for the longest name (ADVENTURE, FRIENDSHIP), so blobs are evenly spaced and labels never overlap
-    <div style={{ padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: showLabel ? '8px' : 0, width: `${Math.max(size + 14, 76)}px`, flexShrink: 0 }}>
+    <div style={{ padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: showLabel ? '8px' : 0, width: fill ? '100%' : `${Math.max(size + 14, 76)}px`, minWidth: 0, flexShrink: 0 }}>
       <div style={{ display: 'flex', position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
         <img src={blob} alt={cat.name} style={{ width: `${size}px`, height: `${size}px`, objectFit: 'contain', display: 'block', flexShrink: 0 }} />
         <CategorySymbol name={cat.name} />
@@ -585,6 +585,9 @@ export default function BookDetailPage() {
         </div>
       )}
       <style>{`
+        /* the big cover: no fixed book-shaped space, it keeps its own shape and its top lines up with the title */
+        .shelf-big.shelf-on { aspect-ratio: auto !important; align-items: flex-start !important; }
+        .shelf-big.shelf-on > img { width: 100% !important; max-height: none !important; }
         @media (min-width: 768px) and (max-width: 1024px) {
           .book-detail-layout { gap: 32px !important; }
           .wishlist-heart { width: 28px !important; height: 28px !important; }
@@ -600,6 +603,12 @@ export default function BookDetailPage() {
           .book-detail-layout { padding-left: 44px !important; padding-right: 44px !important; }
         }
         @media (max-width: 767px) {
+          /* phones: everything stacked in one centred column */
+          .book-detail-layout { flex-direction: column !important; align-items: center !important; gap: 14px !important; }
+          .book-cover-col { width: 60% !important; }
+          .book-info-col { width: 100%; align-items: center; text-align: center; }
+          .book-info-col button { text-align: center !important; }
+          .meta-below { justify-content: center; }
           .review-cat-rows { gap: 14px !important; }
           .review-blob-item { width: 26px !important; height: 26px !important; overflow: hidden !important; }
           .review-blob-item img { max-width: 26px !important; max-height: 26px !important; }
@@ -687,7 +696,7 @@ export default function BookDetailPage() {
         </div>
 
         {/* Book info */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: '2px', minWidth: 0 }}>
+        <div className="book-info-col" style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: '2px', minWidth: 0 }}>
           <h1 ref={titleRef} style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '1.875rem', color: '#1a2f51', fontWeight: 700, lineHeight: 1.1, margin: '0 0 4px', overflow: 'hidden' }}>
             {book.title}
           </h1>
@@ -728,14 +737,9 @@ export default function BookDetailPage() {
           {/* Category blobs */}
           {book.categories.length > 0 && (
             <>
-              <div className="flex md:hidden flex-wrap justify-start" style={{ gap: '4px', marginTop: '6px', marginBottom: '10px' }}>
-                {book.categories.filter(cat => getCategoryBlob(cat.name)).map(cat => (
-                  <CategoryBlob key={cat.id} cat={cat} size={44} labelSize='0.6rem' />
-                ))}
-              </div>
-              <div className="hidden md:flex flex-wrap justify-start" style={{ gap: '4px', marginTop: '14px', marginBottom: '10px' }}>
-                {book.categories.filter(cat => getCategoryBlob(cat.name)).map(cat => (
-                  <CategoryBlob key={cat.id} cat={cat} size={78} />
+              <div className="hidden md:grid" style={{ gridTemplateColumns: `repeat(${Math.max(book.categories.filter(cat => getCategoryBlob(cat.name)).length, 3)}, minmax(0, 1fr))`, justifyItems: 'center', gap: '4px', marginTop: '14px', marginBottom: '10px', maxWidth: '460px' }}>
+                {book.categories.filter(cat => getCategoryBlob(cat.name)).map((cat, _, all) => (
+                  <CategoryBlob key={cat.id} cat={cat} size={all.length >= 5 ? 62 : 78} fill />
                 ))}
               </div>
             </>
@@ -743,6 +747,7 @@ export default function BookDetailPage() {
 
         </div>
       </div>
+
 
       {/* ── Metadata row — mobile only ── */}
       {(book.age_min || book.page_count || book.book_type) && (
@@ -774,6 +779,16 @@ export default function BookDetailPage() {
           )}
         </div>
       )}
+
+      {/* Category blobs on phones: a full-width row under the cover and title, evenly spread (up to 5 on one line) */}
+      {book.categories.some(cat => getCategoryBlob(cat.name)) && (() => {
+        const cats = book.categories.filter(cat => getCategoryBlob(cat.name))
+        return (
+          <div className="grid md:hidden" style={{ gridTemplateColumns: `repeat(${cats.length}, minmax(0, 80px))`, justifyContent: 'center', justifyItems: 'center', gap: '2px', padding: '0 16px', margin: '0 0 22px' }}>
+            {cats.map(cat => <CategoryBlob key={cat.id} cat={cat} size={cats.length >= 5 ? 40 : 44} labelSize={cats.length >= 5 ? '0.55rem' : '0.6rem'} fill />)}
+          </div>
+        )
+      })()}
 
       {/* ── Description ── */}
       {book.description && (
