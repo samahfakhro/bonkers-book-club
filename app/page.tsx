@@ -146,7 +146,7 @@ export default function LandingPage() {
               <ThreeColumns isTablet={isTablet} />
               <div style={{ position: 'relative', width: '100%' }}>
               </div>
-              <div style={{ marginTop: '44px', transform: 'scale(1.2)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} label="Join now" /></div>
+              <div style={{ marginTop: '44px', transform: 'scale(1.2)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} label="Join here" /></div>
             </>
           ) : (
             <>
@@ -156,7 +156,7 @@ export default function LandingPage() {
               <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: '#1a2f51', fontSize: isTablet ? '0.8rem' : '0.96rem', lineHeight: 1.5, letterSpacing: '0.02em', margin: '-4px 0 0', textAlign: 'center' }}>Curated by kids. Approved by parents.</p>
               <ThreeColumns isTablet={isTablet} />
               <div style={{ position: 'relative' }}>
-                <div style={{ marginTop: '16px', position: 'relative', zIndex: 20 }}><CheckAreaButton onClick={goCheck} label="Join now" /></div>
+                <div style={{ marginTop: '16px', position: 'relative', zIndex: 20 }}><CheckAreaButton onClick={goCheck} label="Join here" /></div>
               </div>
             </>
           )}
@@ -216,7 +216,7 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-          <div style={{ marginTop: '36px', marginBottom: '0', transform: 'scale(1.15)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} label="Join now" /></div>
+          <div style={{ marginTop: '36px', marginBottom: '0', transform: 'scale(1.15)', transformOrigin: 'center' }}><CheckAreaButton onClick={goCheck} label="Join here" /></div>
         </div>
 
         {/* Bottom decorative image */}
@@ -378,7 +378,7 @@ export default function LandingPage() {
         </div>
 
         <div style={{ textAlign: 'center', marginTop: isTablet ? '32px' : '24px', transform: 'scale(1.15)', transformOrigin: 'center' }}>
-          <CheckAreaButton onClick={goCheck} label="Join now" />
+          <CheckAreaButton onClick={goCheck} label="Join here" />
         </div>
 
         <div style={{ textAlign: 'center', padding: isTablet ? '60px 24px 8px' : '10px 24px 8px' }}>
@@ -388,12 +388,10 @@ export default function LandingPage() {
             <p style={{ fontFamily: 'var(--font-cormorant), serif', color: '#1a2f51', fontSize: '1.6rem', fontWeight: 700, lineHeight: 1.2, margin: '0 0 6px' }}>Like what you see?</p>
             <p style={{ fontFamily: 'var(--font-montserrat), sans-serif', color: 'rgba(26,47,81,0.7)', fontSize: '0.82rem', lineHeight: 1.6, margin: '0 0 20px' }}>There are plenty more where those came from.</p>
             <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-              <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', left: '-32px', height: '44px', width: 'auto', pointerEvents: 'none', zIndex: 1, filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
               <button onClick={goCheck}
                 style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', backgroundImage: 'url(/button2.png)', backgroundSize: '300% 300%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: 'transparent', border: 'none', borderRadius: '999px', padding: '12px 28px', cursor: 'pointer' }}>
-                Join now
+                Join here
               </button>
-              <img src="/whiskers_right.png" alt="" style={{ position: 'absolute', right: '-32px', height: '44px', width: 'auto', pointerEvents: 'none', zIndex: 1, filter: 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)' }} />
             </div>
           </div>
         </div>
@@ -551,16 +549,13 @@ function ThreeColumns({ isTablet }: { isTablet: boolean }) {
   )
 }
 
-function CheckAreaButton({ onClick, label = 'Join now' }: { onClick: () => void; label?: string }) {
-  const whiskerFilter = 'brightness(0) saturate(100%) invert(87%) sepia(33%) saturate(762%) hue-rotate(339deg) brightness(103%) contrast(98%)'
+function CheckAreaButton({ onClick, label = 'Join here' }: { onClick: () => void; label?: string }) {
   return (
     <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-      <img src="/whiskers_left.png" alt="" style={{ position: 'absolute', left: '-44px', height: '60px', width: 'auto', pointerEvents: 'none', zIndex: 1, filter: whiskerFilter }} />
       <button onClick={onClick}
         style={{ fontFamily: 'var(--font-montserrat), sans-serif', fontWeight: 400, fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', backgroundImage: 'url(/button2.png)', backgroundSize: '300% 300%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: 'transparent', border: 'none', borderRadius: '999px', padding: '12px 28px', cursor: 'pointer' }}>
         {label}
       </button>
-      <img src="/whiskers_right.png" alt="" style={{ position: 'absolute', right: '-44px', height: '60px', width: 'auto', pointerEvents: 'none', zIndex: 1, filter: whiskerFilter }} />
     </div>
   )
 }
